@@ -555,6 +555,9 @@ export function LayerPanel({
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh from source
               </DropdownMenuItem>
+              <div className="px-2 pb-1 pl-8 font-secondary text-[11px] text-muted-foreground/70">
+                {updated ? `Updated ${updated}` : "Never refreshed"}
+              </div>
               <DropdownMenuItem onClick={() => onEditSource(layer)}>
                 <Database className="mr-2 h-4 w-4" />
                 Data source…
