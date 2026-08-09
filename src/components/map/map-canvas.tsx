@@ -229,12 +229,12 @@ export default function MapCanvas({
     const handler = (event: maplibregl.MapMouseEvent) => {
       const ids = layersRef.current
         .filter((l) => l.visible && l.data)
-        .flatMap((l) => ["fill", "line", "circle"].map((k) => LYR(l.id, k)))
+        .flatMap((l) => ["fill", "line", "circle", "symbol"].map((k) => LYR(l.id, k)))
         .filter((id) => map.getLayer(id));
       if (!ids.length) return;
       const [hit] = map.queryRenderedFeatures(event.point, { layers: ids });
       if (!hit) return;
-      const layerId = String(hit.layer.id).replace(/^of-(fill|line|circle)-/, "");
+      const layerId = String(hit.layer.id).replace(/^of-(fill|line|circle|symbol)-/, "");
       onFeatureClick(layerId, (hit.properties ?? {}) as Record<string, unknown>);
     };
     map.on("click", handler);
