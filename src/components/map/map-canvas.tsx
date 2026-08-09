@@ -41,6 +41,8 @@ export function basemapUrl(id: string) {
   return `https://tiles.openfreemap.org/styles/${known}`;
 }
 
+export type ScaleUnits = "imperial" | "metric";
+
 type Props = {
   basemap: string;
   layers: RenderLayer[];
@@ -50,6 +52,9 @@ type Props = {
   handleRef?: Ref<MapHandle>;
   /** When provided, style picks are reported upward (editor persists the default). */
   onBasemapChange?: (id: string) => void;
+  scaleUnits?: ScaleUnits;
+  /** When provided, scale-unit picks are reported upward (editor persists the default). */
+  onScaleUnitsChange?: (units: ScaleUnits) => void;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -63,14 +68,26 @@ export default function MapCanvas({
   onFeatureClick,
   handleRef,
   onBasemapChange,
+  scaleUnits = "imperial",
+  onScaleUnitsChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
+  const scaleRef = useRef<maplibregl.ScaleControl | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
+  const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const activeBasemap = localBasemap ?? basemap;
+  const activeScaleUnits = localScaleUnits ?? scaleUnits;
+  const toggleScaleUnits = () => {
+    const next: ScaleUnits = activeScaleUnits === "imperial" ? "metric" : "imperial";
+    setLocalScaleUnits(next);
+    onScaleUnitsChange?.(next);
+  };
+  const toggleScaleRef = useRef(toggleScaleUnits);
+  toggleScaleRef.current = toggleScaleUnits;
   const layersRef = useRef<RenderLayer[]>(layers);
   layersRef.current = layers;
 
