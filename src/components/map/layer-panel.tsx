@@ -52,6 +52,8 @@ function relativeTime(iso: string | null): string | null {
 }
 
 type DragItem = { kind: "layer" | "folder"; id: string };
+type DropPos = "before" | "after" | "inside";
+type DropTarget = { kind: "layer" | "folder" | "root"; id: string | null; position: DropPos };
 
 /** Inline rename field: local while typing, saves once on Enter or blur. */
 function NameEditor({
@@ -71,12 +73,19 @@ function NameEditor({
 }) {
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
+  const focusedRef = useRef(false);
 
   useEffect(() => {
     if (editing) {
+      focusedRef.current = false;
       setDraft(value);
-      requestAnimationFrame(() => inputRef.current?.select());
+      const id = requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+      return () => cancelAnimationFrame(id);
     }
+    return undefined;
   }, [editing, value]);
 
   if (!editing) {
@@ -102,10 +111,15 @@ function NameEditor({
     <input
       ref={inputRef}
       value={draft}
-      autoFocus
       onClick={(event) => event.stopPropagation()}
       onChange={(event) => setDraft(event.target.value)}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
       onBlur={() => {
+        // Ignore blur fired before the field ever received focus (e.g. the
+        // dropdown menu returning focus to its trigger right after opening).
+        if (!focusedRef.current) return;
         const next = draft.trim();
         if (next && next !== value) onCommit(next);
         else onCancel();
@@ -127,6 +141,7 @@ function NameEditor({
     />
   );
 }
+
 
 type Props = {
   layers: LayerRow[];
