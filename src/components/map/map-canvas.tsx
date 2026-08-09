@@ -149,13 +149,18 @@ export default function MapCanvas({
       "top-right",
     );
 
-    // Clicking the scale bar flips imperial <-> metric.
-    const scaleEl = containerRef.current.querySelector<HTMLElement>(".maplibregl-ctrl-scale");
-    if (scaleEl) {
-      scaleEl.style.cursor = "pointer";
-      scaleEl.title = "Click to switch units";
-      scaleEl.addEventListener("click", () => toggleScaleRef.current());
-    }
+    // Clicking the scale bar flips imperial <-> metric (delegated: the element
+    // is re-rendered by MapLibre whenever the unit or zoom changes).
+    const scaleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".maplibregl-ctrl-scale")) {
+        event.stopPropagation();
+        toggleScaleRef.current();
+      }
+    };
+    containerRef.current.addEventListener("click", scaleClick);
+    const scaleContainerEl = containerRef.current;
+
 
 
     map.on("error", (event) => {
