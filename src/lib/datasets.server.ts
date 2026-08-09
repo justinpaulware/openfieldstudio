@@ -111,9 +111,13 @@ export async function loadCsvPreview(rawUrl: string) {
 
 function guessNumber(value: string | undefined): number | null {
   if (value == null) return null;
-  const n = Number(value.trim());
+  const trimmed = value.trim();
+  // Number("") is 0, which would silently place blank rows at 0, 0.
+  if (trimmed === "") return null;
+  const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
 }
+
 
 export async function loadCsvGeoJSON(rawUrl: string, latField: string, lonField: string) {
   const text = await fetchText(assertPublicHttpUrl(rawUrl));
@@ -130,6 +134,9 @@ export async function loadCsvGeoJSON(rawUrl: string, latField: string, lonField:
     const lon = guessNumber(row[lonIndex]);
     if (lat == null || lon == null) continue;
     if (Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    // 0, 0 is almost always missing data rather than a real location.
+    if (lat === 0 && lon === 0) continue;
+
     const properties: Record<string, unknown> = {};
     headers.forEach((header, index) => {
       properties[header] = row[index] ?? "";

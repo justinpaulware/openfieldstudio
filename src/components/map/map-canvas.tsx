@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef, type Ref } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -62,8 +62,10 @@ export default function MapCanvas({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const layersRef = useRef<RenderLayer[]>(layers);
   layersRef.current = layers;
+
 
   useImperativeHandle(
     handleRef,
@@ -93,9 +95,14 @@ export default function MapCanvas({
     [],
   );
 
-  // Create the map once.
+  // Create the map once. Teardown is deferred so React's dev double-invoke
+  // (mount -> cleanup -> mount) does not destroy the shared worker pool
+  // while the second instance is being constructed.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    // Keep MapLibre's worker pool alive across map.remove() calls.
+    maplibregl.prewarm();
+
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: basemapUrl(basemap),
@@ -114,9 +121,25 @@ export default function MapCanvas({
       "top-right",
     );
 
+    map.on("error", (event) => {
+      const message = (event as { error?: Error }).error?.message ?? "Unknown map error";
+      console.error("[map] ", message);
+      setMapError(message);
+    });
+
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
     map.on("load", () => {
       readyRef.current = true;
+      setMapError(null);
       syncLayers(map, layersRef.current);
+      watchdog = setTimeout(() => {
+        if (!map.areTilesLoaded()) {
+          setMapError("Basemap tiles did not load.");
+        }
+      }, 8000);
+    });
+    map.on("idle", () => {
+      if (map.areTilesLoaded()) setMapError(null);
     });
     map.on("moveend", () => {
       const c = map.getCenter();
@@ -129,12 +152,15 @@ export default function MapCanvas({
     });
 
     return () => {
+      if (watchdog) clearTimeout(watchdog);
       readyRef.current = false;
-      map.remove();
       mapRef.current = null;
+      // Defer so a StrictMode remount can reuse the live worker pool.
+      setTimeout(() => map.remove(), 0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   // Basemap switching re-adds data layers once the new style settles.
   useEffect(() => {
@@ -173,7 +199,29 @@ export default function MapCanvas({
     };
   }, [onFeatureClick]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      {mapError ? (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-destructive/40 bg-card/95 px-3 py-2 text-sm text-foreground shadow-lg">
+            <span>Basemap failed to load. {mapError}</span>
+            <button
+              type="button"
+              className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted"
+              onClick={() => {
+                setMapError(null);
+                mapRef.current?.setStyle(basemapUrl(basemap));
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
 }
 
 function removeLayerIfPresent(map: MapLibreMap, id: string) {
