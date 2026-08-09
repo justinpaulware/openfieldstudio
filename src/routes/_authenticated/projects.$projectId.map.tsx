@@ -426,6 +426,19 @@ function MapEditor() {
       <header className="flex flex-wrap items-center justify-end gap-3 border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
           <Button
+            variant={showLegend ? "secondary" : "outline"}
+            size="sm"
+            title="Show legend on the map"
+            onClick={() => {
+              const next = !showLegend;
+              setLegend(next);
+              saveView.mutate({ show_legend: next });
+            }}
+          >
+            <List className="mr-1.5 h-4 w-4" />
+            Legend
+          </Button>
+          <Button
             variant="outline"
             size="sm"
             disabled={!allLayersBbox}
