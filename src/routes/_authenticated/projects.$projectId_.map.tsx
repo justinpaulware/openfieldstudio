@@ -278,6 +278,7 @@ function MapEditor() {
   };
 
   const tableLayer = layers.find((l) => l.id === tableLayerId) ?? null;
+  const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
   const nextSortOrder = layers.length
     ? Math.min(...layers.map((l) => l.sort_order)) - 1
     : 0;
