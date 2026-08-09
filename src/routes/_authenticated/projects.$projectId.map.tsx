@@ -28,12 +28,11 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-type MapSearch = { style?: boolean };
+type MapSearch = { style?: boolean | undefined };
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/map")({
-  validateSearch: (search: Record<string, unknown>): MapSearch => ({
-    style: search["style"] === true || search["style"] === "true" ? true : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>): MapSearch =>
+    search["style"] === true || search["style"] === "true" ? { style: true } : {},
   head: () => ({
     meta: [
       { title: "Map editor — Open Field" },
