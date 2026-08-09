@@ -213,7 +213,7 @@ function MapEditor() {
   });
 
   const saveView = useMutation({
-    mutationFn: async (patch?: { basemap?: string; scale_units?: string }) => {
+    mutationFn: async (patch?: { basemap?: string; scale_units?: string; show_legend?: boolean }) => {
       const view = viewRef.current ?? mapHandle.current?.getView() ?? null;
       const { error } = await supabase
         .from("projects")
