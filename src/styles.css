@@ -125,3 +125,9 @@
     letter-spacing: -0.02em;
   }
 }
+
+/* Scale bar doubles as a unit toggle. */
+.maplibregl-ctrl-scale {
+  cursor: pointer;
+  user-select: none;
+}
