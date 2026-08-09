@@ -1,17 +1,16 @@
 import { RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 import {
-  STYLE_PALETTE,
   type DashPattern,
   type LayerStyle,
   type LineCapStyle,
   type MarkerShape,
   type SimpleKind,
 } from "@/lib/layer-style";
+import { ColorField } from "./color-field";
 import { LegendSwatch } from "./map-legend";
 
 type Props = {
@@ -22,53 +21,6 @@ type Props = {
   onReset: () => void;
   onClose: () => void;
 };
-
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (hex: string) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="flex flex-wrap gap-1">
-        {STYLE_PALETTE.filter((hex) => hex !== "#00000000").map((hex) => (
-          <button
-            key={hex}
-            type="button"
-            aria-label={hex}
-            title={hex}
-            onClick={() => onChange(hex)}
-            className={cn(
-              "h-5 w-5 rounded border border-border/80",
-              value.toLowerCase() === hex.toLowerCase() && "ring-2 ring-ring ring-offset-1 ring-offset-card",
-            )}
-            style={{ backgroundColor: hex }}
-          />
-        ))}
-      </div>
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-7 w-8 cursor-pointer rounded border border-border bg-transparent p-0.5"
-          aria-label={`${label} colour picker`}
-        />
-        <Input
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-7 flex-1 font-secondary text-xs"
-          spellCheck={false}
-        />
-      </div>
-    </div>
-  );
-}
 
 function SliderField({
   label,
@@ -141,6 +93,8 @@ function OptionRow<T extends string>({
 }
 
 export function StylePanel({ layerName, kind, style, onChange, onReset, onClose }: Props) {
+  const pct = (n: number) => Math.round(n * 100);
+
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-card/40 lg:flex">
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
@@ -178,9 +132,18 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
               ]}
             />
             <ColorField
-              label="Fill colour"
+              label="Fill color"
               value={style.fillColor}
               onChange={(fillColor) => onChange({ fillColor })}
+            />
+            <SliderField
+              label="Fill opacity"
+              value={pct(style.fillOpacity)}
+              min={0}
+              max={100}
+              step={5}
+              suffix="%"
+              onChange={(value) => onChange({ fillOpacity: value / 100 })}
             />
             <SliderField
               label="Radius"
@@ -192,7 +155,7 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
               onChange={(circleRadius) => onChange({ circleRadius })}
             />
             <ColorField
-              label="Stroke colour"
+              label="Stroke color"
               value={style.strokeColor}
               onChange={(strokeColor) => onChange({ strokeColor })}
             />
@@ -205,13 +168,22 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
               suffix="px"
               onChange={(strokeWidth) => onChange({ strokeWidth })}
             />
+            <SliderField
+              label="Stroke opacity"
+              value={pct(style.strokeOpacity)}
+              min={0}
+              max={100}
+              step={5}
+              suffix="%"
+              onChange={(value) => onChange({ strokeOpacity: value / 100 })}
+            />
           </>
         )}
 
         {kind === "line" && (
           <>
             <ColorField
-              label="Line colour"
+              label="Line color"
               value={style.fillColor}
               onChange={(fillColor) => onChange({ fillColor })}
             />
@@ -223,6 +195,15 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
               step={0.5}
               suffix="px"
               onChange={(strokeWidth) => onChange({ strokeWidth })}
+            />
+            <SliderField
+              label="Line opacity"
+              value={pct(style.strokeOpacity)}
+              min={0}
+              max={100}
+              step={5}
+              suffix="%"
+              onChange={(value) => onChange({ strokeOpacity: value / 100 })}
             />
             <OptionRow<DashPattern>
               label="Dash pattern"
@@ -250,13 +231,13 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
         {kind === "polygon" && (
           <>
             <ColorField
-              label="Fill colour"
+              label="Fill color"
               value={style.fillColor}
               onChange={(fillColor) => onChange({ fillColor })}
             />
             <SliderField
               label="Fill opacity"
-              value={Math.round(style.fillOpacity * 100)}
+              value={pct(style.fillOpacity)}
               min={0}
               max={100}
               step={5}
@@ -264,7 +245,7 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
               onChange={(value) => onChange({ fillOpacity: value / 100 })}
             />
             <ColorField
-              label="Outline colour"
+              label="Outline color"
               value={style.strokeColor}
               onChange={(strokeColor) => onChange({ strokeColor })}
             />
@@ -276,6 +257,15 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
               step={0.5}
               suffix="px"
               onChange={(strokeWidth) => onChange({ strokeWidth })}
+            />
+            <SliderField
+              label="Outline opacity"
+              value={pct(style.strokeOpacity)}
+              min={0}
+              max={100}
+              step={5}
+              suffix="%"
+              onChange={(value) => onChange({ strokeOpacity: value / 100 })}
             />
             <OptionRow<DashPattern>
               label="Outline pattern"

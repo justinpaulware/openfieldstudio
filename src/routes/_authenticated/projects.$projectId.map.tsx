@@ -12,7 +12,7 @@ import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
 import { StylePanel } from "@/components/map/style-panel";
-import { MapLegend, type LegendEntry } from "@/components/map/map-legend";
+import { MapLegend, MapTitleCard, type LegendEntry } from "@/components/map/map-legend";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
@@ -511,9 +511,6 @@ function MapEditor() {
                 onToggleVisible={(layer) =>
                   updateLayer.mutate({ id: layer.id, patch: { visible: !layer.visible } })
                 }
-                onOpacity={(layer, opacity) =>
-                  updateLayer.mutate({ id: layer.id, patch: { opacity } })
-                }
                 onRename={(layer, name) => updateLayer.mutate({ id: layer.id, patch: { name } })}
                 onZoomTo={(layer) => zoomTo(layer.bbox as Bbox | null)}
                 onDelete={(layer) => deleteLayer.mutate(layer)}
@@ -581,11 +578,12 @@ function MapEditor() {
             </Suspense>
           </ClientOnly>
 
-          {showLegend && (
-            <div className="pointer-events-auto absolute bottom-10 right-2.5 z-10">
-              <MapLegend entries={legendEntries} />
-            </div>
-          )}
+          {/* Printed-map overlay stack: title above the legend, top-right below the map controls. */}
+          <div className="pointer-events-auto absolute right-2.5 top-[190px] z-10 flex flex-col items-end gap-2">
+            <MapTitleCard title={project?.title ?? ""} />
+            {showLegend && <MapLegend entries={legendEntries} />}
+          </div>
+
 
 
           {popup && (

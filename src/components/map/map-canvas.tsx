@@ -5,7 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Check, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
-import { dashArray, type LayerStyle } from "@/lib/layer-style";
+import { dashArray, isTransparent, paintColor, type LayerStyle } from "@/lib/layer-style";
 
 export type RenderLayer = {
   id: string;
@@ -351,7 +351,10 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
     const visibility = layer.visible ? "visible" : "none";
     const { style } = layer;
-    const alpha = layer.opacity;
+    // Opacity now lives entirely in the layer style (fill + stroke, separately).
+    const fillAlpha = isTransparent(style.fillColor) ? 0 : style.fillOpacity;
+    const strokeAlpha = isTransparent(style.strokeColor) ? 0 : style.strokeOpacity;
+    const lineAlpha = isTransparent(style.fillColor) ? 0 : style.strokeOpacity;
 
     const ensure = (id: string, spec: maplibregl.AddLayerObject) => {
       if (!map.getLayer(id)) map.addLayer(spec);
@@ -366,8 +369,8 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
       });
       map.setLayoutProperty(LYR(layer.id, "fill"), "visibility", visibility);
-      map.setPaintProperty(LYR(layer.id, "fill"), "fill-color", style.fillColor);
-      map.setPaintProperty(LYR(layer.id, "fill"), "fill-opacity", style.fillOpacity * alpha);
+      map.setPaintProperty(LYR(layer.id, "fill"), "fill-color", paintColor(style.fillColor));
+      map.setPaintProperty(LYR(layer.id, "fill"), "fill-opacity", fillAlpha);
 
       ensure(LYR(layer.id, "outline"), {
         id: LYR(layer.id, "outline"),
@@ -376,9 +379,9 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
       });
       map.setLayoutProperty(LYR(layer.id, "outline"), "visibility", visibility);
-      map.setPaintProperty(LYR(layer.id, "outline"), "line-color", style.strokeColor);
+      map.setPaintProperty(LYR(layer.id, "outline"), "line-color", paintColor(style.strokeColor));
       map.setPaintProperty(LYR(layer.id, "outline"), "line-width", style.strokeWidth);
-      map.setPaintProperty(LYR(layer.id, "outline"), "line-opacity", alpha);
+      map.setPaintProperty(LYR(layer.id, "outline"), "line-opacity", strokeAlpha);
       map.setPaintProperty(
         LYR(layer.id, "outline"),
         "line-dasharray",
@@ -396,9 +399,9 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       map.setLayoutProperty(LYR(layer.id, "line"), "visibility", visibility);
       map.setLayoutProperty(LYR(layer.id, "line"), "line-cap", style.lineCap);
       map.setLayoutProperty(LYR(layer.id, "line"), "line-join", "round");
-      map.setPaintProperty(LYR(layer.id, "line"), "line-color", style.fillColor);
+      map.setPaintProperty(LYR(layer.id, "line"), "line-color", paintColor(style.fillColor));
       map.setPaintProperty(LYR(layer.id, "line"), "line-width", Math.max(0.5, style.strokeWidth));
-      map.setPaintProperty(LYR(layer.id, "line"), "line-opacity", alpha);
+      map.setPaintProperty(LYR(layer.id, "line"), "line-opacity", lineAlpha);
       map.setPaintProperty(
         LYR(layer.id, "line"),
         "line-dasharray",
@@ -433,7 +436,11 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         });
         map.setLayoutProperty(LYR(layer.id, "symbol"), "icon-image", iconId);
         map.setLayoutProperty(LYR(layer.id, "symbol"), "visibility", visibility);
-        map.setPaintProperty(LYR(layer.id, "symbol"), "icon-opacity", alpha);
+        map.setPaintProperty(
+          LYR(layer.id, "symbol"),
+          "icon-opacity",
+          Math.max(fillAlpha, strokeAlpha),
+        );
       } else {
         removeLayerIfPresent(map, LYR(layer.id, "symbol"));
         const ring = style.markerShape === "ring";
@@ -444,20 +451,24 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
           filter: pointFilter,
         });
         map.setLayoutProperty(LYR(layer.id, "circle"), "visibility", visibility);
-        map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", style.fillColor);
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", paintColor(style.fillColor));
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", style.circleRadius);
-        map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", ring ? 0 : alpha);
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", ring ? 0 : fillAlpha);
         map.setPaintProperty(
           LYR(layer.id, "circle"),
           "circle-stroke-color",
-          ring ? style.fillColor : style.strokeColor,
+          paintColor(ring ? style.fillColor : style.strokeColor),
         );
         map.setPaintProperty(
           LYR(layer.id, "circle"),
           "circle-stroke-width",
           ring ? Math.max(2, style.strokeWidth) : style.strokeWidth,
         );
-        map.setPaintProperty(LYR(layer.id, "circle"), "circle-stroke-opacity", alpha);
+        map.setPaintProperty(
+          LYR(layer.id, "circle"),
+          "circle-stroke-opacity",
+          ring ? style.fillOpacity : strokeAlpha,
+        );
       }
     }
   }
@@ -476,8 +487,8 @@ function markerImage(style: LayerStyle): ImageData | null {
   if (!ctx) return null;
 
   ctx.scale(ratio, ratio);
-  ctx.fillStyle = style.fillColor;
-  ctx.strokeStyle = style.strokeColor;
+  ctx.fillStyle = isTransparent(style.fillColor) ? "rgba(0,0,0,0)" : style.fillColor;
+  ctx.strokeStyle = isTransparent(style.strokeColor) ? "rgba(0,0,0,0)" : style.strokeColor;
   ctx.lineWidth = style.strokeWidth;
   ctx.lineJoin = "round";
 
