@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderPlus, Loader2, Maximize, Plus, X } from "lucide-react";
+import { FolderPlus, List, Loader2, Maximize, Plus, X } from "lucide-react";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,35 @@ import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
+import { StylePanel } from "@/components/map/style-panel";
+import { MapLegend, type LegendEntry } from "@/components/map/map-legend";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
+import {
+  DEFAULT_LAYER_STYLE,
+  geometryKind,
+  resolveLayerStyle,
+  styleToRow,
+  type LayerStyle,
+} from "@/lib/layer-style";
 import type { Bbox, PropertyValue } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
+type MapSearch = { style?: boolean };
+
 export const Route = createFileRoute("/_authenticated/projects/$projectId/map")({
+  validateSearch: (search: Record<string, unknown>): MapSearch => ({
+    style: search["style"] === true || search["style"] === "true" ? true : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Map editor — Open Field" },
       {
         name: "description",
-        content: "Add data, arrange layers and frame the view for your Open Field webmap.",
+        content: "Add data, style layers and frame the view for your Open Field webmap.",
       },
       { property: "og:title", content: "Map editor — Open Field" },
       { property: "og:description", content: "Build an interactive webmap in Open Field." },
@@ -36,13 +50,6 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/map")(
 
 type LayerWithStyle = LayerRow & { layer_styles: Tables<"layer_styles">[] | null };
 
-const DEFAULT_STYLE = {
-  fillColor: "#f5c518",
-  strokeColor: "#1b1d22",
-  strokeWidth: 1,
-  circleRadius: 5,
-  fillOpacity: 0.55,
-};
 
 function MapEditor() {
   const { projectId } = Route.useParams();
