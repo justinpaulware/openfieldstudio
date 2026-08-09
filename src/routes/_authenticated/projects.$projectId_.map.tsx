@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { LayerPanel, type FolderRow } from "@/components/map/layer-panel";
+import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
