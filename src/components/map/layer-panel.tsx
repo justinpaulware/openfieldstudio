@@ -195,8 +195,18 @@ export function LayerPanel({
   onCreateFolder,
 }: Props) {
   const [drag, setDrag] = useState<DragItem | null>(null);
-  const [dropFolderId, setDropFolderId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
+
+  const beginEdit = (id: string) => {
+    // Wait for the dropdown to finish closing before focusing the input.
+    requestAnimationFrame(() => requestAnimationFrame(() => setEditing(id)));
+  };
+
+  const clearDrag = () => {
+    setDrag(null);
+    setDropTarget(null);
+  };
 
   const layersIn = (folderId: string | null) => layers.filter((l) => l.folder_id === folderId);
   const childFolders = (parentId: string | null) =>
@@ -204,78 +214,130 @@ export function LayerPanel({
       .filter((f) => f.parent_id === parentId)
       .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
 
-  const reorderFolders = (dragged: FolderRow, target: FolderRow) => {
-    const siblings = childFolders(dragged.parent_id);
-    const ids = siblings.map((f) => f.id);
-    const from = ids.indexOf(dragged.id);
-    const to = ids.indexOf(target.id);
-    if (from < 0 || to < 0) return;
-    ids.splice(to, 0, ids.splice(from, 1)[0] as string);
-    onFolderReorder(ids);
+  const isDescendant = (folderId: string, maybeAncestorId: string): boolean => {
+    let current = folders.find((f) => f.id === folderId);
+    while (current?.parent_id) {
+      if (current.parent_id === maybeAncestorId) return true;
+      current = folders.find((f) => f.id === current!.parent_id);
+    }
+    return false;
   };
 
-  const handleDropOnLayer = (target: LayerRow) => {
-    if (!drag) return;
-    if (drag.kind === "folder") {
-      const dragged = folders.find((f) => f.id === drag.id);
-      setDrag(null);
-      if (dragged && dragged.parent_id !== target.folder_id) {
-        onFolderMove(dragged, target.folder_id);
-      }
-      return;
+  const positionFrom = (event: React.DragEvent, allowInside: boolean): DropPos => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offset = event.clientY - rect.top;
+    if (allowInside) {
+      if (offset < rect.height * 0.3) return "before";
+      if (offset > rect.height * 0.7) return "after";
+      return "inside";
     }
-    if (drag.id === target.id) return;
-    const dragged = layers.find((l) => l.id === drag.id);
+    return offset < rect.height / 2 ? "before" : "after";
+  };
+
+  const showLine = (kind: "layer" | "folder" | "root", id: string | null, position: DropPos) =>
+    !!drag &&
+    !!dropTarget &&
+    dropTarget.kind === kind &&
+    dropTarget.id === id &&
+    dropTarget.position === position;
+
+  const DropLine = ({ visible }: { visible: boolean }) =>
+    visible ? (
+      <div className="pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full bg-primary shadow-[0_0_0_1px_hsl(var(--background))]" />
+    ) : null;
+
+  /** Place a layer next to `target` (or at the end of `container` when null). */
+  const placeLayer = (
+    dragged: LayerRow,
+    container: string | null,
+    target: LayerRow | null,
+    position: DropPos,
+  ) => {
     const ids = layers.map((l) => l.id);
-    const from = ids.indexOf(drag.id);
-    const to = ids.indexOf(target.id);
-    setDrag(null);
-    if (from < 0 || to < 0) return;
-    ids.splice(to, 0, ids.splice(from, 1)[0] as string);
+    const from = ids.indexOf(dragged.id);
+    if (from < 0) return;
+    ids.splice(from, 1);
+    let to = target ? ids.indexOf(target.id) : ids.length;
+    if (to < 0) to = ids.length;
+    else if (position === "after") to += 1;
+    ids.splice(to, 0, dragged.id);
     onReorder(ids);
-    if (dragged && dragged.folder_id !== target.folder_id) {
-      onMoveToFolder(dragged, target.folder_id);
-    }
+    if (dragged.folder_id !== container) onMoveToFolder(dragged, container);
   };
 
-  const handleDropOnFolder = (folderId: string | null) => {
+  /** Place a folder among the children of `parentId`. */
+  const placeFolder = (
+    dragged: FolderRow,
+    parentId: string | null,
+    target: FolderRow | null,
+    position: DropPos,
+  ) => {
+    if (dragged.id === parentId) return;
+    if (parentId && isDescendant(parentId, dragged.id)) return;
+    // Nesting stays one level deep.
+    if (parentId) {
+      const parent = folders.find((f) => f.id === parentId);
+      if (!parent || parent.parent_id !== null) return;
+      if (folders.some((f) => f.parent_id === dragged.id)) return;
+    }
+    if (dragged.parent_id !== parentId) onFolderMove(dragged, parentId);
+    const siblings = childFolders(parentId)
+      .map((f) => f.id)
+      .filter((id) => id !== dragged.id);
+    let to = target && target.id !== dragged.id ? siblings.indexOf(target.id) : siblings.length;
+    if (to < 0) to = siblings.length;
+    else if (position === "after") to += 1;
+    siblings.splice(to, 0, dragged.id);
+    onFolderReorder(siblings);
+  };
+
+  const commitDrop = (target: DropTarget) => {
     const current = drag;
-    setDrag(null);
-    setDropFolderId(null);
+    clearDrag();
     if (!current) return;
 
     if (current.kind === "layer") {
       const dragged = layers.find((l) => l.id === current.id);
-      if (!dragged || dragged.folder_id === folderId) return;
-      onMoveToFolder(dragged, folderId);
+      if (!dragged) return;
+      if (target.kind === "layer") {
+        const row = layers.find((l) => l.id === target.id);
+        if (!row || row.id === dragged.id) return;
+        placeLayer(dragged, row.folder_id, row, target.position);
+        return;
+      }
+      if (target.kind === "folder") {
+        const folder = folders.find((f) => f.id === target.id);
+        if (!folder) return;
+        if (target.position === "inside") {
+          if (dragged.folder_id !== folder.id) onMoveToFolder(dragged, folder.id);
+          return;
+        }
+        placeLayer(dragged, folder.parent_id, null, target.position);
+        return;
+      }
+      placeLayer(dragged, null, null, "after");
       return;
     }
 
     const dragged = folders.find((f) => f.id === current.id);
-    if (!dragged || dragged.id === folderId) return;
-    const target = folderId ? folders.find((f) => f.id === folderId) : null;
-
-    // Root drop: move to top level (or reorder if already there).
-    if (!target) {
-      if (dragged.parent_id !== null) onFolderMove(dragged, null);
+    if (!dragged) return;
+    if (target.kind === "layer") {
+      const row = layers.find((l) => l.id === target.id);
+      if (!row) return;
+      placeFolder(dragged, row.folder_id, null, "after");
       return;
     }
-    // Never drop into own child.
-    if (target.parent_id === dragged.id) return;
-
-    const hasChildren = folders.some((f) => f.parent_id === dragged.id);
-    const canNest = !hasChildren && target.parent_id === null;
-
-    if (dragged.parent_id === target.parent_id && !canNest) {
-      reorderFolders(dragged, target);
+    if (target.kind === "folder") {
+      const folder = folders.find((f) => f.id === target.id);
+      if (!folder || folder.id === dragged.id) return;
+      if (target.position === "inside") {
+        placeFolder(dragged, folder.id, null, "after");
+        return;
+      }
+      placeFolder(dragged, folder.parent_id, folder, target.position);
       return;
     }
-    if (!canNest) return;
-    if (dragged.parent_id === target.id) {
-      reorderFolders(dragged, target);
-      return;
-    }
-    onFolderMove(dragged, target.id);
+    placeFolder(dragged, null, null, "after");
   };
 
   const renderLayer = (layer: LayerRow, depth: number) => {
@@ -286,20 +348,35 @@ export function LayerPanel({
       <li
         key={layer.id}
         draggable={editing !== layer.id}
-        onDragStart={() => setDrag({ kind: "layer", id: layer.id })}
-        onDragOver={(event) => event.preventDefault()}
-        onDrop={(event) => {
+        onDragStart={(event) => {
           event.stopPropagation();
-          handleDropOnLayer(layer);
+          setDrag({ kind: "layer", id: layer.id });
+        }}
+        onDragEnd={clearDrag}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!drag) return;
+          setDropTarget({
+            kind: "layer",
+            id: layer.id,
+            position: positionFrom(event, false),
+          });
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          commitDrop({ kind: "layer", id: layer.id, position: positionFrom(event, false) });
         }}
         onClick={() => onSelect(layer.id)}
         style={{ marginLeft: depth * 12 }}
         className={cn(
-          "group cursor-pointer rounded-lg border border-transparent px-2 py-2 transition-colors",
+          "group relative cursor-pointer rounded-lg border border-transparent px-2 py-2 transition-colors",
           isSelected ? "border-border bg-muted/60" : "hover:bg-muted/40",
           drag?.kind === "layer" && drag.id === layer.id && "opacity-50",
         )}
       >
+        <DropLine visible={showLine("layer", layer.id, "before")} />
         <div className="flex items-center gap-1.5">
           <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
           <button
@@ -352,7 +429,12 @@ export function LayerPanel({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditing(layer.id)}>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  beginEdit(layer.id);
+                }}
+              >
                 <Pencil className="mr-2 h-4 w-4" />
                 Rename
               </DropdownMenuItem>
@@ -426,6 +508,9 @@ export function LayerPanel({
         )}
 
         {error && isSelected && <p className="mt-2 pl-6 text-xs text-destructive">{error}</p>}
+        <div className="absolute inset-x-0 bottom-0">
+          <DropLine visible={showLine("layer", layer.id, "after")} />
+        </div>
       </li>
     );
   };
@@ -441,22 +526,31 @@ export function LayerPanel({
             event.stopPropagation();
             setDrag({ kind: "folder", id: folder.id });
           }}
+          onDragEnd={clearDrag}
           onDragOver={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            setDropFolderId(folder.id);
+            if (!drag) return;
+            setDropTarget({
+              kind: "folder",
+              id: folder.id,
+              position: positionFrom(event, true),
+            });
           }}
-          onDragLeave={() => setDropFolderId((id) => (id === folder.id ? null : id))}
           onDrop={(event) => {
+            event.preventDefault();
             event.stopPropagation();
-            handleDropOnFolder(folder.id);
+            commitDrop({ kind: "folder", id: folder.id, position: positionFrom(event, true) });
           }}
           className={cn(
-            "flex items-center gap-1 rounded-lg border border-transparent px-1 py-1.5",
-            dropFolderId === folder.id ? "border-primary/60 bg-primary/10" : "hover:bg-muted/40",
+            "relative flex items-center gap-1 rounded-lg border border-transparent px-1 py-1.5",
+            showLine("folder", folder.id, "inside")
+              ? "border-primary/60 bg-primary/10"
+              : "hover:bg-muted/40",
             drag?.kind === "folder" && drag.id === folder.id && "opacity-50",
           )}
         >
+          <DropLine visible={showLine("folder", folder.id, "before")} />
           <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
           <button
             type="button"
@@ -492,7 +586,12 @@ export function LayerPanel({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setEditing(folder.id)}>
+              <DropdownMenuItem
+                onSelect={(event) => {
+                  event.preventDefault();
+                  beginEdit(folder.id);
+                }}
+              >
                 <Pencil className="mr-2 h-4 w-4" />
                 Rename
               </DropdownMenuItem>
@@ -517,6 +616,9 @@ export function LayerPanel({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          <div className="absolute inset-x-0 bottom-0">
+            <DropLine visible={showLine("folder", folder.id, "after")} />
+          </div>
         </div>
 
         {!folder.collapsed && (
@@ -554,10 +656,31 @@ export function LayerPanel({
     <ul
       className="min-h-full space-y-1 p-2"
       onDragOver={(event) => event.preventDefault()}
-      onDrop={() => handleDropOnFolder(null)}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+        setDropTarget(null);
+      }}
+      onDrop={(event) => event.preventDefault()}
     >
       {rootFolders.map((folder) => renderFolder(folder, 0))}
       {rootLayers.map((layer) => renderLayer(layer, 0))}
+      <li
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!drag) return;
+          setDropTarget({ kind: "root", id: null, position: "after" });
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          commitDrop({ kind: "root", id: null, position: "after" });
+        }}
+        className="relative h-10"
+      >
+        <DropLine visible={showLine("root", null, "after")} />
+      </li>
     </ul>
   );
 }
+
