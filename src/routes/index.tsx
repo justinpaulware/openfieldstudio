@@ -6,24 +6,28 @@ import { useSession } from "@/hooks/use-session";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Open Field — Turn GIS data into interactive webmaps" },
+      { title: "Open Field — Create, style and publish webmaps" },
       {
         name: "description",
         content:
-          "Upload GeoJSON, connect CSV and ArcGIS services, style layers visually and publish shareable webmaps. Built for GIS professionals moving from QGIS to the web.",
+          "Bring your spatial data together, style it beautifully, and publish interactive webmaps anyone can explore, share and embed.",
       },
-      { property: "og:title", content: "Open Field — Turn GIS data into interactive webmaps" },
+      { property: "og:title", content: "Open Field — Create, style and publish webmaps" },
       {
         property: "og:description",
-        content: "QGIS to Upload to Style to Publish. No web development required.",
+        content: "Create, manage, style and publish simple, beautiful webmaps.",
       },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://web-atlas.lovable.app/" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [{ rel: "canonical", href: "https://web-atlas.lovable.app/" }],
   }),
   component: Landing,
 });
 
 const steps = [
-  { icon: Upload, title: "Upload", body: "Drop in GeoJSON exports, or point at a CSV or ArcGIS REST service." },
+  { icon: Upload, title: "Create", body: "Start a project and bring in data — GeoJSON files, a CSV, or a hosted service." },
   { icon: Palette, title: "Style", body: "Visual cartography controls for points, lines, polygons, labels and popups." },
   { icon: Globe2, title: "Publish", body: "A clean public map at its own URL, ready to share or embed anywhere." },
 ];
