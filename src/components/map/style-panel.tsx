@@ -97,7 +97,16 @@ function OptionRow<T extends string>({
   );
 }
 
-export function StylePanel({ layerName, kind, style, onChange, onReset, onClose }: Props) {
+export function StylePanel({
+  layerName,
+  kind,
+  style,
+  saveState,
+  onChange,
+  onSave,
+  onReset,
+  onClose,
+}: Props) {
   const pct = (n: number) => Math.round(n * 100);
 
   return (
