@@ -668,7 +668,9 @@ function MapEditor() {
             layerName={styleLayer.name}
             kind={geometryKind(styleLayer.geometry_type)}
             style={styleFor(styleLayer)}
+            saveState={saveState[styleLayer.id] ?? "idle"}
             onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
+            onSave={() => flushStyle(styleLayer.id)}
             onReset={() => applyStyle(styleLayer.id, DEFAULT_LAYER_STYLE, {})}
             onClose={() => setStyleLayerId(null)}
           />
