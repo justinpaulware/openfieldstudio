@@ -614,7 +614,19 @@ function MapEditor() {
             </div>
           )}
         </main>
+
+        {styleLayer && (
+          <StylePanel
+            layerName={styleLayer.name}
+            kind={geometryKind(styleLayer.geometry_type)}
+            style={styleFor(styleLayer)}
+            onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
+            onReset={() => applyStyle(styleLayer.id, DEFAULT_LAYER_STYLE, {})}
+            onClose={() => setStyleLayerId(null)}
+          />
+        )}
       </div>
+
 
       <AddLayerDialog
         open={addOpen}
