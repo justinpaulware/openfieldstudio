@@ -241,9 +241,14 @@ export function LayerPanel({
     dropTarget.id === id &&
     dropTarget.position === position;
 
-  const DropLine = ({ visible }: { visible: boolean }) =>
+  const DropLine = ({ visible, side }: { visible: boolean; side: "top" | "bottom" }) =>
     visible ? (
-      <div className="pointer-events-none absolute inset-x-1 z-10 h-0.5 rounded-full bg-primary shadow-[0_0_0_1px_hsl(var(--background))]" />
+      <div
+        className={cn(
+          "pointer-events-none absolute left-1 right-1 z-10 h-0.5 rounded-full bg-primary",
+          side === "top" ? "-top-px" : "-bottom-px",
+        )}
+      />
     ) : null;
 
   /** Place a layer next to `target` (or at the end of `container` when null). */
