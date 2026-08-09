@@ -488,7 +488,12 @@ function MapEditor() {
                 handleRef={mapHandle}
                 onBasemapChange={(id) => {
                   setBasemap(id);
-                  saveView.mutate(id);
+                  saveView.mutate({ basemap: id });
+                }}
+                scaleUnits={activeScaleUnits}
+                onScaleUnitsChange={(units) => {
+                  setScaleUnits(units);
+                  saveView.mutate({ scale_units: units });
                 }}
               />
             </Suspense>
