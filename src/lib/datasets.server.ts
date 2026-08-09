@@ -134,6 +134,9 @@ export async function loadCsvGeoJSON(rawUrl: string, latField: string, lonField:
     const lon = guessNumber(row[lonIndex]);
     if (lat == null || lon == null) continue;
     if (Math.abs(lat) > 90 || Math.abs(lon) > 180) continue;
+    // 0, 0 is almost always missing data rather than a real location.
+    if (lat === 0 && lon === 0) continue;
+
     const properties: Record<string, unknown> = {};
     headers.forEach((header, index) => {
       properties[header] = row[index] ?? "";
