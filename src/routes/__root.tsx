@@ -79,17 +79,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Open Field — Publish GIS data as modern webmaps" },
+      { title: "Open Field — Create and publish beautiful webmaps" },
       {
         name: "description",
         content:
-          "Open Field turns GIS datasets into clean, interactive public webmaps. Upload, style, publish — no code required.",
+          "Open Field is where you create, manage, style and publish simple, beautiful interactive webmaps.",
       },
       { name: "author", content: "Open Field" },
-      { property: "og:title", content: "Open Field — Publish GIS data as modern webmaps" },
+      { property: "og:title", content: "Open Field — Create and publish beautiful webmaps" },
       {
         property: "og:description",
-        content: "Take data from QGIS to a beautiful public webmap in minutes.",
+        content: "Create, style and publish simple, beautiful interactive webmaps.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -100,7 +100,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Outfit:wght@500;600;700&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Cantarell:ital,wght@0,400;0,700;1,400&display=swap",
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
