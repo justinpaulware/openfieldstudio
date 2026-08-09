@@ -11,6 +11,7 @@ import {
   GripVertical,
   Loader2,
   MoreHorizontal,
+  Palette,
   Pencil,
   RefreshCw,
   Table2,
@@ -498,6 +499,10 @@ export function LayerPanel({
               >
                 <Pencil className="mr-2 h-4 w-4" />
                 Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStyle(layer)}>
+                <Palette className="mr-2 h-4 w-4" />
+                Style…
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onZoomTo(layer)}>
                 <Crosshair className="mr-2 h-4 w-4" />
