@@ -482,6 +482,10 @@ function MapEditor() {
                 onMoveEnd={handleMoveEnd}
                 onFeatureClick={handleFeatureClick}
                 handleRef={mapHandle}
+                onBasemapChange={(id) => {
+                  setBasemap(id);
+                  saveView.mutate(id);
+                }}
               />
             </Suspense>
           </ClientOnly>
