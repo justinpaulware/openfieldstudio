@@ -46,6 +46,8 @@ type Props = {
   onMoveEnd?: (view: { center: [number, number]; zoom: number; pitch: number; bearing: number }) => void;
   onFeatureClick?: (layerId: string, properties: Record<string, unknown>) => void;
   handleRef?: Ref<MapHandle>;
+  /** When provided, style picks are reported upward (editor persists the default). */
+  onBasemapChange?: (id: string) => void;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -58,13 +60,18 @@ export default function MapCanvas({
   onMoveEnd,
   onFeatureClick,
   handleRef,
+  onBasemapChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [localBasemap, setLocalBasemap] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const activeBasemap = localBasemap ?? basemap;
   const layersRef = useRef<RenderLayer[]>(layers);
   layersRef.current = layers;
+
 
 
   useImperativeHandle(
