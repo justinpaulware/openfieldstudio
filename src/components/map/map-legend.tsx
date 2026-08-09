@@ -28,7 +28,7 @@ export function LegendSwatch({ kind, style }: { kind: SimpleKind; style: LayerSt
             y="4"
             width="10"
             height="10"
-            fill={style.markerShape === "ring" ? "none" : style.fillColor}
+            fill={style.fillColor}
             stroke={style.strokeColor}
             strokeWidth={strokeWidth}
           />
