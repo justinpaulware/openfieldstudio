@@ -13,7 +13,7 @@ import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
-import type { MapHandle, RenderLayer } from "@/components/map/map-canvas";
+import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
 import type { Bbox, PropertyValue } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
 
