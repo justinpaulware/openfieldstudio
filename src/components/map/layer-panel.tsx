@@ -479,7 +479,7 @@ export function LayerPanel({
         onClick={() => onSelect(layer.id)}
         style={{ marginLeft: depth * 12 }}
         className={cn(
-          "group relative cursor-pointer rounded-lg border border-transparent px-2 py-2 transition-colors",
+          "group relative cursor-pointer rounded-lg border border-transparent px-2 py-1.5 transition-colors",
           isSelected ? "border-border bg-muted/60" : "hover:bg-muted/40",
           drag?.kind === "layer" && drag.id === layer.id && "opacity-50",
         )}
@@ -487,17 +487,13 @@ export function LayerPanel({
         <DropLine visible={showLine("layer", layer.id, "before")} side="top" />
         <div className="flex items-center gap-1.5">
           <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleVisible(layer);
-            }}
-            className="rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label={layer.visible ? "Hide layer" : "Show layer"}
-          >
-            {layer.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </button>
+          {loading[layer.id] || refreshingId === layer.id ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+          ) : error ? (
+            <TriangleAlert className="h-4 w-4 shrink-0 text-destructive" />
+          ) : (
+            <LayerSymbol layer={layer} />
+          )}
 
           <div className="min-w-0 flex-1">
             <NameEditor
@@ -511,24 +507,24 @@ export function LayerPanel({
               onCancel={() => setEditing(null)}
               className="text-sm font-medium"
             />
-            <div className="mt-0.5 flex items-center gap-1.5 pl-1">
-              <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal">
-                {SOURCE_LABEL[layer.source_type] ?? layer.source_type}
-              </Badge>
-              <span className="font-secondary text-[11px] text-muted-foreground">
-                {layer.feature_count.toLocaleString()} features
-              </span>
-              {updated && (
-                <span className="font-secondary text-[11px] text-muted-foreground/70">
-                  · {updated}
-                </span>
-              )}
-              {(loading[layer.id] || refreshingId === layer.id) && (
-                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-              )}
-              {error && <TriangleAlert className="h-3 w-3 text-destructive" />}
-            </div>
           </div>
+
+          <span className="shrink-0 font-secondary text-[11px] text-muted-foreground">
+            ({layer.feature_count.toLocaleString()})
+          </span>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleVisible(layer);
+            }}
+            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label={layer.visible ? "Hide layer" : "Show layer"}
+          >
+            {layer.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </button>
+
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(event) => event.stopPropagation()}>
