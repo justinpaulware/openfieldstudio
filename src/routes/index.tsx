@@ -105,7 +105,7 @@ function Landing() {
                   <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-foreground">
                     <s.icon className="h-4.5 w-4.5" />
                   </span>
-                  <span className="text-xs font-medium text-muted-foreground">Step {i + 1}</span>
+                  <span className="font-secondary text-xs text-muted-foreground">Step {i + 1}</span>
                 </div>
                 <h3 className="mt-4 text-lg font-semibold">{s.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{s.body}</p>
