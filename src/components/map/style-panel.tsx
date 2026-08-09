@@ -1,4 +1,4 @@
-import { RotateCcw, X } from "lucide-react";
+import { Check, Loader2, RotateCcw, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -13,14 +13,19 @@ import {
 import { ColorField } from "./color-field";
 import { LegendSwatch } from "./map-legend";
 
+export type StyleSaveState = "idle" | "dirty" | "saving" | "saved";
+
 type Props = {
   layerName: string;
   kind: SimpleKind;
   style: LayerStyle;
+  saveState: StyleSaveState;
   onChange: (patch: Partial<LayerStyle>) => void;
+  onSave: () => void;
   onReset: () => void;
   onClose: () => void;
 };
+
 
 function SliderField({
   label,
