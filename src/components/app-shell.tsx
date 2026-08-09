@@ -60,8 +60,11 @@ function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <Link to="/projects" className="flex items-center gap-2 px-2 py-1.5">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+        <Link
+          to="/projects"
+          className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Layers className="h-4 w-4" />
           </span>
           <span className="truncate font-display text-base font-semibold group-data-[collapsible=icon]:hidden">
@@ -89,8 +92,8 @@ function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <div className="mt-auto border-t border-sidebar-border p-2">
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5">
-          <Avatar className="h-7 w-7">
+        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <Avatar className="h-8 w-8 shrink-0">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
