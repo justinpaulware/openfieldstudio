@@ -351,16 +351,8 @@ function MapEditor() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/projects/$projectId" params={{ projectId }}>
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              {project.title}
-            </Link>
-          </Button>
-        </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex flex-wrap items-center justify-end gap-3 border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
