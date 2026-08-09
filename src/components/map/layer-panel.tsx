@@ -74,7 +74,6 @@ function LayerSymbol({ layer }: { layer: PanelLayer }) {
   return (
     <span
       className="flex h-4 w-4 shrink-0 items-center justify-center"
-      style={{ opacity: layer.opacity }}
       aria-hidden="true"
     >
       <LegendSwatch
