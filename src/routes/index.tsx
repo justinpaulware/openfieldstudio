@@ -116,7 +116,7 @@ function Landing() {
 
         <section className="border-y border-border bg-secondary/50">
           <div className="mx-auto max-w-6xl px-6 py-16">
-            <h2 className="text-2xl font-semibold md:text-3xl">Built for map makers, not developers</h2>
+            <h2 className="text-2xl font-semibold md:text-3xl">Everything a good map needs</h2>
             <p className="mt-3 max-w-2xl text-muted-foreground">
               Cartographic quality and public engagement, without the hosting, tooling and
               front-end work that usually stands in the way.
