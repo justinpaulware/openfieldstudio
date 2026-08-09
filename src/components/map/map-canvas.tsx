@@ -2,6 +2,8 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "reac
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { Check, Layers } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
 
 export type RenderLayer = {
