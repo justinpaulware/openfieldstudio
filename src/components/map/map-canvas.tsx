@@ -208,6 +208,12 @@ export default function MapCanvas({
     map.once("styledata", onStyle);
   }, [activeBasemap]);
 
+  // Scale-bar unit switching.
+  useEffect(() => {
+    scaleRef.current?.setUnit(activeScaleUnits);
+  }, [activeScaleUnits]);
+
+
   // Data / style / visibility updates.
   useEffect(() => {
     const map = mapRef.current;
