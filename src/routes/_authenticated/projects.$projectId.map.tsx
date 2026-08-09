@@ -511,9 +511,6 @@ function MapEditor() {
                 onToggleVisible={(layer) =>
                   updateLayer.mutate({ id: layer.id, patch: { visible: !layer.visible } })
                 }
-                onOpacity={(layer, opacity) =>
-                  updateLayer.mutate({ id: layer.id, patch: { opacity } })
-                }
                 onRename={(layer, name) => updateLayer.mutate({ id: layer.id, patch: { name } })}
                 onZoomTo={(layer) => zoomTo(layer.bbox as Bbox | null)}
                 onDelete={(layer) => deleteLayer.mutate(layer)}
