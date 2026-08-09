@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { geometryKind, resolveLayerStyle } from "@/lib/layer-style";
+import { LegendSwatch } from "./map-legend";
 import type { Tables } from "@/integrations/supabase/types";
 import type { LayerRow } from "./use-layer-data";
 
