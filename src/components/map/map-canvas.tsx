@@ -93,9 +93,14 @@ export default function MapCanvas({
     [],
   );
 
-  // Create the map once.
+  // Create the map once. Teardown is deferred so React's dev double-invoke
+  // (mount -> cleanup -> mount) does not destroy the shared worker pool
+  // while the second instance is being constructed.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+    // Keep MapLibre's worker pool alive across map.remove() calls.
+    maplibregl.prewarm();
+
     const map = new maplibregl.Map({
       container: containerRef.current,
       style: basemapUrl(basemap),
@@ -114,9 +119,25 @@ export default function MapCanvas({
       "top-right",
     );
 
+    map.on("error", (event) => {
+      const message = (event as { error?: Error }).error?.message ?? "Unknown map error";
+      console.error("[map] ", message);
+      setMapError(message);
+    });
+
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
     map.on("load", () => {
       readyRef.current = true;
+      setMapError(null);
       syncLayers(map, layersRef.current);
+      watchdog = setTimeout(() => {
+        if (!map.areTilesLoaded()) {
+          setMapError("Basemap tiles did not load.");
+        }
+      }, 8000);
+    });
+    map.on("idle", () => {
+      if (map.areTilesLoaded()) setMapError(null);
     });
     map.on("moveend", () => {
       const c = map.getCenter();
@@ -129,12 +150,15 @@ export default function MapCanvas({
     });
 
     return () => {
+      if (watchdog) clearTimeout(watchdog);
       readyRef.current = false;
-      map.remove();
       mapRef.current = null;
+      // Defer so a StrictMode remount can reuse the live worker pool.
+      setTimeout(() => map.remove(), 0);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   // Basemap switching re-adds data layers once the new style settles.
   useEffect(() => {
