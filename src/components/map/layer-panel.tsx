@@ -73,19 +73,36 @@ function NameEditor({
 }) {
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
-  const focusedRef = useRef(false);
+  const openedAtRef = useRef(0);
+  const draftRef = useRef(value);
+  draftRef.current = draft;
+
+  const finish = () => {
+    const next = draftRef.current.trim();
+    if (next && next !== value) onCommit(next);
+    else onCancel();
+  };
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
 
   useEffect(() => {
-    if (editing) {
-      focusedRef.current = false;
-      setDraft(value);
-      const id = requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
-      return () => cancelAnimationFrame(id);
-    }
-    return undefined;
+    if (!editing) return undefined;
+    openedAtRef.current = Date.now();
+    setDraft(value);
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+    const onPointerDown = (event: PointerEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        finishRef.current();
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+    };
   }, [editing, value]);
 
   if (!editing) {
@@ -113,16 +130,10 @@ function NameEditor({
       value={draft}
       onClick={(event) => event.stopPropagation()}
       onChange={(event) => setDraft(event.target.value)}
-      onFocus={() => {
-        focusedRef.current = true;
-      }}
       onBlur={() => {
-        // Ignore blur fired before the field ever received focus (e.g. the
-        // dropdown menu returning focus to its trigger right after opening).
-        if (!focusedRef.current) return;
-        const next = draft.trim();
-        if (next && next !== value) onCommit(next);
-        else onCancel();
+        // Ignore the focus bounce that happens right as the dropdown closes.
+        if (Date.now() - openedAtRef.current < 250) return;
+        finish();
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter") {
