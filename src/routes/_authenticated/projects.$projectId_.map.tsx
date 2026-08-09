@@ -347,18 +347,38 @@ function MapEditor() {
             {saveView.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {viewDirty ? "Save view" : "View saved"}
           </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add data
-          </Button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-card/40 md:flex">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">Layers</h2>
-            <span className="font-secondary text-xs text-muted-foreground">{layers.length}</span>
+          <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-sm font-semibold">Layers</h2>
+              <span className="font-secondary text-xs text-muted-foreground">{layers.length}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="New folder"
+                aria-label="New folder"
+                onClick={() => createFolder.mutate(null)}
+              >
+                <FolderPlus className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="Add data"
+                aria-label="Add data"
+                onClick={() => setAddOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {layersLoading ? (
@@ -368,8 +388,10 @@ function MapEditor() {
             ) : (
               <LayerPanel
                 layers={layers}
+                folders={folders}
                 loading={loading}
                 errors={errors}
+                refreshingId={refreshLayer.isPending ? (refreshLayer.variables?.layer.id ?? null) : null}
                 selectedId={selectedId}
                 onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
                 onToggleVisible={(layer) =>
@@ -383,10 +405,24 @@ function MapEditor() {
                 onDelete={(layer) => deleteLayer.mutate(layer)}
                 onReorder={(ids) => reorder.mutate(ids)}
                 onOpenTable={(layer) => setTableLayerId(layer.id)}
+                onRefresh={(layer) => refreshLayer.mutate({ layer })}
+                onEditSource={(layer) => setSourceLayerId(layer.id)}
+                onMoveToFolder={(layer, folderId) =>
+                  updateLayer.mutate({ id: layer.id, patch: { folder_id: folderId } })
+                }
+                onFolderRename={(folder, name) =>
+                  updateFolder.mutate({ id: folder.id, patch: { name } })
+                }
+                onFolderToggle={(folder) =>
+                  updateFolder.mutate({ id: folder.id, patch: { collapsed: !folder.collapsed } })
+                }
+                onFolderDelete={(folder) => deleteFolder.mutate(folder)}
+                onCreateFolder={(parentId) => createFolder.mutate(parentId)}
               />
             )}
           </div>
         </aside>
+
 
         <main className="relative min-w-0 flex-1">
           <ClientOnly
