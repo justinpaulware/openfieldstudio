@@ -209,6 +209,46 @@ export default function MapCanvas({
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+
+      <div className="absolute bottom-8 right-2 z-10 flex flex-col items-end gap-1">
+        {pickerOpen && (
+          <div className="w-52 overflow-hidden rounded-lg border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur">
+            {BASEMAPS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => {
+                  setLocalBasemap(option.id);
+                  setPickerOpen(false);
+                  onBasemapChange?.(option.id);
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted",
+                  option.id === activeBasemap && "bg-muted/70 font-medium",
+                )}
+              >
+                <Check
+                  className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    option.id === activeBasemap ? "opacity-100 text-primary" : "opacity-0",
+                  )}
+                />
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setPickerOpen((open) => !open)}
+          aria-expanded={pickerOpen}
+          className="flex items-center gap-1.5 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-xs font-medium shadow-[var(--shadow-soft)] backdrop-blur hover:bg-muted"
+        >
+          <Layers className="h-3.5 w-3.5" />
+          Basemap
+        </button>
+      </div>
+
       {mapError ? (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
           <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-destructive/40 bg-card/95 px-3 py-2 text-sm text-foreground shadow-lg">
@@ -218,7 +258,7 @@ export default function MapCanvas({
               className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted"
               onClick={() => {
                 setMapError(null);
-                mapRef.current?.setStyle(basemapUrl(basemap));
+                mapRef.current?.setStyle(basemapUrl(activeBasemap));
               }}
             >
               Retry
