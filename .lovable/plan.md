@@ -19,5 +19,5 @@ Nothing is needed on your side — current Adobe Fonts web projects are not doma
 ## Technical notes
 
 - Font links live in `head().links` in `src/routes/__root.tsx`; the family tokens live in the `@theme` block of `src/styles.css`. Remote font stylesheets must be loaded via `<link>`, never `@import` in the CSS file.
-- Adobe Fonts kits are domain-locked, so the font will only render on domains added in step 3 — if the preview shows the fallback, that list is usually the cause.
+- Adobe serves the family under the CSS name `proxima-nova`, so I'll confirm that exact string leads `--font-sans` and `--font-display` in the theme, with Montserrat kept only as a fallback name.
 - No fonts are self-hosted, so nothing is added to the repo and licensing stays with your Adobe account.
