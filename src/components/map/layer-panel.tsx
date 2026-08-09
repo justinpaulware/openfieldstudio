@@ -381,7 +381,7 @@ export function LayerPanel({
           drag?.kind === "layer" && drag.id === layer.id && "opacity-50",
         )}
       >
-        <DropLine visible={showLine("layer", layer.id, "before")} />
+        <DropLine visible={showLine("layer", layer.id, "before")} side="top" />
         <div className="flex items-center gap-1.5">
           <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
           <button
@@ -513,9 +513,7 @@ export function LayerPanel({
         )}
 
         {error && isSelected && <p className="mt-2 pl-6 text-xs text-destructive">{error}</p>}
-        <div className="absolute inset-x-0 bottom-0">
-          <DropLine visible={showLine("layer", layer.id, "after")} />
-        </div>
+        <DropLine visible={showLine("layer", layer.id, "after")} side="bottom" />
       </li>
     );
   };
@@ -555,7 +553,7 @@ export function LayerPanel({
             drag?.kind === "folder" && drag.id === folder.id && "opacity-50",
           )}
         >
-          <DropLine visible={showLine("folder", folder.id, "before")} />
+          <DropLine visible={showLine("folder", folder.id, "before")} side="top" />
           <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
           <button
             type="button"
@@ -621,9 +619,7 @@ export function LayerPanel({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="absolute inset-x-0 bottom-0">
-            <DropLine visible={showLine("folder", folder.id, "after")} />
-          </div>
+          <DropLine visible={showLine("folder", folder.id, "after")} side="bottom" />
         </div>
 
         {!folder.collapsed && (
@@ -683,7 +679,7 @@ export function LayerPanel({
         }}
         className="relative h-10"
       >
-        <DropLine visible={showLine("root", null, "after")} />
+        <DropLine visible={showLine("root", null, "after")} side="top" />
       </li>
     </ul>
   );
