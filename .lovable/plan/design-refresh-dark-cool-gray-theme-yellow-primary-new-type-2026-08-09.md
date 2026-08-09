@@ -18,6 +18,9 @@ Flip the app to a dark-first look instead of the current warm paper canvas.
 
 ## Marketing copy
 
+Title: change for now to "Open Field"  
+
+
 Rewrite the landing page so it's about the product, not a QGIS migration story.
 
 - Hero: creating, managing, styling and publishing simple, beautiful webmaps. Drop "From QGIS export to…" and "without writing code" framing.

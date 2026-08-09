@@ -11,10 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
     meta: [
-      { title: "Account settings — Map Studio" },
-      { name: "description", content: "Update your Map Studio display name and account details." },
-      { property: "og:title", content: "Account settings — Map Studio" },
-      { property: "og:description", content: "Manage your Map Studio account." },
+      { title: "Account settings — Open Field" },
+      { name: "description", content: "Update your Open Field display name and account details." },
+      { property: "og:title", content: "Account settings — Open Field" },
+      { property: "og:description", content: "Manage your Open Field account." },
     ],
   }),
   component: SettingsPage,
@@ -61,7 +61,7 @@ function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <h1 className="text-2xl font-semibold">Account settings</h1>
-      <p className="mt-1 text-sm text-muted-foreground">How you appear across Map Studio.</p>
+      <p className="mt-1 text-sm text-muted-foreground">How you appear across Open Field.</p>
 
       {isLoading ? (
         <div className="mt-16 flex justify-center">

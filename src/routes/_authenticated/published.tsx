@@ -7,9 +7,9 @@ import { StatusChip } from "@/components/status-chip";
 export const Route = createFileRoute("/_authenticated/published")({
   head: () => ({
     meta: [
-      { title: "Published maps — Map Studio" },
-      { name: "description", content: "See which of your Map Studio projects are live and shareable." },
-      { property: "og:title", content: "Published maps — Map Studio" },
+      { title: "Published maps — Open Field" },
+      { name: "description", content: "See which of your Open Field projects are live and shareable." },
+      { property: "og:title", content: "Published maps — Open Field" },
       { property: "og:description", content: "Your live, shareable webmaps." },
     ],
   }),
