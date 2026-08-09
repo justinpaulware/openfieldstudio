@@ -448,7 +448,7 @@ export function LayerPanel({
     placeFolder(dragged, null, null, "after");
   };
 
-  const renderLayer = (layer: LayerRow, depth: number) => {
+  const renderLayer = (layer: PanelLayer, depth: number) => {
     const isSelected = layer.id === selectedId;
     const error = errors[layer.id];
     const updated = relativeTime(layer.last_refreshed_at);
