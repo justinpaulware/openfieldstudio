@@ -2,20 +2,20 @@
 
 Wire your Adobe Fonts (Typekit) web project into Open Field so Proxima Nova renders everywhere instead of the Montserrat fallback.
 
-## What you need to do first (in Adobe Fonts)
+Kit provided: `https://use.typekit.net/ehj6ipl.css` (project ID `ehj6ipl`).
 
-1. Go to Adobe Fonts, open Proxima Nova, and click "Add to Web Project".
-2. Create (or pick) a web project, select the weights you want — 400, 500, 600, 700 covers the app.
-3. In the web project settings, add these domains so the kit is allowed to load:
-   - `id-preview--32718663-a6d0-4df5-9653-e6ad4bfb7e0e.lovable.app`
-   - your published `.lovable.app` domain (and any custom domain later)
-4. Copy the kit ID from the embed code — it looks like `https://use.typekit.net/abc1def.css`.
+## One thing to check on your side
 
-Then paste that kit ID (or the whole URL) into chat and I'll apply the change.
+Adobe Fonts kits are domain-locked. In the web project settings, make sure these domains are listed, or the preview will silently fall back:
+
+- `id-preview--32718663-a6d0-4df5-9653-e6ad4bfb7e0e.lovable.app`
+- your published `.lovable.app` domain (and any custom domain later)
+- `localhost` (for internal checks)
+
 
 ## What I'll change
 
-- Add the Typekit stylesheet plus a `preconnect` to `use.typekit.net` in the app's root head, alongside the existing font links.
+- Add `https://use.typekit.net/ehj6ipl.css` plus a `preconnect` to `use.typekit.net` in the app's root head, alongside the existing font links.
 - Drop Montserrat from the Google Fonts request (Cantarell stays — it's still used for select secondary text), keeping Montserrat only as a CSS fallback name in case the kit fails to load.
 - Confirm the font stack in the theme still reads `"proxima-nova", "Montserrat", ...` — Adobe serves the family under the lowercase-hyphenated name `proxima-nova`, so I'll make sure that exact string is first in `--font-sans` and `--font-display`.
 - Verify in the live preview that rendered text resolves to Proxima Nova rather than the fallback.
