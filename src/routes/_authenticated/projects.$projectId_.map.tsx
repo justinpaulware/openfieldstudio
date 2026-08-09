@@ -6,21 +6,14 @@ import { ArrowLeft, FolderPlus, Loader2, Maximize, Plus, X } from "lucide-react"
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { LayerPanel, type FolderRow } from "@/components/map/layer-panel";
+import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
-import { BASEMAPS, type MapHandle, type RenderLayer } from "@/components/map/map-canvas";
+import type { MapHandle, RenderLayer } from "@/components/map/map-canvas";
 import type { Bbox, PropertyValue } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -244,8 +237,8 @@ function MapEditor() {
 
   const renderLayers: RenderLayer[] = useMemo(
     () =>
-      layers.map((layer) => {
-        const style = layer.layer_styles?.[0];
+      flattenLayerOrder(layers, folders).map((layer) => {
+        const style = (layer as LayerWithStyle).layer_styles?.[0];
         return {
           id: layer.id,
           visible: layer.visible,
@@ -261,7 +254,7 @@ function MapEditor() {
           },
         };
       }),
-    [layers, byId],
+    [layers, folders, byId],
   );
 
   const handleMoveEnd = useCallback(
@@ -365,24 +358,6 @@ function MapEditor() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <Select
-            value={activeBasemap}
-            onValueChange={(value) => {
-              setBasemap(value);
-              saveView.mutate(value);
-            }}
-          >
-            <SelectTrigger className="h-9 w-[190px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {BASEMAPS.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Button
             variant="outline"
             size="sm"
@@ -507,6 +482,10 @@ function MapEditor() {
                 onMoveEnd={handleMoveEnd}
                 onFeatureClick={handleFeatureClick}
                 handleRef={mapHandle}
+                onBasemapChange={(id) => {
+                  setBasemap(id);
+                  saveView.mutate(id);
+                }}
               />
             </Suspense>
           </ClientOnly>

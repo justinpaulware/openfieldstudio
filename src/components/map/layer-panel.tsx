@@ -33,6 +33,31 @@ import type { LayerRow } from "./use-layer-data";
 
 export type FolderRow = Tables<"layer_folders">;
 
+/**
+ * Flatten layers into the exact top-to-bottom order the sidebar renders:
+ * root folders (with their subfolders and layers) first, then top-level layers.
+ * The map uses this so draw order always matches the sidebar.
+ */
+export function flattenLayerOrder(layers: LayerRow[], folders: FolderRow[]): LayerRow[] {
+  const sortedFolders = (parentId: string | null) =>
+    folders
+      .filter((f) => f.parent_id === parentId)
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  const layersIn = (folderId: string | null) => layers.filter((l) => l.folder_id === folderId);
+
+  const out: LayerRow[] = [];
+  const walk = (folderId: string) => {
+    for (const child of sortedFolders(folderId)) walk(child.id);
+    out.push(...layersIn(folderId));
+  };
+  for (const folder of sortedFolders(null)) walk(folder.id);
+  out.push(...layersIn(null));
+
+  const seen = new Set(out.map((l) => l.id));
+  for (const layer of layers) if (!seen.has(layer.id)) out.push(layer);
+  return out;
+}
+
 const SOURCE_LABEL: Record<string, string> = {
   geojson_file: "GeoJSON",
   csv_url: "CSV",
