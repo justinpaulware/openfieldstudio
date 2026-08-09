@@ -111,9 +111,13 @@ export async function loadCsvPreview(rawUrl: string) {
 
 function guessNumber(value: string | undefined): number | null {
   if (value == null) return null;
-  const n = Number(value.trim());
+  const trimmed = value.trim();
+  // Number("") is 0, which would silently place blank rows at 0, 0.
+  if (trimmed === "") return null;
+  const n = Number(trimmed);
   return Number.isFinite(n) ? n : null;
 }
+
 
 export async function loadCsvGeoJSON(rawUrl: string, latField: string, lonField: string) {
   const text = await fetchText(assertPublicHttpUrl(rawUrl));
