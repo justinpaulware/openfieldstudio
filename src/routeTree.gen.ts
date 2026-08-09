@@ -19,7 +19,10 @@ import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects.$projectId.index'
+import { Route as AuthenticatedProjectsProjectIdDetailsRouteImport } from './routes/_authenticated/projects.$projectId.details'
 import { Route as AuthenticatedProjectsProjectIdMapRouteImport } from './routes/_authenticated/projects.$projectId.map'
+import { Route as AuthenticatedProjectsProjectIdPublishingRouteImport } from './routes/_authenticated/projects.$projectId.publishing'
+import { Route as AuthenticatedProjectsProjectIdStylingRouteImport } from './routes/_authenticated/projects.$projectId.styling'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -73,10 +76,28 @@ const AuthenticatedProjectsProjectIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedProjectsProjectIdDetailsRoute =
+  AuthenticatedProjectsProjectIdDetailsRouteImport.update({
+    id: '/details',
+    path: '/details',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdMapRoute =
   AuthenticatedProjectsProjectIdMapRouteImport.update({
     id: '/map',
     path: '/map',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdPublishingRoute =
+  AuthenticatedProjectsProjectIdPublishingRouteImport.update({
+    id: '/publishing',
+    path: '/publishing',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
+const AuthenticatedProjectsProjectIdStylingRoute =
+  AuthenticatedProjectsProjectIdStylingRouteImport.update({
+    id: '/styling',
+    path: '/styling',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
 
@@ -89,7 +110,10 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
   '/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
+  '/projects/$projectId/publishing': typeof AuthenticatedProjectsProjectIdPublishingRoute
+  '/projects/$projectId/styling': typeof AuthenticatedProjectsProjectIdStylingRoute
   '/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -100,7 +124,10 @@ export interface FileRoutesByTo {
   '/published': typeof AuthenticatedPublishedRoute
   '/settings': typeof AuthenticatedSettingsRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
   '/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
+  '/projects/$projectId/publishing': typeof AuthenticatedProjectsProjectIdPublishingRoute
+  '/projects/$projectId/styling': typeof AuthenticatedProjectsProjectIdStylingRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 export interface FileRoutesById {
@@ -114,7 +141,10 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
   '/_authenticated/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
+  '/_authenticated/projects/$projectId/publishing': typeof AuthenticatedProjectsProjectIdPublishingRoute
+  '/_authenticated/projects/$projectId/styling': typeof AuthenticatedProjectsProjectIdStylingRoute
   '/_authenticated/projects/$projectId/': typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -128,7 +158,10 @@ export interface FileRouteTypes {
     | '/settings'
     | '/projects/$projectId'
     | '/projects/'
+    | '/projects/$projectId/details'
     | '/projects/$projectId/map'
+    | '/projects/$projectId/publishing'
+    | '/projects/$projectId/styling'
     | '/projects/$projectId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -139,7 +172,10 @@ export interface FileRouteTypes {
     | '/published'
     | '/settings'
     | '/projects'
+    | '/projects/$projectId/details'
     | '/projects/$projectId/map'
+    | '/projects/$projectId/publishing'
+    | '/projects/$projectId/styling'
     | '/projects/$projectId'
   id:
     | '__root__'
@@ -152,7 +188,10 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/'
+    | '/_authenticated/projects/$projectId/details'
     | '/_authenticated/projects/$projectId/map'
+    | '/_authenticated/projects/$projectId/publishing'
+    | '/_authenticated/projects/$projectId/styling'
     | '/_authenticated/projects/$projectId/'
   fileRoutesById: FileRoutesById
 }
@@ -235,6 +274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/details': {
+      id: '/_authenticated/projects/$projectId/details'
+      path: '/details'
+      fullPath: '/projects/$projectId/details'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdDetailsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
     '/_authenticated/projects/$projectId/map': {
       id: '/_authenticated/projects/$projectId/map'
       path: '/map'
@@ -242,18 +288,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdMapRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/publishing': {
+      id: '/_authenticated/projects/$projectId/publishing'
+      path: '/publishing'
+      fullPath: '/projects/$projectId/publishing'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdPublishingRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
+    '/_authenticated/projects/$projectId/styling': {
+      id: '/_authenticated/projects/$projectId/styling'
+      path: '/styling'
+      fullPath: '/projects/$projectId/styling'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdStylingRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
   }
 }
 
 interface AuthenticatedProjectsProjectIdRouteChildren {
+  AuthenticatedProjectsProjectIdDetailsRoute: typeof AuthenticatedProjectsProjectIdDetailsRoute
   AuthenticatedProjectsProjectIdMapRoute: typeof AuthenticatedProjectsProjectIdMapRoute
+  AuthenticatedProjectsProjectIdPublishingRoute: typeof AuthenticatedProjectsProjectIdPublishingRoute
+  AuthenticatedProjectsProjectIdStylingRoute: typeof AuthenticatedProjectsProjectIdStylingRoute
   AuthenticatedProjectsProjectIdIndexRoute: typeof AuthenticatedProjectsProjectIdIndexRoute
 }
 
 const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
   {
+    AuthenticatedProjectsProjectIdDetailsRoute:
+      AuthenticatedProjectsProjectIdDetailsRoute,
     AuthenticatedProjectsProjectIdMapRoute:
       AuthenticatedProjectsProjectIdMapRoute,
+    AuthenticatedProjectsProjectIdPublishingRoute:
+      AuthenticatedProjectsProjectIdPublishingRoute,
+    AuthenticatedProjectsProjectIdStylingRoute:
+      AuthenticatedProjectsProjectIdStylingRoute,
     AuthenticatedProjectsProjectIdIndexRoute:
       AuthenticatedProjectsProjectIdIndexRoute,
   }
