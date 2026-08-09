@@ -228,6 +228,7 @@ export type Database = {
           map_pitch: number
           map_zoom: number
           owner_id: string
+          scale_units: string
           slug: string
           status: Database["public"]["Enums"]["project_status"]
           tags: string[]
@@ -245,6 +246,7 @@ export type Database = {
           map_pitch?: number
           map_zoom?: number
           owner_id: string
+          scale_units?: string
           slug: string
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]
@@ -262,6 +264,7 @@ export type Database = {
           map_pitch?: number
           map_zoom?: number
           owner_id?: string
+          scale_units?: string
           slug?: string
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]

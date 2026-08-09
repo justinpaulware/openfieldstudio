@@ -13,7 +13,7 @@ import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
-import type { MapHandle, RenderLayer } from "@/components/map/map-canvas";
+import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
 import type { Bbox, PropertyValue } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -207,7 +207,7 @@ function MapEditor() {
   });
 
   const saveView = useMutation({
-    mutationFn: async (basemap?: string) => {
+    mutationFn: async (patch?: { basemap?: string; scale_units?: string }) => {
       const view = viewRef.current ?? mapHandle.current?.getView() ?? null;
       const { error } = await supabase
         .from("projects")
@@ -220,7 +220,7 @@ function MapEditor() {
                 map_bearing: view.bearing,
               }
             : {}),
-          ...(basemap ? { basemap } : {}),
+          ...(patch ?? {}),
         })
         .eq("id", projectId);
       if (error) throw error;
@@ -234,6 +234,10 @@ function MapEditor() {
 
   const [basemap, setBasemap] = useState<string | null>(null);
   const activeBasemap = basemap ?? project?.basemap ?? "positron";
+  const [scaleUnits, setScaleUnits] = useState<ScaleUnits | null>(null);
+  const activeScaleUnits: ScaleUnits =
+    scaleUnits ?? ((project as { scale_units?: string } | undefined)?.scale_units as ScaleUnits) ?? "imperial";
+
 
   const renderLayers: RenderLayer[] = useMemo(
     () =>
@@ -484,7 +488,12 @@ function MapEditor() {
                 handleRef={mapHandle}
                 onBasemapChange={(id) => {
                   setBasemap(id);
-                  saveView.mutate(id);
+                  saveView.mutate({ basemap: id });
+                }}
+                scaleUnits={activeScaleUnits}
+                onScaleUnitsChange={(units) => {
+                  setScaleUnits(units);
+                  saveView.mutate({ scale_units: units });
                 }}
               />
             </Suspense>

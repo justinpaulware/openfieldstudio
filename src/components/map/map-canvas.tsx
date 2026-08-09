@@ -41,6 +41,8 @@ export function basemapUrl(id: string) {
   return `https://tiles.openfreemap.org/styles/${known}`;
 }
 
+export type ScaleUnits = "imperial" | "metric";
+
 type Props = {
   basemap: string;
   layers: RenderLayer[];
@@ -50,6 +52,9 @@ type Props = {
   handleRef?: Ref<MapHandle>;
   /** When provided, style picks are reported upward (editor persists the default). */
   onBasemapChange?: (id: string) => void;
+  scaleUnits?: ScaleUnits;
+  /** When provided, scale-unit picks are reported upward (editor persists the default). */
+  onScaleUnitsChange?: (units: ScaleUnits) => void;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -63,14 +68,26 @@ export default function MapCanvas({
   onFeatureClick,
   handleRef,
   onBasemapChange,
+  scaleUnits = "imperial",
+  onScaleUnitsChange,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
+  const scaleRef = useRef<maplibregl.ScaleControl | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
+  const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const activeBasemap = localBasemap ?? basemap;
+  const activeScaleUnits = localScaleUnits ?? scaleUnits;
+  const toggleScaleUnits = () => {
+    const next: ScaleUnits = activeScaleUnits === "imperial" ? "metric" : "imperial";
+    setLocalScaleUnits(next);
+    onScaleUnitsChange?.(next);
+  };
+  const toggleScaleRef = useRef(toggleScaleUnits);
+  toggleScaleRef.current = toggleScaleUnits;
   const layersRef = useRef<RenderLayer[]>(layers);
   layersRef.current = layers;
 
@@ -124,11 +141,27 @@ export default function MapCanvas({
     mapRef.current = map;
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left");
+    const scale = new maplibregl.ScaleControl({ maxWidth: 120, unit: activeScaleUnits });
+    scaleRef.current = scale;
+    map.addControl(scale, "bottom-left");
     map.addControl(
       new maplibregl.GeolocateControl({ trackUserLocation: true, showAccuracyCircle: true }),
       "top-right",
     );
+
+    // Clicking the scale bar flips imperial <-> metric (delegated: the element
+    // is re-rendered by MapLibre whenever the unit or zoom changes).
+    const scaleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".maplibregl-ctrl-scale")) {
+        event.stopPropagation();
+        toggleScaleRef.current();
+      }
+    };
+    containerRef.current.addEventListener("click", scaleClick);
+    const scaleContainerEl = containerRef.current;
+
+
 
     map.on("error", (event) => {
       const message = (event as { error?: Error }).error?.message ?? "Unknown map error";
@@ -162,6 +195,7 @@ export default function MapCanvas({
 
     return () => {
       if (watchdog) clearTimeout(watchdog);
+      scaleContainerEl.removeEventListener("click", scaleClick);
       readyRef.current = false;
       mapRef.current = null;
       // Defer so a StrictMode remount can reuse the live worker pool.
@@ -179,6 +213,12 @@ export default function MapCanvas({
     const onStyle = () => syncLayers(map, layersRef.current);
     map.once("styledata", onStyle);
   }, [activeBasemap]);
+
+  // Scale-bar unit switching.
+  useEffect(() => {
+    scaleRef.current?.setUnit(activeScaleUnits);
+  }, [activeScaleUnits]);
+
 
   // Data / style / visibility updates.
   useEffect(() => {
@@ -212,7 +252,17 @@ export default function MapCanvas({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="absolute bottom-8 right-2 z-10 flex flex-col items-end gap-1">
+      <div className="absolute right-2.5 top-[146px] z-10 flex flex-col items-end gap-1">
+        <button
+          type="button"
+          onClick={() => setPickerOpen((open) => !open)}
+          aria-expanded={pickerOpen}
+          aria-label="Basemap"
+          title="Basemap"
+          className="flex h-[29px] w-[29px] items-center justify-center rounded border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur hover:bg-muted"
+        >
+          <Layers className="h-4 w-4" />
+        </button>
         {pickerOpen && (
           <div className="w-52 overflow-hidden rounded-lg border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur">
             {BASEMAPS.map((option) => (
@@ -240,16 +290,8 @@ export default function MapCanvas({
             ))}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => setPickerOpen((open) => !open)}
-          aria-expanded={pickerOpen}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-xs font-medium shadow-[var(--shadow-soft)] backdrop-blur hover:bg-muted"
-        >
-          <Layers className="h-3.5 w-3.5" />
-          Basemap
-        </button>
       </div>
+
 
       {mapError ? (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
