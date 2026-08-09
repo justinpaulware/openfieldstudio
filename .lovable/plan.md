@@ -2,16 +2,16 @@
 
 Wire your Adobe Fonts (Typekit) web project into Open Field so Proxima Nova renders everywhere instead of the Montserrat fallback.
 
-## What you need to do first (in Adobe Fonts)
+Kit provided: `https://use.typekit.net/ehj6ipl.css` (project ID `ehj6ipl`).
 
-1. Go to Adobe Fonts, open Proxima Nova, and click "Add to Web Project".
-2. Create (or pick) a web project, select the weights you want — 400, 500, 600, 700 covers the app.
-3. In the web project settings, add these domains so the kit is allowed to load:
-   - `id-preview--32718663-a6d0-4df5-9653-e6ad4bfb7e0e.lovable.app`
-   - your published `.lovable.app` domain (and any custom domain later)
-4. Copy the kit ID from the embed code — it looks like `https://use.typekit.net/abc1def.css`.
+## One thing to check on your side
 
-Then paste that kit ID (or the whole URL) into chat and I'll apply the change.
+Adobe Fonts kits are domain-locked. In the web project settings, make sure these domains are listed, or the preview will silently fall back:
+
+- `id-preview--32718663-a6d0-4df5-9653-e6ad4bfb7e0e.lovable.app`
+- your published `.lovable.app` domain (and any custom domain later)
+- `localhost` (for internal checks)
+
 
 ## What I'll change
 
