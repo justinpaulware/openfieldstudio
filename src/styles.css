@@ -11,8 +11,8 @@
  */
 
 @theme inline {
-  --font-sans: "Proxima Nova", "Montserrat", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Proxima Nova", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "proxima-nova", "Proxima Nova", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "proxima-nova", "Proxima Nova", "Montserrat", ui-sans-serif, system-ui, sans-serif;
   --font-secondary: "Cantarell", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
