@@ -598,7 +598,9 @@ export function LayerPanel({
 
         {isSelected && (
           <div className="mt-2 flex items-center gap-2 pl-6 pr-1">
-            <span className="font-secondary text-[11px] text-muted-foreground">Opacity</span>
+            <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px] font-normal">
+              {SOURCE_LABEL[layer.source_type] ?? layer.source_type}
+            </Badge>
             <Slider
               value={[Math.round(layer.opacity * 100)]}
               min={0}
