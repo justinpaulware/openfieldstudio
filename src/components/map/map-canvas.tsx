@@ -173,10 +173,10 @@ export default function MapCanvas({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    map.setStyle(basemapUrl(basemap));
+    map.setStyle(basemapUrl(activeBasemap));
     const onStyle = () => syncLayers(map, layersRef.current);
     map.once("styledata", onStyle);
-  }, [basemap]);
+  }, [activeBasemap]);
 
   // Data / style / visibility updates.
   useEffect(() => {
