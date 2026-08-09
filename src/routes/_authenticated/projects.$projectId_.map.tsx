@@ -449,7 +449,12 @@ function MapEditor() {
                   updateFolder.mutate({ id: folder.id, patch: { collapsed: !folder.collapsed } })
                 }
                 onFolderDelete={(folder) => deleteFolder.mutate(folder)}
+                onFolderMove={(folder, parentId) =>
+                  updateFolder.mutate({ id: folder.id, patch: { parent_id: parentId } })
+                }
+                onFolderReorder={(ids) => reorderFolders.mutate(ids)}
                 onCreateFolder={(parentId) => createFolder.mutate(parentId)}
+
               />
             )}
           </div>
