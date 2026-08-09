@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronRight,
@@ -11,6 +11,7 @@ import {
   GripVertical,
   Loader2,
   MoreHorizontal,
+  Pencil,
   RefreshCw,
   Table2,
   Trash2,
@@ -50,6 +51,83 @@ function relativeTime(iso: string | null): string | null {
   return `${Math.round(hours / 24)}d ago`;
 }
 
+type DragItem = { kind: "layer" | "folder"; id: string };
+
+/** Inline rename field: local while typing, saves once on Enter or blur. */
+function NameEditor({
+  value,
+  editing,
+  onStartEdit,
+  onCommit,
+  onCancel,
+  className,
+}: {
+  value: string;
+  editing: boolean;
+  onStartEdit: () => void;
+  onCommit: (name: string) => void;
+  onCancel: () => void;
+  className?: string;
+}) {
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      setDraft(value);
+      requestAnimationFrame(() => inputRef.current?.select());
+    }
+  }, [editing, value]);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        title="Click to rename"
+        onClick={(event) => {
+          event.stopPropagation();
+          onStartEdit();
+        }}
+        className={cn(
+          "w-full truncate rounded px-1 py-0.5 text-left outline-none hover:bg-muted/60",
+          className,
+        )}
+      >
+        {value}
+      </button>
+    );
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      autoFocus
+      onClick={(event) => event.stopPropagation()}
+      onChange={(event) => setDraft(event.target.value)}
+      onBlur={() => {
+        const next = draft.trim();
+        if (next && next !== value) onCommit(next);
+        else onCancel();
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          event.currentTarget.blur();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          setDraft(value);
+          onCancel();
+        }
+      }}
+      className={cn(
+        "w-full rounded border border-input bg-muted/70 px-1 py-0.5 outline-none ring-2 ring-ring/40",
+        className,
+      )}
+    />
+  );
+}
+
 type Props = {
   layers: LayerRow[];
   folders: FolderRow[];
@@ -71,6 +149,8 @@ type Props = {
   onFolderRename: (folder: FolderRow, name: string) => void;
   onFolderToggle: (folder: FolderRow) => void;
   onFolderDelete: (folder: FolderRow) => void;
+  onFolderMove: (folder: FolderRow, parentId: string | null) => void;
+  onFolderReorder: (orderedIds: string[]) => void;
   onCreateFolder: (parentId: string | null) => void;
 };
 
@@ -95,18 +175,46 @@ export function LayerPanel({
   onFolderRename,
   onFolderToggle,
   onFolderDelete,
+  onFolderMove,
+  onFolderReorder,
   onCreateFolder,
 }: Props) {
-  const [dragId, setDragId] = useState<string | null>(null);
+  const [drag, setDrag] = useState<DragItem | null>(null);
   const [dropFolderId, setDropFolderId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | null>(null);
+
+  const layersIn = (folderId: string | null) => layers.filter((l) => l.folder_id === folderId);
+  const childFolders = (parentId: string | null) =>
+    folders
+      .filter((f) => f.parent_id === parentId)
+      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+
+  const reorderFolders = (dragged: FolderRow, target: FolderRow) => {
+    const siblings = childFolders(dragged.parent_id);
+    const ids = siblings.map((f) => f.id);
+    const from = ids.indexOf(dragged.id);
+    const to = ids.indexOf(target.id);
+    if (from < 0 || to < 0) return;
+    ids.splice(to, 0, ids.splice(from, 1)[0] as string);
+    onFolderReorder(ids);
+  };
 
   const handleDropOnLayer = (target: LayerRow) => {
-    if (!dragId || dragId === target.id) return;
-    const dragged = layers.find((l) => l.id === dragId);
+    if (!drag) return;
+    if (drag.kind === "folder") {
+      const dragged = folders.find((f) => f.id === drag.id);
+      setDrag(null);
+      if (dragged && dragged.parent_id !== target.folder_id) {
+        onFolderMove(dragged, target.folder_id);
+      }
+      return;
+    }
+    if (drag.id === target.id) return;
+    const dragged = layers.find((l) => l.id === drag.id);
     const ids = layers.map((l) => l.id);
-    const from = ids.indexOf(dragId);
+    const from = ids.indexOf(drag.id);
     const to = ids.indexOf(target.id);
-    setDragId(null);
+    setDrag(null);
     if (from < 0 || to < 0) return;
     ids.splice(to, 0, ids.splice(from, 1)[0] as string);
     onReorder(ids);
@@ -116,18 +224,44 @@ export function LayerPanel({
   };
 
   const handleDropOnFolder = (folderId: string | null) => {
-    const dragged = layers.find((l) => l.id === dragId);
-    setDragId(null);
+    const current = drag;
+    setDrag(null);
     setDropFolderId(null);
-    if (!dragged || dragged.folder_id === folderId) return;
-    onMoveToFolder(dragged, folderId);
-  };
+    if (!current) return;
 
-  const layersIn = (folderId: string | null) => layers.filter((l) => l.folder_id === folderId);
-  const childFolders = (parentId: string | null) =>
-    folders
-      .filter((f) => f.parent_id === parentId)
-      .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+    if (current.kind === "layer") {
+      const dragged = layers.find((l) => l.id === current.id);
+      if (!dragged || dragged.folder_id === folderId) return;
+      onMoveToFolder(dragged, folderId);
+      return;
+    }
+
+    const dragged = folders.find((f) => f.id === current.id);
+    if (!dragged || dragged.id === folderId) return;
+    const target = folderId ? folders.find((f) => f.id === folderId) : null;
+
+    // Root drop: move to top level (or reorder if already there).
+    if (!target) {
+      if (dragged.parent_id !== null) onFolderMove(dragged, null);
+      return;
+    }
+    // Never drop into own child.
+    if (target.parent_id === dragged.id) return;
+
+    const hasChildren = folders.some((f) => f.parent_id === dragged.id);
+    const canNest = !hasChildren && target.parent_id === null;
+
+    if (dragged.parent_id === target.parent_id && !canNest) {
+      reorderFolders(dragged, target);
+      return;
+    }
+    if (!canNest) return;
+    if (dragged.parent_id === target.id) {
+      reorderFolders(dragged, target);
+      return;
+    }
+    onFolderMove(dragged, target.id);
+  };
 
   const renderLayer = (layer: LayerRow, depth: number) => {
     const isSelected = layer.id === selectedId;
@@ -136,8 +270,8 @@ export function LayerPanel({
     return (
       <li
         key={layer.id}
-        draggable
-        onDragStart={() => setDragId(layer.id)}
+        draggable={editing !== layer.id}
+        onDragStart={() => setDrag({ kind: "layer", id: layer.id })}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.stopPropagation();
@@ -148,7 +282,7 @@ export function LayerPanel({
         className={cn(
           "group cursor-pointer rounded-lg border border-transparent px-2 py-2 transition-colors",
           isSelected ? "border-border bg-muted/60" : "hover:bg-muted/40",
-          dragId === layer.id && "opacity-50",
+          drag?.kind === "layer" && drag.id === layer.id && "opacity-50",
         )}
       >
         <div className="flex items-center gap-1.5">
@@ -166,13 +300,18 @@ export function LayerPanel({
           </button>
 
           <div className="min-w-0 flex-1">
-            <input
+            <NameEditor
               value={layer.name}
-              onClick={(event) => event.stopPropagation()}
-              onChange={(event) => onRename(layer, event.target.value)}
-              className="w-full truncate bg-transparent text-sm font-medium outline-none focus:underline"
+              editing={editing === layer.id}
+              onStartEdit={() => setEditing(layer.id)}
+              onCommit={(name) => {
+                setEditing(null);
+                onRename(layer, name);
+              }}
+              onCancel={() => setEditing(null)}
+              className="text-sm font-medium"
             />
-            <div className="mt-0.5 flex items-center gap-1.5">
+            <div className="mt-0.5 flex items-center gap-1.5 pl-1">
               <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal">
                 {SOURCE_LABEL[layer.source_type] ?? layer.source_type}
               </Badge>
@@ -198,6 +337,10 @@ export function LayerPanel({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditing(layer.id)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Rename
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onZoomTo(layer)}>
                 <Crosshair className="mr-2 h-4 w-4" />
                 Zoom to layer
@@ -278,8 +421,14 @@ export function LayerPanel({
     return (
       <li key={folder.id} style={{ marginLeft: depth * 12 }}>
         <div
+          draggable={editing !== folder.id}
+          onDragStart={(event) => {
+            event.stopPropagation();
+            setDrag({ kind: "folder", id: folder.id });
+          }}
           onDragOver={(event) => {
             event.preventDefault();
+            event.stopPropagation();
             setDropFolderId(folder.id);
           }}
           onDragLeave={() => setDropFolderId((id) => (id === folder.id ? null : id))}
@@ -290,8 +439,10 @@ export function LayerPanel({
           className={cn(
             "flex items-center gap-1 rounded-lg border border-transparent px-1 py-1.5",
             dropFolderId === folder.id ? "border-primary/60 bg-primary/10" : "hover:bg-muted/40",
+            drag?.kind === "folder" && drag.id === folder.id && "opacity-50",
           )}
         >
+          <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
           <button
             type="button"
             onClick={() => onFolderToggle(folder)}
@@ -305,11 +456,19 @@ export function LayerPanel({
             )}
           </button>
           <Folder className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <input
-            value={folder.name}
-            onChange={(event) => onFolderRename(folder, event.target.value)}
-            className="min-w-0 flex-1 truncate bg-transparent text-sm font-semibold outline-none focus:underline"
-          />
+          <div className="min-w-0 flex-1">
+            <NameEditor
+              value={folder.name}
+              editing={editing === folder.id}
+              onStartEdit={() => setEditing(folder.id)}
+              onCommit={(name) => {
+                setEditing(null);
+                onFolderRename(folder, name);
+              }}
+              onCancel={() => setEditing(null)}
+              className="text-sm font-semibold"
+            />
+          </div>
           <span className="font-secondary text-[11px] text-muted-foreground">{inside.length}</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -318,10 +477,20 @@ export function LayerPanel({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditing(folder.id)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Rename
+              </DropdownMenuItem>
               {depth === 0 && (
                 <DropdownMenuItem onClick={() => onCreateFolder(folder.id)}>
                   <FolderPlus className="mr-2 h-4 w-4" />
                   New subfolder
+                </DropdownMenuItem>
+              )}
+              {folder.parent_id && (
+                <DropdownMenuItem onClick={() => onFolderMove(folder, null)}>
+                  <Folder className="mr-2 h-4 w-4" />
+                  Move to top level
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
@@ -368,7 +537,7 @@ export function LayerPanel({
 
   return (
     <ul
-      className="space-y-1 p-2"
+      className="min-h-full space-y-1 p-2"
       onDragOver={(event) => event.preventDefault()}
       onDrop={() => handleDropOnFolder(null)}
     >
