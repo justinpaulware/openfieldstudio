@@ -581,6 +581,13 @@ function MapEditor() {
             </Suspense>
           </ClientOnly>
 
+          {showLegend && (
+            <div className="pointer-events-auto absolute bottom-10 right-2.5 z-10">
+              <MapLegend entries={legendEntries} />
+            </div>
+          )}
+
+
           {popup && (
             <div className="absolute right-4 top-4 max-h-[60%] w-72 overflow-y-auto rounded-xl border border-border bg-card/95 p-4 shadow-[var(--shadow-soft)] backdrop-blur">
               <div className="flex items-start justify-between gap-2">
