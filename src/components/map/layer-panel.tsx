@@ -218,6 +218,7 @@ type Props = {
   onOpenTable: (layer: LayerRow) => void;
   onRefresh: (layer: LayerRow) => void;
   onEditSource: (layer: LayerRow) => void;
+  onStyle: (layer: PanelLayer) => void;
   onMoveToFolder: (layer: LayerRow, folderId: string | null) => void;
   onFolderRename: (folder: FolderRow, name: string) => void;
   onFolderToggle: (folder: FolderRow) => void;
@@ -244,6 +245,7 @@ export function LayerPanel({
   onOpenTable,
   onRefresh,
   onEditSource,
+  onStyle,
   onMoveToFolder,
   onFolderRename,
   onFolderToggle,
