@@ -17,10 +17,10 @@ export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   head: () => ({
     meta: [
-      { title: "Sign in — Map Studio" },
-      { name: "description", content: "Sign in or create a Map Studio account to build and publish interactive webmaps." },
-      { property: "og:title", content: "Sign in — Map Studio" },
-      { property: "og:description", content: "Access your Map Studio projects." },
+      { title: "Sign in — Open Field" },
+      { name: "description", content: "Sign in or create a Open Field account to build and publish interactive webmaps." },
+      { property: "og:title", content: "Sign in — Open Field" },
+      { property: "og:description", content: "Access your Open Field projects." },
     ],
   }),
   component: AuthPage,
@@ -94,7 +94,7 @@ function AuthPage() {
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Layers className="h-4 w-4" />
             </span>
-            <span className="font-display text-lg font-semibold">Map Studio</span>
+            <span className="font-display text-lg font-semibold">Open Field</span>
           </Link>
         </div>
       </header>
@@ -114,7 +114,7 @@ function AuthPage() {
             </div>
           ) : (
             <div className="rounded-xl border border-border bg-card p-8 shadow-[var(--shadow-soft)]">
-              <h1 className="text-2xl font-semibold">Welcome to Map Studio</h1>
+              <h1 className="text-2xl font-semibold">Welcome to Open Field</h1>
               <p className="mt-2 text-sm text-muted-foreground">
                 Publish your spatial data as interactive webmaps.
               </p>

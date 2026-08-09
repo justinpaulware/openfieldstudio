@@ -79,14 +79,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Map Studio — Publish GIS data as modern webmaps" },
+      { title: "Open Field — Publish GIS data as modern webmaps" },
       {
         name: "description",
         content:
-          "Map Studio turns GIS datasets into clean, interactive public webmaps. Upload, style, publish — no code required.",
+          "Open Field turns GIS datasets into clean, interactive public webmaps. Upload, style, publish — no code required.",
       },
-      { name: "author", content: "Map Studio" },
-      { property: "og:title", content: "Map Studio — Publish GIS data as modern webmaps" },
+      { name: "author", content: "Open Field" },
+      { property: "og:title", content: "Open Field — Publish GIS data as modern webmaps" },
       {
         property: "og:description",
         content: "Take data from QGIS to a beautiful public webmap in minutes.",

@@ -4,9 +4,9 @@ import { MessageSquare } from "lucide-react";
 export const Route = createFileRoute("/_authenticated/comments")({
   head: () => ({
     meta: [
-      { title: "Comments — Map Studio" },
+      { title: "Comments — Open Field" },
       { name: "description", content: "Geolocated feedback left by viewers on your published maps." },
-      { property: "og:title", content: "Comments — Map Studio" },
+      { property: "og:title", content: "Comments — Open Field" },
       { property: "og:description", content: "Map feedback from your audience." },
     ],
   }),

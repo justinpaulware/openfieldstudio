@@ -65,7 +65,7 @@ function AppSidebar() {
             <Layers className="h-4 w-4" />
           </span>
           <span className="truncate font-display text-base font-semibold group-data-[collapsible=icon]:hidden">
-            Map Studio
+            Open Field
           </span>
         </Link>
       </SidebarHeader>

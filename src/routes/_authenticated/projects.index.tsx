@@ -38,9 +38,9 @@ import { StatusChip } from "@/components/status-chip";
 export const Route = createFileRoute("/_authenticated/projects/")({
   head: () => ({
     meta: [
-      { title: "Projects — Map Studio" },
-      { name: "description", content: "Create and manage your Map Studio mapping projects." },
-      { property: "og:title", content: "Projects — Map Studio" },
+      { title: "Projects — Open Field" },
+      { name: "description", content: "Create and manage your Open Field mapping projects." },
+      { property: "og:title", content: "Projects — Open Field" },
       { property: "og:description", content: "Your mapping projects in one place." },
     ],
   }),

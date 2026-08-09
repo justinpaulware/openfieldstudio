@@ -6,13 +6,13 @@ import { useSession } from "@/hooks/use-session";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Map Studio — Turn GIS data into interactive webmaps" },
+      { title: "Open Field — Turn GIS data into interactive webmaps" },
       {
         name: "description",
         content:
           "Upload GeoJSON, connect CSV and ArcGIS services, style layers visually and publish shareable webmaps. Built for GIS professionals moving from QGIS to the web.",
       },
-      { property: "og:title", content: "Map Studio — Turn GIS data into interactive webmaps" },
+      { property: "og:title", content: "Open Field — Turn GIS data into interactive webmaps" },
       {
         property: "og:description",
         content: "QGIS to Upload to Style to Publish. No web development required.",
@@ -45,7 +45,7 @@ function Landing() {
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Layers className="h-4 w-4" />
             </span>
-            <span className="font-display text-lg font-semibold">Map Studio</span>
+            <span className="font-display text-lg font-semibold">Open Field</span>
           </Link>
           <nav className="flex items-center gap-2">
             {!loading && session ? (
@@ -77,7 +77,7 @@ function Landing() {
             From QGIS export to a live webmap, without writing code.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Map Studio is the shortest path between your spatial data and an interactive public
+            Open Field is the shortest path between your spatial data and an interactive public
             map. Create a project, bring in your data, style it properly, and publish.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -145,7 +145,7 @@ function Landing() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <span>Map Studio — open-source GIS publishing.</span>
+          <span>Open Field — open-source GIS publishing.</span>
           <span>QGIS to Upload to Style to Publish.</span>
         </div>
       </footer>

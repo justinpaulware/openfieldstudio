@@ -10,10 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/reset-password")({
   head: () => ({
     meta: [
-      { title: "Reset your password — Map Studio" },
-      { name: "description", content: "Choose a new password for your Map Studio account." },
-      { property: "og:title", content: "Reset your password — Map Studio" },
-      { property: "og:description", content: "Set a new Map Studio password." },
+      { title: "Reset your password — Open Field" },
+      { name: "description", content: "Choose a new password for your Open Field account." },
+      { property: "og:title", content: "Reset your password — Open Field" },
+      { property: "og:description", content: "Set a new Open Field password." },
       { name: "robots", content: "noindex" },
     ],
   }),
@@ -60,7 +60,7 @@ function ResetPassword() {
             <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Layers className="h-4 w-4" />
             </span>
-            <span className="font-display text-lg font-semibold">Map Studio</span>
+            <span className="font-display text-lg font-semibold">Open Field</span>
           </Link>
         </div>
       </header>
