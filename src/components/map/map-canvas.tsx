@@ -246,7 +246,17 @@ export default function MapCanvas({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="absolute bottom-8 right-2 z-10 flex flex-col items-end gap-1">
+      <div className="absolute right-2.5 top-[158px] z-10 flex flex-col items-end gap-1">
+        <button
+          type="button"
+          onClick={() => setPickerOpen((open) => !open)}
+          aria-expanded={pickerOpen}
+          aria-label="Basemap"
+          title="Basemap"
+          className="flex h-[29px] w-[29px] items-center justify-center rounded border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur hover:bg-muted"
+        >
+          <Layers className="h-4 w-4" />
+        </button>
         {pickerOpen && (
           <div className="w-52 overflow-hidden rounded-lg border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur">
             {BASEMAPS.map((option) => (
@@ -274,16 +284,8 @@ export default function MapCanvas({
             ))}
           </div>
         )}
-        <button
-          type="button"
-          onClick={() => setPickerOpen((open) => !open)}
-          aria-expanded={pickerOpen}
-          className="flex items-center gap-1.5 rounded-lg border border-border bg-card/95 px-2.5 py-1.5 text-xs font-medium shadow-[var(--shadow-soft)] backdrop-blur hover:bg-muted"
-        >
-          <Layers className="h-3.5 w-3.5" />
-          Basemap
-        </button>
       </div>
+
 
       {mapError ? (
         <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
