@@ -1,8 +1,9 @@
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FolderPlus, Loader2, Plus, X } from "lucide-react";
+import { ArrowLeft, FolderPlus, Loader2, Maximize, Plus, X } from "lucide-react";
+
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -131,6 +132,19 @@ function MapEditor() {
     onSuccess: invalidateFolders,
     onError: (error: Error) => toast.error(error.message),
   });
+
+  const reorderFolders = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, index) =>
+          supabase.from("layer_folders").update({ sort_order: index }).eq("id", id),
+        ),
+      );
+    },
+    onSuccess: invalidateFolders,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const updateFolder = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<FolderRow> }) => {
@@ -277,6 +291,36 @@ function MapEditor() {
     mapHandle.current?.fitBbox(bbox);
   };
 
+  /** Union extent of every layer that has coordinates. */
+  const allLayersBbox = useMemo<Bbox | null>(() => {
+    let out: Bbox | null = null;
+    for (const layer of layers) {
+      const bbox = layer.bbox as Bbox | null;
+      if (!bbox || bbox.length !== 4 || bbox.some((n) => !Number.isFinite(n))) continue;
+      out = out
+        ? [
+            Math.min(out[0], bbox[0]),
+            Math.min(out[1], bbox[1]),
+            Math.max(out[2], bbox[2]),
+            Math.max(out[3], bbox[3]),
+          ]
+        : bbox;
+    }
+    return out;
+  }, [layers]);
+
+  const autoFitted = useRef(false);
+  const hasSavedView = !!project?.map_center;
+
+  useEffect(() => {
+    if (autoFitted.current || hasSavedView || !allLayersBbox) return;
+    autoFitted.current = true;
+    const timer = setTimeout(() => mapHandle.current?.fitBbox(allLayersBbox), 400);
+    return () => clearTimeout(timer);
+  }, [allLayersBbox, hasSavedView]);
+
+
+
   const tableLayer = layers.find((l) => l.id === tableLayerId) ?? null;
   const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
   const nextSortOrder = layers.length
@@ -340,6 +384,17 @@ function MapEditor() {
             </SelectContent>
           </Select>
           <Button
+            variant="outline"
+            size="sm"
+            disabled={!allLayersBbox}
+            title="Zoom to all layers"
+            onClick={() => allLayersBbox && mapHandle.current?.fitBbox(allLayersBbox)}
+          >
+            <Maximize className="mr-1.5 h-4 w-4" />
+            Zoom to all layers
+          </Button>
+          <Button
+
             variant="outline"
             size="sm"
             disabled={!viewDirty || saveView.isPending}
@@ -418,7 +473,12 @@ function MapEditor() {
                   updateFolder.mutate({ id: folder.id, patch: { collapsed: !folder.collapsed } })
                 }
                 onFolderDelete={(folder) => deleteFolder.mutate(folder)}
+                onFolderMove={(folder, parentId) =>
+                  updateFolder.mutate({ id: folder.id, patch: { parent_id: parentId } })
+                }
+                onFolderReorder={(ids) => reorderFolders.mutate(ids)}
                 onCreateFolder={(parentId) => createFolder.mutate(parentId)}
+
               />
             )}
           </div>
