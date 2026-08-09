@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      layer_folders: {
+        Row: {
+          collapsed: boolean
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          project_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          collapsed?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          project_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          collapsed?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          project_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layer_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "layer_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "layer_folders_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layer_styles: {
         Row: {
           circle_radius: number
@@ -76,8 +124,10 @@ export type Database = {
           created_at: string
           feature_count: number
           fields: Json
+          folder_id: string | null
           geometry_type: Database["public"]["Enums"]["layer_geometry_type"]
           id: string
+          last_refreshed_at: string | null
           name: string
           opacity: number
           project_id: string
@@ -93,8 +143,10 @@ export type Database = {
           created_at?: string
           feature_count?: number
           fields?: Json
+          folder_id?: string | null
           geometry_type?: Database["public"]["Enums"]["layer_geometry_type"]
           id?: string
+          last_refreshed_at?: string | null
           name: string
           opacity?: number
           project_id: string
@@ -110,8 +162,10 @@ export type Database = {
           created_at?: string
           feature_count?: number
           fields?: Json
+          folder_id?: string | null
           geometry_type?: Database["public"]["Enums"]["layer_geometry_type"]
           id?: string
+          last_refreshed_at?: string | null
           name?: string
           opacity?: number
           project_id?: string
@@ -123,6 +177,13 @@ export type Database = {
           visible?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "layers_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "layer_folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "layers_project_id_fkey"
             columns: ["project_id"]
