@@ -373,6 +373,17 @@ function MapEditor() {
           <Button
             variant="outline"
             size="sm"
+            disabled={!allLayersBbox}
+            title="Zoom to all layers"
+            onClick={() => allLayersBbox && mapHandle.current?.fitBbox(allLayersBbox)}
+          >
+            <Maximize className="mr-1.5 h-4 w-4" />
+            Zoom to all layers
+          </Button>
+          <Button
+
+            variant="outline"
+            size="sm"
             disabled={!viewDirty || saveView.isPending}
             onClick={() => saveView.mutate(undefined)}
           >
