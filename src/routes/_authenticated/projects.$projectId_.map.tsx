@@ -95,10 +95,72 @@ function MapEditor() {
     },
   });
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ["layer-folders", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("layer_folders")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as FolderRow[];
+    },
+  });
+
   const { byId, loading, errors } = useLayerData(layers);
 
   const invalidateLayers = () =>
     queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+  const invalidateFolders = () =>
+    queryClient.invalidateQueries({ queryKey: ["layer-folders", projectId] });
+
+  const refreshLayer = useLayerRefresh(projectId);
+  const [sourceLayerId, setSourceLayerId] = useState<string | null>(null);
+
+  const createFolder = useMutation({
+    mutationFn: async (parentId: string | null) => {
+      const { error } = await supabase.from("layer_folders").insert({
+        project_id: projectId,
+        parent_id: parentId,
+        name: parentId ? "New subfolder" : "New folder",
+        sort_order: folders.length,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidateFolders,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const updateFolder = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<FolderRow> }) => {
+      const { error } = await supabase.from("layer_folders").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidateFolders,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteFolder = useMutation({
+    mutationFn: async (folder: FolderRow) => {
+      const childIds = folders.filter((f) => f.parent_id === folder.id).map((f) => f.id);
+      const ids = [folder.id, ...childIds];
+      const { error: moveError } = await supabase
+        .from("layers")
+        .update({ folder_id: null })
+        .in("folder_id", ids);
+      if (moveError) throw moveError;
+      const { error } = await supabase.from("layer_folders").delete().eq("id", folder.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folder deleted — its layers moved to the top level.");
+      void invalidateFolders();
+      void invalidateLayers();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const updateLayer = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<LayerRow> }) => {
