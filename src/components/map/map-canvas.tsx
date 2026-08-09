@@ -199,7 +199,29 @@ export default function MapCanvas({
     };
   }, [onFeatureClick]);
 
-  return <div ref={containerRef} className="h-full w-full" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={containerRef} className="h-full w-full" />
+      {mapError ? (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-destructive/40 bg-card/95 px-3 py-2 text-sm text-foreground shadow-lg">
+            <span>Basemap failed to load. {mapError}</span>
+            <button
+              type="button"
+              className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted"
+              onClick={() => {
+                setMapError(null);
+                mapRef.current?.setStyle(basemapUrl(basemap));
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
 }
 
 function removeLayerIfPresent(map: MapLibreMap, id: string) {
