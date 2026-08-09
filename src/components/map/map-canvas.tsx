@@ -252,7 +252,7 @@ export default function MapCanvas({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="absolute right-2.5 top-[158px] z-10 flex flex-col items-end gap-1">
+      <div className="absolute right-2.5 top-[146px] z-10 flex flex-col items-end gap-1">
         <button
           type="button"
           onClick={() => setPickerOpen((open) => !open)}
