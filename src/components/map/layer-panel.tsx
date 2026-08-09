@@ -64,6 +64,72 @@ const SOURCE_LABEL: Record<string, string> = {
   arcgis_rest: "ArcGIS",
 };
 
+type StyleRow = Tables<"layer_styles">;
+export type PanelLayer = LayerRow & { layer_styles?: StyleRow[] | null };
+
+const SYMBOL_DEFAULTS = {
+  fillColor: "#f5c518",
+  strokeColor: "#1b1d22",
+  strokeWidth: 1,
+  fillOpacity: 0.55,
+};
+
+/** Legend swatch mirroring how the layer draws on the map. */
+function LayerSymbol({ layer }: { layer: PanelLayer }) {
+  const style = layer.layer_styles?.[0];
+  const fill = style?.fill_color ?? SYMBOL_DEFAULTS.fillColor;
+  const stroke = style?.stroke_color ?? SYMBOL_DEFAULTS.strokeColor;
+  const strokeWidth = style?.stroke_width ?? SYMBOL_DEFAULTS.strokeWidth;
+  const fillOpacity = style?.fill_opacity ?? SYMBOL_DEFAULTS.fillOpacity;
+  const geom = (layer.geometry_type ?? "").toLowerCase();
+  const kind = geom.includes("point") ? "point" : geom.includes("line") ? "line" : "polygon";
+
+  return (
+    <span
+      className="flex h-4 w-4 shrink-0 items-center justify-center"
+      style={{ opacity: layer.opacity }}
+      aria-hidden="true"
+    >
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        {kind === "point" && (
+          <circle
+            cx="8"
+            cy="8"
+            r="4.5"
+            fill={fill}
+            fillOpacity={1}
+            stroke={stroke}
+            strokeWidth={Math.min(strokeWidth, 2)}
+          />
+        )}
+        {kind === "line" && (
+          <path
+            d="M1.5 11.5 L6 5.5 L10 10 L14.5 4.5"
+            fill="none"
+            stroke={stroke}
+            strokeWidth={Math.max(1.5, Math.min(strokeWidth, 3))}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+        {kind === "polygon" && (
+          <rect
+            x="2"
+            y="3.5"
+            width="12"
+            height="9"
+            rx="2"
+            fill={fill}
+            fillOpacity={fillOpacity}
+            stroke={stroke}
+            strokeWidth={Math.min(strokeWidth, 2)}
+          />
+        )}
+      </svg>
+    </span>
+  );
+}
+
 function relativeTime(iso: string | null): string | null {
   if (!iso) return null;
   const diff = Date.now() - new Date(iso).getTime();
@@ -75,6 +141,7 @@ function relativeTime(iso: string | null): string | null {
   if (hours < 24) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
 }
+
 
 type DragItem = { kind: "layer" | "folder"; id: string };
 type DropPos = "before" | "after" | "inside";
@@ -180,7 +247,7 @@ function NameEditor({
 
 
 type Props = {
-  layers: LayerRow[];
+  layers: PanelLayer[];
   folders: FolderRow[];
   loading: Record<string, boolean>;
   errors: Record<string, string | null>;
@@ -381,7 +448,7 @@ export function LayerPanel({
     placeFolder(dragged, null, null, "after");
   };
 
-  const renderLayer = (layer: LayerRow, depth: number) => {
+  const renderLayer = (layer: PanelLayer, depth: number) => {
     const isSelected = layer.id === selectedId;
     const error = errors[layer.id];
     const updated = relativeTime(layer.last_refreshed_at);
@@ -412,7 +479,7 @@ export function LayerPanel({
         onClick={() => onSelect(layer.id)}
         style={{ marginLeft: depth * 12 }}
         className={cn(
-          "group relative cursor-pointer rounded-lg border border-transparent px-2 py-2 transition-colors",
+          "group relative cursor-pointer rounded-lg border border-transparent px-2 py-1.5 transition-colors",
           isSelected ? "border-border bg-muted/60" : "hover:bg-muted/40",
           drag?.kind === "layer" && drag.id === layer.id && "opacity-50",
         )}
@@ -420,17 +487,13 @@ export function LayerPanel({
         <DropLine visible={showLine("layer", layer.id, "before")} side="top" />
         <div className="flex items-center gap-1.5">
           <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground/60" />
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onToggleVisible(layer);
-            }}
-            className="rounded p-1 text-muted-foreground hover:text-foreground"
-            aria-label={layer.visible ? "Hide layer" : "Show layer"}
-          >
-            {layer.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </button>
+          {loading[layer.id] || refreshingId === layer.id ? (
+            <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+          ) : error ? (
+            <TriangleAlert className="h-4 w-4 shrink-0 text-destructive" />
+          ) : (
+            <LayerSymbol layer={layer} />
+          )}
 
           <div className="min-w-0 flex-1">
             <NameEditor
@@ -444,24 +507,24 @@ export function LayerPanel({
               onCancel={() => setEditing(null)}
               className="text-sm font-medium"
             />
-            <div className="mt-0.5 flex items-center gap-1.5 pl-1">
-              <Badge variant="secondary" className="h-4 px-1.5 text-[10px] font-normal">
-                {SOURCE_LABEL[layer.source_type] ?? layer.source_type}
-              </Badge>
-              <span className="font-secondary text-[11px] text-muted-foreground">
-                {layer.feature_count.toLocaleString()} features
-              </span>
-              {updated && (
-                <span className="font-secondary text-[11px] text-muted-foreground/70">
-                  · {updated}
-                </span>
-              )}
-              {(loading[layer.id] || refreshingId === layer.id) && (
-                <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-              )}
-              {error && <TriangleAlert className="h-3 w-3 text-destructive" />}
-            </div>
           </div>
+
+          <span className="shrink-0 font-secondary text-[11px] text-muted-foreground">
+            ({layer.feature_count.toLocaleString()})
+          </span>
+
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleVisible(layer);
+            }}
+            className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
+            aria-label={layer.visible ? "Hide layer" : "Show layer"}
+          >
+            {layer.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+          </button>
+
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild onClick={(event) => event.stopPropagation()}>
@@ -492,6 +555,9 @@ export function LayerPanel({
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Refresh from source
               </DropdownMenuItem>
+              <div className="px-2 pb-1 pl-8 font-secondary text-[11px] text-muted-foreground/70">
+                {updated ? `Updated ${updated}` : "Never refreshed"}
+              </div>
               <DropdownMenuItem onClick={() => onEditSource(layer)}>
                 <Database className="mr-2 h-4 w-4" />
                 Data source…
@@ -532,7 +598,9 @@ export function LayerPanel({
 
         {isSelected && (
           <div className="mt-2 flex items-center gap-2 pl-6 pr-1">
-            <span className="font-secondary text-[11px] text-muted-foreground">Opacity</span>
+            <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px] font-normal">
+              {SOURCE_LABEL[layer.source_type] ?? layer.source_type}
+            </Badge>
             <Slider
               value={[Math.round(layer.opacity * 100)]}
               min={0}
