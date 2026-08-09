@@ -195,6 +195,7 @@ export default function MapCanvas({
 
     return () => {
       if (watchdog) clearTimeout(watchdog);
+      scaleContainerEl.removeEventListener("click", scaleClick);
       readyRef.current = false;
       mapRef.current = null;
       // Defer so a StrictMode remount can reuse the live worker pool.
