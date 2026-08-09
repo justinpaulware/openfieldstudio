@@ -148,9 +148,9 @@ function Landing() {
       </main>
 
       <footer className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <span>Open Field — open-source GIS publishing.</span>
-          <span>QGIS to Upload to Style to Publish.</span>
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-6 py-8 font-secondary text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+          <span>Open Field — simple, beautiful webmaps.</span>
+          <span>Create. Style. Publish.</span>
         </div>
       </footer>
     </div>
