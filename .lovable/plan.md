@@ -1,30 +1,30 @@
-# Fix: CSV layer loads but nothing is visible on the map
+# Fix: map editor renders a blank white canvas
 
-## What's actually happening
+## What I found
 
-Your layer imported fine — 65 features, latitude/longitude columns detected correctly. The problem is in how blank rows are handled.
+I inspected the live map instance in your editor. The map is not "missing" — it is running, but it never draws anything:
 
-The stored extent for the layer is `[-74.828, 0, 0, 42.089]`. Those zeros are the giveaway: rows in the sheet with an empty Latitude or Longitude cell are being read as the number **0** instead of being skipped, so they get placed at "null island" (0°, 0°) off the coast of Africa.
+- The map container, canvas (622x786), zoom/scale/geolocate controls all exist, and the scale bar responds to zoom (2000 km -> 1000 km). So the map object is alive and interactive.
+- The Positron style downloads fine (200), its sprite loads, and the basemap's tile index (`/planet`) resolves to a valid tile template. I fetched an actual vector tile from the browser: 200, 1.2 MB. Network is not the problem.
+- The style's source object reports `loaded: true` with correct tile URLs — **but its tile manager holds zero tiles**. Neither the vector source nor the shaded-relief raster source has ever requested a single tile, at any zoom.
+- No console errors, no map `error` events, even after forcing `resize()`, `triggerRepaint()` and a zoom change.
 
-Two consequences:
+So: style loads, sources load, tiles are never requested, nothing paints. Positron's background layer is near-white, which is exactly the "white box" you see.
 
-1. The layer's extent stretches from West Africa to New York. "Zoom to layer" frames the middle of the Atlantic, where there is nothing to see.
-2. At that zoom (and at the default world view), the real Hudson Valley points are a few sub-pixel dots — effectively invisible.
-
-The basemap itself is rendering correctly (tiles, scale bar and controls were all present).
+Zero tiles requested with zero errors points at the map's background worker pipeline being wedged, not at styling or data. The most likely cause is the editor mounting the map twice in development (React's double-invoked effects and hot reload): the first instance is created and then torn down with `map.remove()`, which releases the shared worker pool, and the second instance ends up with a worker connection that answers but never delivers tiles. A secondary suspect is the pinned `maplibre-gl@6.2.0` itself.
 
 ## The fix
 
-1. **Reject empty and non-numeric coordinate cells** in CSV parsing instead of treating them as 0. Also drop exact `0, 0` pairs, which are almost always missing data rather than a real location.
-2. **Report skipped rows**: after import, show how many rows had no usable coordinates, so a partially-geocoded sheet is obvious rather than silent.
-3. **Recompute the extent from the data that actually loaded**, and store the corrected extent on the layer. Existing broken layers self-heal the next time they load — no need to delete and re-add the layer.
-4. **Auto-frame the data on open**: when a project is still at its default world view, fit the map to the combined extent of its layers on first load so the data is on screen without any clicking.
-5. **Make points readable**: slightly larger default point radius with a contrasting halo, so a small set of points reads clearly at regional zoom.
+1. **Make map creation double-mount safe.** Create the map instance in a way that survives React's dev double-invoke and hot reloads: guard initialization against a torn-down-then-recreated cycle, and avoid destroying the shared worker pool between the two mounts. Do not tear down and immediately recreate the instance in the same tick.
+2. **Verify against a known-good version.** If a correctly single-mounted map still requests zero tiles, pin `maplibre-gl` to the current stable 5.x line, which is the widely deployed pairing with Vite and React 19, and re-verify tiles render.
+3. **Stop failing silently.** Attach a map `error` handler that logs the failure and shows an inline message over the canvas ("Basemap failed to load — retry"), plus a short watchdog: if no tiles have loaded a few seconds after the style is ready, surface that state instead of showing a blank white rectangle.
+4. **Verify with real tiles.** After the change, confirm from the running app that the basemap tile manager holds loaded tiles and the canvas paints roads/water, at both the default view and after switching basemaps.
+
+Once the basemap is confirmed painting, I'll apply the CSV coordinate fix from the previous plan (blank cells being read as `0`, which drags the layer extent to null island) so "zoom to layer" frames your Hudson Valley points correctly.
 
 ## Technical notes
 
-- `guessNumber` in `src/lib/datasets.server.ts` currently uses `Number(value.trim())`, and `Number("")` is `0`. Replace with an empty/NaN guard; also skip rows where both coordinates are exactly 0.
-- `loadCsvGeoJSON` returns a skipped-row count alongside the features; `loadCsvLayer` passes it through in the summary and the add-layer dialog surfaces it in the success toast.
-- In the map editor, after a layer's data resolves, compare the computed bbox with the stored `layers.bbox` and write back when they differ.
-- Add a one-shot effect in the editor that fits the merged bbox of loaded layers when the project's saved zoom is still the default world view.
-- Bump the default `circle_radius` used for new layers and the fallback style, and give points a stroke that contrasts against light basemaps.
+- Files involved: `src/components/map/map-canvas.tsx` (init effect, cleanup, error handling) and `package.json` if a version change is needed.
+- Current init effect cleanup calls `map.remove()` unconditionally; under StrictMode this runs between the two mounts and releases MapLibre's global worker pool while a new map is being constructed.
+- Options to evaluate in order: keep the instance alive across the dev double-invoke (ref-based singleton keyed to the container, cleanup only on real unmount), or call `maplibregl.prewarm()` so the worker pool is not released on `remove()`.
+- Add `map.on("error", ...)` before the style loads so worker/tile failures are captured rather than swallowed.
