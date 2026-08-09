@@ -141,11 +141,22 @@ export default function MapCanvas({
     mapRef.current = map;
 
     map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
-    map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: "metric" }), "bottom-left");
+    const scale = new maplibregl.ScaleControl({ maxWidth: 120, unit: activeScaleUnits });
+    scaleRef.current = scale;
+    map.addControl(scale, "bottom-left");
     map.addControl(
       new maplibregl.GeolocateControl({ trackUserLocation: true, showAccuracyCircle: true }),
       "top-right",
     );
+
+    // Clicking the scale bar flips imperial <-> metric.
+    const scaleEl = containerRef.current.querySelector<HTMLElement>(".maplibregl-ctrl-scale");
+    if (scaleEl) {
+      scaleEl.style.cursor = "pointer";
+      scaleEl.title = "Click to switch units";
+      scaleEl.addEventListener("click", () => toggleScaleRef.current());
+    }
+
 
     map.on("error", (event) => {
       const message = (event as { error?: Error }).error?.message ?? "Unknown map error";
