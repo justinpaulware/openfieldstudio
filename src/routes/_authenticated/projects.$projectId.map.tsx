@@ -368,10 +368,29 @@ function MapEditor() {
     return () => clearTimeout(timer);
   }, [allLayersBbox, hasSavedView]);
 
-
+  // Arriving from the Styling tab opens the panel on the first layer.
+  const search = Route.useSearch();
+  const styleParamHandled = useRef(false);
+  useEffect(() => {
+    if (styleParamHandled.current || !search.style || !orderedLayers.length) return;
+    styleParamHandled.current = true;
+    const first = orderedLayers[0];
+    if (first) {
+      setStyleLayerId(first.id);
+      setSelectedId(first.id);
+    }
+  }, [search.style, orderedLayers]);
 
   const tableLayer = layers.find((l) => l.id === tableLayerId) ?? null;
   const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
+  const styleLayer = layers.find((l) => l.id === styleLayerId) ?? null;
+
+  const applyStyle = (layerId: string, current: LayerStyle, patch: Partial<LayerStyle>) => {
+    const next = { ...current, ...patch };
+    setStyleDrafts((drafts) => ({ ...drafts, [layerId]: next }));
+    persistStyle(layerId, next);
+  };
+
   const nextSortOrder = layers.length
     ? Math.min(...layers.map((l) => l.sort_order)) - 1
     : 0;
