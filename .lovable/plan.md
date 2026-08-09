@@ -4,13 +4,9 @@ Wire your Adobe Fonts (Typekit) web project into Open Field so Proxima Nova rend
 
 Kit provided: `https://use.typekit.net/ehj6ipl.css` (project ID `ehj6ipl`).
 
-## One thing to check on your side
+Nothing is needed on your side — current Adobe Fonts web projects are not domain-restricted, and this app sets no Content-Security-Policy that would block `use.typekit.net`.
 
-Adobe Fonts kits are domain-locked. In the web project settings, make sure these domains are listed, or the preview will silently fall back:
 
-- `id-preview--32718663-a6d0-4df5-9653-e6ad4bfb7e0e.lovable.app`
-- your published `.lovable.app` domain (and any custom domain later)
-- `localhost` (for internal checks)
 
 
 ## What I'll change
