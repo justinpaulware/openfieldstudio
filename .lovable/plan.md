@@ -15,7 +15,7 @@ Adobe Fonts kits are domain-locked. In the web project settings, make sure these
 
 ## What I'll change
 
-- Add the Typekit stylesheet plus a `preconnect` to `use.typekit.net` in the app's root head, alongside the existing font links.
+- Add `https://use.typekit.net/ehj6ipl.css` plus a `preconnect` to `use.typekit.net` in the app's root head, alongside the existing font links.
 - Drop Montserrat from the Google Fonts request (Cantarell stays — it's still used for select secondary text), keeping Montserrat only as a CSS fallback name in case the kit fails to load.
 - Confirm the font stack in the theme still reads `"proxima-nova", "Montserrat", ...` — Adobe serves the family under the lowercase-hyphenated name `proxima-nova`, so I'll make sure that exact string is first in `--font-sans` and `--font-display`.
 - Verify in the live preview that rendered text resolves to Proxima Nova rather than the fallback.
