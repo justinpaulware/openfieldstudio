@@ -243,6 +243,9 @@ function MapEditor() {
   const [scaleUnits, setScaleUnits] = useState<ScaleUnits | null>(null);
   const activeScaleUnits: ScaleUnits =
     scaleUnits ?? ((project as { scale_units?: string } | undefined)?.scale_units as ScaleUnits) ?? "imperial";
+  const [legend, setLegend] = useState<boolean | null>(null);
+  const showLegend =
+    legend ?? (project as { show_legend?: boolean } | undefined)?.show_legend ?? true;
 
   // Style drafts keep the map instant while the database write debounces.
   const [styleDrafts, setStyleDrafts] = useState<Record<string, LayerStyle>>({});
