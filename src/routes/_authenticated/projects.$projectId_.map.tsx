@@ -495,6 +495,21 @@ function MapEditor() {
         layerName={tableLayer?.name ?? ""}
         data={tableLayer ? (byId[tableLayer.id] ?? null) : null}
       />
+
+      <LayerSourceDialog
+        layer={sourceLayer}
+        open={!!sourceLayer}
+        onOpenChange={(open) => !open && setSourceLayerId(null)}
+        saving={refreshLayer.isPending}
+        onSave={(patch: SourcePatch) => {
+          if (!sourceLayer) return;
+          refreshLayer.mutate(
+            { layer: sourceLayer, patch },
+            { onSuccess: () => setSourceLayerId(null) },
+          );
+        }}
+      />
+
     </div>
   );
 }
