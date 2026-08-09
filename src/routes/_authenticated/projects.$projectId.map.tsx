@@ -536,7 +536,10 @@ function MapEditor() {
                 }
                 onFolderReorder={(ids) => reorderFolders.mutate(ids)}
                 onCreateFolder={(parentId) => createFolder.mutate(parentId)}
-
+                onStyle={(layer) => {
+                  setStyleLayerId(layer.id);
+                  setSelectedId(layer.id);
+                }}
               />
             )}
           </div>
