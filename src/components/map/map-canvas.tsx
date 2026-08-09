@@ -168,6 +168,10 @@ export default function MapCanvas({
     map.on("load", () => {
       readyRef.current = true;
       setMapError(null);
+      // Start the attribution collapsed behind the "i" button.
+      scaleContainerEl
+        .querySelector(".maplibregl-ctrl-attrib.maplibregl-compact")
+        ?.classList.remove("maplibregl-compact-show");
       syncLayers(map, layersRef.current);
       watchdog = setTimeout(() => {
         if (!map.areTilesLoaded()) {
