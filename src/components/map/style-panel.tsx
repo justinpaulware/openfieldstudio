@@ -295,12 +295,37 @@ export function StylePanel({
         )}
       </div>
 
-      <div className="border-t border-border px-4 py-3">
-        <Button variant="outline" size="sm" className="w-full" onClick={onReset}>
-          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-          Reset to default
-        </Button>
+      <div className="space-y-1.5 border-t border-border px-4 py-3">
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={onSave}
+            disabled={saveState === "saving" || saveState === "idle" || saveState === "saved"}
+          >
+            {saveState === "saving" ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : saveState === "saved" ? (
+              <Check className="mr-1.5 h-3.5 w-3.5" />
+            ) : (
+              <Save className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            {saveState === "saving" ? "Saving" : saveState === "saved" ? "Saved" : "Save"}
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1" onClick={onReset}>
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            Reset to default
+          </Button>
+        </div>
+        <p className="font-secondary text-[11px] text-muted-foreground">
+          {saveState === "dirty"
+            ? "Unsaved changes"
+            : saveState === "saving"
+              ? "Saving changes…"
+              : "All changes saved"}
+        </p>
       </div>
+
     </aside>
   );
 }
