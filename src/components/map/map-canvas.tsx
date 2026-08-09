@@ -487,8 +487,8 @@ function markerImage(style: LayerStyle): ImageData | null {
   if (!ctx) return null;
 
   ctx.scale(ratio, ratio);
-  ctx.fillStyle = style.fillColor;
-  ctx.strokeStyle = style.strokeColor;
+  ctx.fillStyle = isTransparent(style.fillColor) ? "rgba(0,0,0,0)" : style.fillColor;
+  ctx.strokeStyle = isTransparent(style.strokeColor) ? "rgba(0,0,0,0)" : style.strokeColor;
   ctx.lineWidth = style.strokeWidth;
   ctx.lineJoin = "round";
 
