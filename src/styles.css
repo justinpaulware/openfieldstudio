@@ -6,13 +6,14 @@
 
 /*
  * Open Field design system.
- * Warm paper-neutral canvas, amber primary, purple + green accents.
+ * Dark cool-gray canvas, warm yellow primary, purple + green accents.
  * All colors are oklch semantic tokens. Never hardcode colors in components.
  */
 
 @theme inline {
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Proxima Nova", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Proxima Nova", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-secondary: "Cantarell", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
