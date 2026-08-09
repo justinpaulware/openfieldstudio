@@ -18,7 +18,7 @@ import { Route as AuthenticatedPublishedRouteImport } from './routes/_authentica
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
-import { Route as AuthenticatedProjectsProjectIdMapRouteImport } from './routes/_authenticated/projects.$projectId_.map'
+import { Route as AuthenticatedProjectsProjectIdMapRouteImport } from './routes/_authenticated/projects.$projectId.map'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -68,9 +68,9 @@ const AuthenticatedProjectsProjectIdRoute =
   } as any)
 const AuthenticatedProjectsProjectIdMapRoute =
   AuthenticatedProjectsProjectIdMapRouteImport.update({
-    id: '/projects/$projectId_/map',
-    path: '/projects/$projectId/map',
-    getParentRoute: () => AuthenticatedRouteRoute,
+    id: '/map',
+    path: '/map',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -80,7 +80,7 @@ export interface FileRoutesByFullPath {
   '/comments': typeof AuthenticatedCommentsRoute
   '/published': typeof AuthenticatedPublishedRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
 }
@@ -91,7 +91,7 @@ export interface FileRoutesByTo {
   '/comments': typeof AuthenticatedCommentsRoute
   '/published': typeof AuthenticatedPublishedRoute
   '/settings': typeof AuthenticatedSettingsRoute
-  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
 }
@@ -104,9 +104,9 @@ export interface FileRoutesById {
   '/_authenticated/comments': typeof AuthenticatedCommentsRoute
   '/_authenticated/published': typeof AuthenticatedPublishedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
-  '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRoute
+  '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
-  '/_authenticated/projects/$projectId_/map': typeof AuthenticatedProjectsProjectIdMapRoute
+  '/_authenticated/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -142,7 +142,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/'
-    | '/_authenticated/projects/$projectId_/map'
+    | '/_authenticated/projects/$projectId/map'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -217,33 +217,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/projects/$projectId_/map': {
-      id: '/_authenticated/projects/$projectId_/map'
-      path: '/projects/$projectId/map'
+    '/_authenticated/projects/$projectId/map': {
+      id: '/_authenticated/projects/$projectId/map'
+      path: '/map'
       fullPath: '/projects/$projectId/map'
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdMapRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
   }
 }
+
+interface AuthenticatedProjectsProjectIdRouteChildren {
+  AuthenticatedProjectsProjectIdMapRoute: typeof AuthenticatedProjectsProjectIdMapRoute
+}
+
+const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
+  {
+    AuthenticatedProjectsProjectIdMapRoute:
+      AuthenticatedProjectsProjectIdMapRoute,
+  }
+
+const AuthenticatedProjectsProjectIdRouteWithChildren =
+  AuthenticatedProjectsProjectIdRoute._addFileChildren(
+    AuthenticatedProjectsProjectIdRouteChildren,
+  )
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedCommentsRoute: typeof AuthenticatedCommentsRoute
   AuthenticatedPublishedRoute: typeof AuthenticatedPublishedRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
-  AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRoute
+  AuthenticatedProjectsProjectIdRoute: typeof AuthenticatedProjectsProjectIdRouteWithChildren
   AuthenticatedProjectsIndexRoute: typeof AuthenticatedProjectsIndexRoute
-  AuthenticatedProjectsProjectIdMapRoute: typeof AuthenticatedProjectsProjectIdMapRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCommentsRoute: AuthenticatedCommentsRoute,
   AuthenticatedPublishedRoute: AuthenticatedPublishedRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
-  AuthenticatedProjectsProjectIdRoute: AuthenticatedProjectsProjectIdRoute,
+  AuthenticatedProjectsProjectIdRoute:
+    AuthenticatedProjectsProjectIdRouteWithChildren,
   AuthenticatedProjectsIndexRoute: AuthenticatedProjectsIndexRoute,
-  AuthenticatedProjectsProjectIdMapRoute:
-    AuthenticatedProjectsProjectIdMapRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
@@ -258,13 +271,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -19,7 +19,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId_/map")({
+export const Route = createFileRoute("/_authenticated/projects/$projectId/map")({
   head: () => ({
     meta: [
       { title: "Map editor — Open Field" },
