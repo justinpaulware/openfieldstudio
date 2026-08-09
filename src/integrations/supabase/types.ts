@@ -14,6 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
+      layer_styles: {
+        Row: {
+          circle_radius: number
+          created_at: string
+          fill_color: string
+          fill_opacity: number
+          id: string
+          label_config: Json
+          layer_id: string
+          popup_config: Json
+          stroke_color: string
+          stroke_width: number
+          style_config: Json
+          style_mode: string
+          updated_at: string
+        }
+        Insert: {
+          circle_radius?: number
+          created_at?: string
+          fill_color?: string
+          fill_opacity?: number
+          id?: string
+          label_config?: Json
+          layer_id: string
+          popup_config?: Json
+          stroke_color?: string
+          stroke_width?: number
+          style_config?: Json
+          style_mode?: string
+          updated_at?: string
+        }
+        Update: {
+          circle_radius?: number
+          created_at?: string
+          fill_color?: string
+          fill_opacity?: number
+          id?: string
+          label_config?: Json
+          layer_id?: string
+          popup_config?: Json
+          stroke_color?: string
+          stroke_width?: number
+          style_config?: Json
+          style_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layer_styles_layer_id_fkey"
+            columns: ["layer_id"]
+            isOneToOne: true
+            referencedRelation: "layers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      layers: {
+        Row: {
+          bbox: number[] | null
+          created_at: string
+          feature_count: number
+          fields: Json
+          geometry_type: Database["public"]["Enums"]["layer_geometry_type"]
+          id: string
+          name: string
+          opacity: number
+          project_id: string
+          sort_order: number
+          source_type: Database["public"]["Enums"]["layer_source_type"]
+          source_url: string | null
+          storage_path: string | null
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          bbox?: number[] | null
+          created_at?: string
+          feature_count?: number
+          fields?: Json
+          geometry_type?: Database["public"]["Enums"]["layer_geometry_type"]
+          id?: string
+          name: string
+          opacity?: number
+          project_id: string
+          sort_order?: number
+          source_type: Database["public"]["Enums"]["layer_source_type"]
+          source_url?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          bbox?: number[] | null
+          created_at?: string
+          feature_count?: number
+          fields?: Json
+          geometry_type?: Database["public"]["Enums"]["layer_geometry_type"]
+          id?: string
+          name?: string
+          opacity?: number
+          project_id?: string
+          sort_order?: number
+          source_type?: Database["public"]["Enums"]["layer_source_type"]
+          source_url?: string | null
+          storage_path?: string | null
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "layers_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -40,9 +158,14 @@ export type Database = {
       }
       projects: {
         Row: {
+          basemap: string
           created_at: string
           description: string | null
           id: string
+          map_bearing: number
+          map_center: number[]
+          map_pitch: number
+          map_zoom: number
           owner_id: string
           slug: string
           status: Database["public"]["Enums"]["project_status"]
@@ -52,9 +175,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          basemap?: string
           created_at?: string
           description?: string | null
           id?: string
+          map_bearing?: number
+          map_center?: number[]
+          map_pitch?: number
+          map_zoom?: number
           owner_id: string
           slug: string
           status?: Database["public"]["Enums"]["project_status"]
@@ -64,9 +192,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          basemap?: string
           created_at?: string
           description?: string | null
           id?: string
+          map_bearing?: number
+          map_center?: number[]
+          map_pitch?: number
+          map_zoom?: number
           owner_id?: string
           slug?: string
           status?: Database["public"]["Enums"]["project_status"]
@@ -85,6 +218,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      layer_geometry_type: "point" | "line" | "polygon" | "mixed"
+      layer_source_type: "geojson_file" | "csv_url" | "arcgis_rest"
       project_status: "draft" | "published" | "archived"
     }
     CompositeTypes: {
@@ -213,6 +348,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      layer_geometry_type: ["point", "line", "polygon", "mixed"],
+      layer_source_type: ["geojson_file", "csv_url", "arcgis_rest"],
       project_status: ["draft", "published", "archived"],
     },
   },

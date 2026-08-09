@@ -207,12 +207,21 @@ function ProjectDetail() {
         </TabsContent>
 
         <TabsContent value="layers" className="mt-6">
-          <Placeholder
-            icon={Layers}
-            title="Data and layers arrive in Phase 2"
-            body="Next step: upload GeoJSON, connect CSV and ArcGIS REST services, and manage layers on a live MapLibre map."
-          />
+          <div className="rounded-xl border border-border bg-card p-8 text-center shadow-[var(--shadow-soft)]">
+            <Layers className="mx-auto h-8 w-8 text-primary" />
+            <h3 className="mt-4 text-lg font-semibold">Open the map editor</h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Upload GeoJSON, connect a public CSV or ArcGIS REST service, then arrange layers on a
+              live map.
+            </p>
+            <Button asChild className="mt-6">
+              <Link to="/projects/$projectId/map" params={{ projectId }}>
+                Open map editor
+              </Link>
+            </Button>
+          </div>
         </TabsContent>
+
 
         <TabsContent value="styling" className="mt-6">
           <Placeholder
