@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, FolderPlus, Loader2, Maximize, Plus, X } from "lucide-react";
+import { FolderPlus, Loader2, Maximize, Plus, X } from "lucide-react";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId_/map")({
+export const Route = createFileRoute("/_authenticated/projects/$projectId/map")({
   head: () => ({
     meta: [
       { title: "Map editor — Open Field" },
@@ -326,7 +326,7 @@ function MapEditor() {
 
   if (projectLoading) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -351,16 +351,8 @@ function MapEditor() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-2.5">
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/projects/$projectId" params={{ projectId }}>
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              {project.title}
-            </Link>
-          </Button>
-        </div>
+    <div className="flex h-full min-h-0 flex-col">
+      <header className="flex flex-wrap items-center justify-end gap-3 border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
