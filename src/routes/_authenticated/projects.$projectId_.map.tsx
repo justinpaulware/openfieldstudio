@@ -365,24 +365,6 @@ function MapEditor() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
-          <Select
-            value={activeBasemap}
-            onValueChange={(value) => {
-              setBasemap(value);
-              saveView.mutate(value);
-            }}
-          >
-            <SelectTrigger className="h-9 w-[190px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {BASEMAPS.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <Button
             variant="outline"
             size="sm"
