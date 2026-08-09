@@ -4,13 +4,9 @@ Wire your Adobe Fonts (Typekit) web project into Open Field so Proxima Nova rend
 
 Kit provided: `https://use.typekit.net/ehj6ipl.css` (project ID `ehj6ipl`).
 
-## One thing to check on your side
+Nothing is needed on your side — current Adobe Fonts web projects are not domain-restricted, and this app sets no Content-Security-Policy that would block `use.typekit.net`.
 
-Adobe Fonts kits are domain-locked. In the web project settings, make sure these domains are listed, or the preview will silently fall back:
 
-- `id-preview--32718663-a6d0-4df5-9653-e6ad4bfb7e0e.lovable.app`
-- your published `.lovable.app` domain (and any custom domain later)
-- `localhost` (for internal checks)
 
 
 ## What I'll change
@@ -23,5 +19,5 @@ Adobe Fonts kits are domain-locked. In the web project settings, make sure these
 ## Technical notes
 
 - Font links live in `head().links` in `src/routes/__root.tsx`; the family tokens live in the `@theme` block of `src/styles.css`. Remote font stylesheets must be loaded via `<link>`, never `@import` in the CSS file.
-- Adobe Fonts kits are domain-locked, so the font will only render on domains added in step 3 — if the preview shows the fallback, that list is usually the cause.
+- Adobe serves the family under the CSS name `proxima-nova`, so I'll confirm that exact string leads `--font-sans` and `--font-display` in the theme, with Montserrat kept only as a fallback name.
 - No fonts are self-hosted, so nothing is added to the repo and licensing stays with your Adobe account.
