@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Check, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
+import { dashArray, type LayerStyle } from "@/lib/layer-style";
 
 export type RenderLayer = {
   id: string;
@@ -12,13 +13,7 @@ export type RenderLayer = {
   opacity: number;
   geometryType: SimpleGeometryType;
   data: FeatureCollection | null;
-  style: {
-    fillColor: string;
-    strokeColor: string;
-    strokeWidth: number;
-    circleRadius: number;
-    fillOpacity: number;
-  };
+  style: LayerStyle;
 };
 
 export type MapHandle = {
@@ -173,6 +168,10 @@ export default function MapCanvas({
     map.on("load", () => {
       readyRef.current = true;
       setMapError(null);
+      // Start the attribution collapsed behind the "i" button.
+      scaleContainerEl
+        .querySelector(".maplibregl-ctrl-attrib.maplibregl-compact")
+        ?.classList.remove("maplibregl-compact-show");
       syncLayers(map, layersRef.current);
       watchdog = setTimeout(() => {
         if (!map.areTilesLoaded()) {
@@ -234,12 +233,12 @@ export default function MapCanvas({
     const handler = (event: maplibregl.MapMouseEvent) => {
       const ids = layersRef.current
         .filter((l) => l.visible && l.data)
-        .flatMap((l) => ["fill", "line", "circle"].map((k) => LYR(l.id, k)))
+        .flatMap((l) => ["fill", "line", "circle", "symbol"].map((k) => LYR(l.id, k)))
         .filter((id) => map.getLayer(id));
       if (!ids.length) return;
       const [hit] = map.queryRenderedFeatures(event.point, { layers: ids });
       if (!hit) return;
-      const layerId = String(hit.layer.id).replace(/^of-(fill|line|circle)-/, "");
+      const layerId = String(hit.layer.id).replace(/^of-(fill|line|circle|symbol)-/, "");
       onFeatureClick(layerId, (hit.properties ?? {}) as Record<string, unknown>);
     };
     map.on("click", handler);
@@ -329,7 +328,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   // Drop anything we own that no longer belongs.
   for (const layer of map.getStyle().layers ?? []) {
-    const match = /^of-(fill|line|circle|outline)-(.+)$/.exec(layer.id);
+    const match = /^of-(fill|line|circle|outline|symbol)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
@@ -380,6 +379,11 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       map.setPaintProperty(LYR(layer.id, "outline"), "line-color", style.strokeColor);
       map.setPaintProperty(LYR(layer.id, "outline"), "line-width", style.strokeWidth);
       map.setPaintProperty(LYR(layer.id, "outline"), "line-opacity", alpha);
+      map.setPaintProperty(
+        LYR(layer.id, "outline"),
+        "line-dasharray",
+        (dashArray(style.dashPattern) ?? undefined) as never,
+      );
     }
 
     if (layer.geometryType === "line" || layer.geometryType === "mixed") {
@@ -390,25 +394,106 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         filter: ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false],
       });
       map.setLayoutProperty(LYR(layer.id, "line"), "visibility", visibility);
+      map.setLayoutProperty(LYR(layer.id, "line"), "line-cap", style.lineCap);
+      map.setLayoutProperty(LYR(layer.id, "line"), "line-join", "round");
       map.setPaintProperty(LYR(layer.id, "line"), "line-color", style.fillColor);
-      map.setPaintProperty(LYR(layer.id, "line"), "line-width", Math.max(1, style.strokeWidth + 1));
+      map.setPaintProperty(LYR(layer.id, "line"), "line-width", Math.max(0.5, style.strokeWidth));
       map.setPaintProperty(LYR(layer.id, "line"), "line-opacity", alpha);
+      map.setPaintProperty(
+        LYR(layer.id, "line"),
+        "line-dasharray",
+        (dashArray(style.dashPattern) ?? undefined) as never,
+      );
     }
 
     if (layer.geometryType === "point" || layer.geometryType === "mixed") {
-      ensure(LYR(layer.id, "circle"), {
-        id: LYR(layer.id, "circle"),
-        type: "circle",
-        source: sourceId,
-        filter: ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false],
-      });
-      map.setLayoutProperty(LYR(layer.id, "circle"), "visibility", visibility);
-      map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", style.fillColor);
-      map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", style.circleRadius);
-      map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", alpha);
-      map.setPaintProperty(LYR(layer.id, "circle"), "circle-stroke-color", style.strokeColor);
-      map.setPaintProperty(LYR(layer.id, "circle"), "circle-stroke-width", style.strokeWidth);
-      map.setPaintProperty(LYR(layer.id, "circle"), "circle-stroke-opacity", alpha);
+      const pointFilter: maplibregl.FilterSpecification = [
+        "match",
+        ["geometry-type"],
+        ["Point", "MultiPoint"],
+        true,
+        false,
+      ];
+      const useSymbol = style.markerShape === "square" || style.markerShape === "triangle";
+
+      if (useSymbol) {
+        removeLayerIfPresent(map, LYR(layer.id, "circle"));
+        const iconId = `of-icon-${layer.id}`;
+        const image = markerImage(style);
+        if (image) {
+          if (map.hasImage(iconId)) map.removeImage(iconId);
+          map.addImage(iconId, image, { pixelRatio: 2 });
+        }
+        ensure(LYR(layer.id, "symbol"), {
+          id: LYR(layer.id, "symbol"),
+          type: "symbol",
+          source: sourceId,
+          filter: pointFilter,
+          layout: { "icon-image": iconId, "icon-allow-overlap": true },
+        });
+        map.setLayoutProperty(LYR(layer.id, "symbol"), "icon-image", iconId);
+        map.setLayoutProperty(LYR(layer.id, "symbol"), "visibility", visibility);
+        map.setPaintProperty(LYR(layer.id, "symbol"), "icon-opacity", alpha);
+      } else {
+        removeLayerIfPresent(map, LYR(layer.id, "symbol"));
+        const ring = style.markerShape === "ring";
+        ensure(LYR(layer.id, "circle"), {
+          id: LYR(layer.id, "circle"),
+          type: "circle",
+          source: sourceId,
+          filter: pointFilter,
+        });
+        map.setLayoutProperty(LYR(layer.id, "circle"), "visibility", visibility);
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", style.fillColor);
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", style.circleRadius);
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", ring ? 0 : alpha);
+        map.setPaintProperty(
+          LYR(layer.id, "circle"),
+          "circle-stroke-color",
+          ring ? style.fillColor : style.strokeColor,
+        );
+        map.setPaintProperty(
+          LYR(layer.id, "circle"),
+          "circle-stroke-width",
+          ring ? Math.max(2, style.strokeWidth) : style.strokeWidth,
+        );
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-stroke-opacity", alpha);
+      }
     }
   }
+}
+
+/** Rasterise square / triangle markers so MapLibre can draw them as icons. */
+function markerImage(style: LayerStyle): ImageData | null {
+  if (typeof document === "undefined") return null;
+  const ratio = 2;
+  const size = Math.max(6, style.circleRadius) * 2 + Math.max(2, style.strokeWidth) * 2 + 2;
+  const px = Math.ceil(size * ratio);
+  const canvas = document.createElement("canvas");
+  canvas.width = px;
+  canvas.height = px;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return null;
+
+  ctx.scale(ratio, ratio);
+  ctx.fillStyle = style.fillColor;
+  ctx.strokeStyle = style.strokeColor;
+  ctx.lineWidth = style.strokeWidth;
+  ctx.lineJoin = "round";
+
+  const r = Math.max(3, style.circleRadius);
+  const c = size / 2;
+  ctx.beginPath();
+  if (style.markerShape === "square") {
+    ctx.rect(c - r, c - r, r * 2, r * 2);
+  } else {
+    ctx.moveTo(c, c - r);
+    ctx.lineTo(c + r, c + r * 0.85);
+    ctx.lineTo(c - r, c + r * 0.85);
+    ctx.closePath();
+  }
+  ctx.fill();
+  if (style.strokeWidth > 0) ctx.stroke();
+
+  return ctx.getImageData(0, 0, px, px);
 }

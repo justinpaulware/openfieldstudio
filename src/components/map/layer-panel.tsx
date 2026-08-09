@@ -11,6 +11,7 @@ import {
   GripVertical,
   Loader2,
   MoreHorizontal,
+  Palette,
   Pencil,
   RefreshCw,
   Table2,
@@ -28,6 +29,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { geometryKind, resolveLayerStyle } from "@/lib/layer-style";
+import { LegendSwatch } from "./map-legend";
 import type { Tables } from "@/integrations/supabase/types";
 import type { LayerRow } from "./use-layer-data";
 
@@ -67,65 +70,18 @@ const SOURCE_LABEL: Record<string, string> = {
 type StyleRow = Tables<"layer_styles">;
 export type PanelLayer = LayerRow & { layer_styles?: StyleRow[] | null };
 
-const SYMBOL_DEFAULTS = {
-  fillColor: "#f5c518",
-  strokeColor: "#1b1d22",
-  strokeWidth: 1,
-  fillOpacity: 0.55,
-};
-
 /** Legend swatch mirroring how the layer draws on the map. */
 function LayerSymbol({ layer }: { layer: PanelLayer }) {
-  const style = layer.layer_styles?.[0];
-  const fill = style?.fill_color ?? SYMBOL_DEFAULTS.fillColor;
-  const stroke = style?.stroke_color ?? SYMBOL_DEFAULTS.strokeColor;
-  const strokeWidth = style?.stroke_width ?? SYMBOL_DEFAULTS.strokeWidth;
-  const fillOpacity = style?.fill_opacity ?? SYMBOL_DEFAULTS.fillOpacity;
-  const geom = (layer.geometry_type ?? "").toLowerCase();
-  const kind = geom.includes("point") ? "point" : geom.includes("line") ? "line" : "polygon";
-
   return (
     <span
       className="flex h-4 w-4 shrink-0 items-center justify-center"
       style={{ opacity: layer.opacity }}
       aria-hidden="true"
     >
-      <svg width="16" height="16" viewBox="0 0 16 16">
-        {kind === "point" && (
-          <circle
-            cx="8"
-            cy="8"
-            r="4.5"
-            fill={fill}
-            fillOpacity={1}
-            stroke={stroke}
-            strokeWidth={Math.min(strokeWidth, 2)}
-          />
-        )}
-        {kind === "line" && (
-          <path
-            d="M1.5 11.5 L6 5.5 L10 10 L14.5 4.5"
-            fill="none"
-            stroke={stroke}
-            strokeWidth={Math.max(1.5, Math.min(strokeWidth, 3))}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-        {kind === "polygon" && (
-          <rect
-            x="2"
-            y="3.5"
-            width="12"
-            height="9"
-            rx="2"
-            fill={fill}
-            fillOpacity={fillOpacity}
-            stroke={stroke}
-            strokeWidth={Math.min(strokeWidth, 2)}
-          />
-        )}
-      </svg>
+      <LegendSwatch
+        kind={geometryKind(layer.geometry_type)}
+        style={resolveLayerStyle(layer.layer_styles?.[0])}
+      />
     </span>
   );
 }
@@ -263,6 +219,7 @@ type Props = {
   onOpenTable: (layer: LayerRow) => void;
   onRefresh: (layer: LayerRow) => void;
   onEditSource: (layer: LayerRow) => void;
+  onStyle: (layer: PanelLayer) => void;
   onMoveToFolder: (layer: LayerRow, folderId: string | null) => void;
   onFolderRename: (folder: FolderRow, name: string) => void;
   onFolderToggle: (folder: FolderRow) => void;
@@ -289,6 +246,7 @@ export function LayerPanel({
   onOpenTable,
   onRefresh,
   onEditSource,
+  onStyle,
   onMoveToFolder,
   onFolderRename,
   onFolderToggle,
@@ -541,6 +499,10 @@ export function LayerPanel({
               >
                 <Pencil className="mr-2 h-4 w-4" />
                 Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onStyle(layer)}>
+                <Palette className="mr-2 h-4 w-4" />
+                Style…
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onZoomTo(layer)}>
                 <Crosshair className="mr-2 h-4 w-4" />

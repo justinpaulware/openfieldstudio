@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderPlus, Loader2, Maximize, Plus, X } from "lucide-react";
+import { FolderPlus, List, Loader2, Maximize, Plus, X } from "lucide-react";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,34 @@ import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
+import { StylePanel } from "@/components/map/style-panel";
+import { MapLegend, type LegendEntry } from "@/components/map/map-legend";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
+import {
+  DEFAULT_LAYER_STYLE,
+  geometryKind,
+  resolveLayerStyle,
+  styleToRow,
+  type LayerStyle,
+} from "@/lib/layer-style";
 import type { Bbox, PropertyValue } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
+type MapSearch = { style?: boolean | undefined };
+
 export const Route = createFileRoute("/_authenticated/projects/$projectId/map")({
+  validateSearch: (search: Record<string, unknown>): MapSearch =>
+    search["style"] === true || search["style"] === "true" ? { style: true } : {},
   head: () => ({
     meta: [
       { title: "Map editor — Open Field" },
       {
         name: "description",
-        content: "Add data, arrange layers and frame the view for your Open Field webmap.",
+        content: "Add data, style layers and frame the view for your Open Field webmap.",
       },
       { property: "og:title", content: "Map editor — Open Field" },
       { property: "og:description", content: "Build an interactive webmap in Open Field." },
@@ -36,13 +49,6 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/map")(
 
 type LayerWithStyle = LayerRow & { layer_styles: Tables<"layer_styles">[] | null };
 
-const DEFAULT_STYLE = {
-  fillColor: "#f5c518",
-  strokeColor: "#1b1d22",
-  strokeWidth: 1,
-  circleRadius: 5,
-  fillOpacity: 0.55,
-};
 
 function MapEditor() {
   const { projectId } = Route.useParams();
@@ -207,7 +213,7 @@ function MapEditor() {
   });
 
   const saveView = useMutation({
-    mutationFn: async (patch?: { basemap?: string; scale_units?: string }) => {
+    mutationFn: async (patch?: { basemap?: string; scale_units?: string; show_legend?: boolean }) => {
       const view = viewRef.current ?? mapHandle.current?.getView() ?? null;
       const { error } = await supabase
         .from("projects")
@@ -237,29 +243,78 @@ function MapEditor() {
   const [scaleUnits, setScaleUnits] = useState<ScaleUnits | null>(null);
   const activeScaleUnits: ScaleUnits =
     scaleUnits ?? ((project as { scale_units?: string } | undefined)?.scale_units as ScaleUnits) ?? "imperial";
+  const [legend, setLegend] = useState<boolean | null>(null);
+  const showLegend =
+    legend ?? (project as { show_legend?: boolean } | undefined)?.show_legend ?? true;
 
+  // Style drafts keep the map instant while the database write debounces.
+  const [styleDrafts, setStyleDrafts] = useState<Record<string, LayerStyle>>({});
+  const styleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [styleLayerId, setStyleLayerId] = useState<string | null>(null);
+
+  const styleFor = useCallback(
+    (layer: LayerWithStyle): LayerStyle =>
+      styleDrafts[layer.id] ?? resolveLayerStyle(layer.layer_styles?.[0]),
+    [styleDrafts],
+  );
+
+  const persistStyle = useCallback(
+    (layerId: string, style: LayerStyle) => {
+      const timers = styleTimers.current;
+      if (timers[layerId]) clearTimeout(timers[layerId]);
+      timers[layerId] = setTimeout(() => {
+        void supabase
+          .from("layer_styles")
+          .upsert({ layer_id: layerId, ...styleToRow(style) }, { onConflict: "layer_id" })
+          .then(({ error }) => {
+            if (error) toast.error(error.message);
+            else void invalidateLayers();
+          });
+      }, 400);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      Object.values(styleTimers.current).forEach(clearTimeout);
+    },
+    [],
+  );
+
+  const orderedLayers = useMemo(
+    () => flattenLayerOrder(layers, folders) as LayerWithStyle[],
+    [layers, folders],
+  );
 
   const renderLayers: RenderLayer[] = useMemo(
     () =>
-      flattenLayerOrder(layers, folders).map((layer) => {
-        const style = (layer as LayerWithStyle).layer_styles?.[0];
-        return {
-          id: layer.id,
-          visible: layer.visible,
-          opacity: layer.opacity,
-          geometryType: layer.geometry_type,
-          data: byId[layer.id] ?? null,
-          style: {
-            fillColor: style?.fill_color ?? DEFAULT_STYLE.fillColor,
-            strokeColor: style?.stroke_color ?? DEFAULT_STYLE.strokeColor,
-            strokeWidth: style?.stroke_width ?? DEFAULT_STYLE.strokeWidth,
-            circleRadius: style?.circle_radius ?? DEFAULT_STYLE.circleRadius,
-            fillOpacity: style?.fill_opacity ?? DEFAULT_STYLE.fillOpacity,
-          },
-        };
-      }),
-    [layers, folders, byId],
+      orderedLayers.map((layer) => ({
+        id: layer.id,
+        visible: layer.visible,
+        opacity: layer.opacity,
+        geometryType: layer.geometry_type,
+        data: byId[layer.id] ?? null,
+        style: styleFor(layer),
+      })),
+    [orderedLayers, byId, styleFor],
   );
+
+  const legendEntries: LegendEntry[] = useMemo(
+    () =>
+      orderedLayers
+        .filter((layer) => layer.visible)
+        .map((layer) => ({
+          id: layer.id,
+          name: layer.name,
+          kind: geometryKind(layer.geometry_type),
+          opacity: layer.opacity,
+          style: styleFor(layer),
+        })),
+    [orderedLayers, styleFor],
+  );
+
 
   const handleMoveEnd = useCallback(
     (view: { center: [number, number]; zoom: number; pitch: number; bearing: number }) => {
@@ -316,10 +371,29 @@ function MapEditor() {
     return () => clearTimeout(timer);
   }, [allLayersBbox, hasSavedView]);
 
-
+  // Arriving from the Styling tab opens the panel on the first layer.
+  const search = Route.useSearch();
+  const styleParamHandled = useRef(false);
+  useEffect(() => {
+    if (styleParamHandled.current || !search.style || !orderedLayers.length) return;
+    styleParamHandled.current = true;
+    const first = orderedLayers[0];
+    if (first) {
+      setStyleLayerId(first.id);
+      setSelectedId(first.id);
+    }
+  }, [search.style, orderedLayers]);
 
   const tableLayer = layers.find((l) => l.id === tableLayerId) ?? null;
   const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
+  const styleLayer = layers.find((l) => l.id === styleLayerId) ?? null;
+
+  const applyStyle = (layerId: string, current: LayerStyle, patch: Partial<LayerStyle>) => {
+    const next = { ...current, ...patch };
+    setStyleDrafts((drafts) => ({ ...drafts, [layerId]: next }));
+    persistStyle(layerId, next);
+  };
+
   const nextSortOrder = layers.length
     ? Math.min(...layers.map((l) => l.sort_order)) - 1
     : 0;
@@ -354,6 +428,19 @@ function MapEditor() {
     <div className="flex h-full min-h-0 flex-col">
       <header className="flex flex-wrap items-center justify-end gap-3 border-b border-border px-4 py-2">
         <div className="flex items-center gap-2">
+          <Button
+            variant={showLegend ? "secondary" : "outline"}
+            size="sm"
+            title="Show legend on the map"
+            onClick={() => {
+              const next = !showLegend;
+              setLegend(next);
+              saveView.mutate({ show_legend: next });
+            }}
+          >
+            <List className="mr-1.5 h-4 w-4" />
+            Legend
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -449,7 +536,10 @@ function MapEditor() {
                 }
                 onFolderReorder={(ids) => reorderFolders.mutate(ids)}
                 onCreateFolder={(parentId) => createFolder.mutate(parentId)}
-
+                onStyle={(layer) => {
+                  setStyleLayerId(layer.id);
+                  setSelectedId(layer.id);
+                }}
               />
             )}
           </div>
@@ -491,6 +581,13 @@ function MapEditor() {
             </Suspense>
           </ClientOnly>
 
+          {showLegend && (
+            <div className="pointer-events-auto absolute bottom-10 right-2.5 z-10">
+              <MapLegend entries={legendEntries} />
+            </div>
+          )}
+
+
           {popup && (
             <div className="absolute right-4 top-4 max-h-[60%] w-72 overflow-y-auto rounded-xl border border-border bg-card/95 p-4 shadow-[var(--shadow-soft)] backdrop-blur">
               <div className="flex items-start justify-between gap-2">
@@ -517,7 +614,19 @@ function MapEditor() {
             </div>
           )}
         </main>
+
+        {styleLayer && (
+          <StylePanel
+            layerName={styleLayer.name}
+            kind={geometryKind(styleLayer.geometry_type)}
+            style={styleFor(styleLayer)}
+            onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
+            onReset={() => applyStyle(styleLayer.id, DEFAULT_LAYER_STYLE, {})}
+            onClose={() => setStyleLayerId(null)}
+          />
+        )}
       </div>
+
 
       <AddLayerDialog
         open={addOpen}
