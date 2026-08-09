@@ -6,13 +6,6 @@ import { ArrowLeft, FolderPlus, Loader2, Maximize, Plus, X } from "lucide-react"
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
@@ -20,7 +13,7 @@ import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
-import { BASEMAPS, type MapHandle, type RenderLayer } from "@/components/map/map-canvas";
+import type { MapHandle, RenderLayer } from "@/components/map/map-canvas";
 import type { Bbox, PropertyValue } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
 
