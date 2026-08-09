@@ -71,8 +71,12 @@ function ProjectLayout() {
               key={tab.to}
               to={tab.to}
               params={{ projectId }}
-              className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              activeProps={{ className: "bg-muted text-foreground font-medium" }}
+              className={
+                tab.primary
+                  ? "rounded-md px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                  : "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              }
+              activeProps={{ className: "bg-muted text-foreground font-semibold" }}
             >
               {tab.label}
             </Link>
