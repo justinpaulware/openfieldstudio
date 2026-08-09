@@ -1,4 +1,4 @@
-import { RotateCcw, X } from "lucide-react";
+import { Check, Loader2, RotateCcw, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -13,14 +13,19 @@ import {
 import { ColorField } from "./color-field";
 import { LegendSwatch } from "./map-legend";
 
+export type StyleSaveState = "idle" | "dirty" | "saving" | "saved";
+
 type Props = {
   layerName: string;
   kind: SimpleKind;
   style: LayerStyle;
+  saveState: StyleSaveState;
   onChange: (patch: Partial<LayerStyle>) => void;
+  onSave: () => void;
   onReset: () => void;
   onClose: () => void;
 };
+
 
 function SliderField({
   label,
@@ -92,7 +97,16 @@ function OptionRow<T extends string>({
   );
 }
 
-export function StylePanel({ layerName, kind, style, onChange, onReset, onClose }: Props) {
+export function StylePanel({
+  layerName,
+  kind,
+  style,
+  saveState,
+  onChange,
+  onSave,
+  onReset,
+  onClose,
+}: Props) {
   const pct = (n: number) => Math.round(n * 100);
 
   return (
@@ -281,12 +295,37 @@ export function StylePanel({ layerName, kind, style, onChange, onReset, onClose 
         )}
       </div>
 
-      <div className="border-t border-border px-4 py-3">
-        <Button variant="outline" size="sm" className="w-full" onClick={onReset}>
-          <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-          Reset to default
-        </Button>
+      <div className="space-y-1.5 border-t border-border px-4 py-3">
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            className="flex-1"
+            onClick={onSave}
+            disabled={saveState === "saving" || saveState === "idle" || saveState === "saved"}
+          >
+            {saveState === "saving" ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+            ) : saveState === "saved" ? (
+              <Check className="mr-1.5 h-3.5 w-3.5" />
+            ) : (
+              <Save className="mr-1.5 h-3.5 w-3.5" />
+            )}
+            {saveState === "saving" ? "Saving" : saveState === "saved" ? "Saved" : "Save"}
+          </Button>
+          <Button variant="outline" size="sm" className="flex-1" onClick={onReset}>
+            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            Reset to default
+          </Button>
+        </div>
+        <p className="font-secondary text-[11px] text-muted-foreground">
+          {saveState === "dirty"
+            ? "Unsaved changes"
+            : saveState === "saving"
+              ? "Saving changes…"
+              : "All changes saved"}
+        </p>
       </div>
+
     </aside>
   );
 }
