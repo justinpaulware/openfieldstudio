@@ -13,9 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { LayerPanel } from "@/components/map/layer-panel";
+import { LayerPanel, type FolderRow } from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
+import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
+import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import { BASEMAPS, type MapHandle, type RenderLayer } from "@/components/map/map-canvas";
 import type { Bbox, PropertyValue } from "@/lib/geo";
