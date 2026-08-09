@@ -8,7 +8,7 @@ Phase 2 turns a project from a record into a map. You bring data in, see it on a
 
 **The map editor**
 - Project detail gains a real MapLibre map filling the workspace, with a layer panel docked to the left.
-- Free OpenFreeMap basemaps with a style switcher (light / dark / positron-style minimal).
+- Free OpenFreeMap basemaps, defaulting to the minimal Positron style, with a switcher to toggle to the light and dark styles.
 - Standard controls: zoom, compass, scale, geolocate, plus a "zoom to data" action.
 - Map view state (center/zoom/pitch) saves back to the project so it reopens where you left it.
 
