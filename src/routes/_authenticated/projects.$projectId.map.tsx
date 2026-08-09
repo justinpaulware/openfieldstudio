@@ -11,7 +11,7 @@ import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
-import { StylePanel } from "@/components/map/style-panel";
+import { StylePanel, type StyleSaveState } from "@/components/map/style-panel";
 import { MapLegend, MapTitleCard, type LegendEntry } from "@/components/map/map-legend";
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
