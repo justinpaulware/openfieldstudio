@@ -244,28 +244,74 @@ function MapEditor() {
   const activeScaleUnits: ScaleUnits =
     scaleUnits ?? ((project as { scale_units?: string } | undefined)?.scale_units as ScaleUnits) ?? "imperial";
 
+  // Style drafts keep the map instant while the database write debounces.
+  const [styleDrafts, setStyleDrafts] = useState<Record<string, LayerStyle>>({});
+  const styleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [styleLayerId, setStyleLayerId] = useState<string | null>(null);
+
+  const styleFor = useCallback(
+    (layer: LayerWithStyle): LayerStyle =>
+      styleDrafts[layer.id] ?? resolveLayerStyle(layer.layer_styles?.[0]),
+    [styleDrafts],
+  );
+
+  const persistStyle = useCallback(
+    (layerId: string, style: LayerStyle) => {
+      const timers = styleTimers.current;
+      if (timers[layerId]) clearTimeout(timers[layerId]);
+      timers[layerId] = setTimeout(() => {
+        void supabase
+          .from("layer_styles")
+          .upsert({ layer_id: layerId, ...styleToRow(style) }, { onConflict: "layer_id" })
+          .then(({ error }) => {
+            if (error) toast.error(error.message);
+            else void invalidateLayers();
+          });
+      }, 400);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  useEffect(
+    () => () => {
+      Object.values(styleTimers.current).forEach(clearTimeout);
+    },
+    [],
+  );
+
+  const orderedLayers = useMemo(
+    () => flattenLayerOrder(layers, folders) as LayerWithStyle[],
+    [layers, folders],
+  );
 
   const renderLayers: RenderLayer[] = useMemo(
     () =>
-      flattenLayerOrder(layers, folders).map((layer) => {
-        const style = (layer as LayerWithStyle).layer_styles?.[0];
-        return {
-          id: layer.id,
-          visible: layer.visible,
-          opacity: layer.opacity,
-          geometryType: layer.geometry_type,
-          data: byId[layer.id] ?? null,
-          style: {
-            fillColor: style?.fill_color ?? DEFAULT_STYLE.fillColor,
-            strokeColor: style?.stroke_color ?? DEFAULT_STYLE.strokeColor,
-            strokeWidth: style?.stroke_width ?? DEFAULT_STYLE.strokeWidth,
-            circleRadius: style?.circle_radius ?? DEFAULT_STYLE.circleRadius,
-            fillOpacity: style?.fill_opacity ?? DEFAULT_STYLE.fillOpacity,
-          },
-        };
-      }),
-    [layers, folders, byId],
+      orderedLayers.map((layer) => ({
+        id: layer.id,
+        visible: layer.visible,
+        opacity: layer.opacity,
+        geometryType: layer.geometry_type,
+        data: byId[layer.id] ?? null,
+        style: styleFor(layer),
+      })),
+    [orderedLayers, byId, styleFor],
   );
+
+  const legendEntries: LegendEntry[] = useMemo(
+    () =>
+      orderedLayers
+        .filter((layer) => layer.visible)
+        .map((layer) => ({
+          id: layer.id,
+          name: layer.name,
+          kind: geometryKind(layer.geometry_type),
+          opacity: layer.opacity,
+          style: styleFor(layer),
+        })),
+    [orderedLayers, styleFor],
+  );
+
 
   const handleMoveEnd = useCallback(
     (view: { center: [number, number]; zoom: number; pitch: number; bearing: number }) => {
