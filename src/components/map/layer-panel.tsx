@@ -563,18 +563,6 @@ export function LayerPanel({
             <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px] font-normal">
               {SOURCE_LABEL[layer.source_type] ?? layer.source_type}
             </Badge>
-            <Slider
-              value={[Math.round(layer.opacity * 100)]}
-              min={0}
-              max={100}
-              step={5}
-              onValueChange={([value]) => onOpacity(layer, (value ?? 100) / 100)}
-              onClick={(event) => event.stopPropagation()}
-              className="flex-1"
-            />
-            <span className="w-8 text-right font-secondary text-[11px] text-muted-foreground">
-              {Math.round(layer.opacity * 100)}%
-            </span>
           </div>
         )}
 
