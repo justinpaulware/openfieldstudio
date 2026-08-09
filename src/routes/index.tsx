@@ -74,15 +74,15 @@ function Landing() {
 
       <main>
         <section className="mx-auto max-w-6xl px-6 pb-16 pt-20 md:pt-28">
-          <p className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
-            Open-source GIS publishing
+          <p className="inline-flex items-center rounded-full border border-border bg-card px-3 py-1 font-secondary text-xs text-muted-foreground">
+            Maps made simple
           </p>
           <h1 className="mt-6 max-w-3xl text-4xl font-semibold leading-[1.05] md:text-6xl">
-            From QGIS export to a live webmap, without writing code.
+            Create, style and publish beautiful webmaps.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Open Field is the shortest path between your spatial data and an interactive public
-            map. Create a project, bring in your data, style it properly, and publish.
+            Open Field is where your spatial data becomes an interactive map worth sharing. Start
+            a project, bring in your data, style it properly, and publish.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Button asChild size="lg">
