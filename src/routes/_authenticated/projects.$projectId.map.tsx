@@ -250,6 +250,8 @@ function MapEditor() {
   // Style drafts keep the map instant while the database write debounces.
   const [styleDrafts, setStyleDrafts] = useState<Record<string, LayerStyle>>({});
   const styleTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const pendingStyles = useRef<Record<string, LayerStyle>>({});
+  const [saveState, setSaveState] = useState<Record<string, StyleSaveState>>({});
   const [styleLayerId, setStyleLayerId] = useState<string | null>(null);
 
   const styleFor = useCallback(
@@ -258,30 +260,78 @@ function MapEditor() {
     [styleDrafts],
   );
 
-  const persistStyle = useCallback(
+  const writeStyle = useCallback(
     (layerId: string, style: LayerStyle) => {
-      const timers = styleTimers.current;
-      if (timers[layerId]) clearTimeout(timers[layerId]);
-      timers[layerId] = setTimeout(() => {
-        void supabase
-          .from("layer_styles")
-          .upsert({ layer_id: layerId, ...styleToRow(style) }, { onConflict: "layer_id" })
-          .then(({ error }) => {
-            if (error) toast.error(error.message);
-            else void invalidateLayers();
-          });
-      }, 400);
+      delete pendingStyles.current[layerId];
+      setSaveState((prev) => ({ ...prev, [layerId]: "saving" }));
+      void supabase
+        .from("layer_styles")
+        .upsert({ layer_id: layerId, ...styleToRow(style) }, { onConflict: "layer_id" })
+        .then(({ error }) => {
+          if (error) {
+            toast.error(error.message);
+            setSaveState((prev) => ({ ...prev, [layerId]: "dirty" }));
+            return;
+          }
+          setSaveState((prev) =>
+            pendingStyles.current[layerId] ? prev : { ...prev, [layerId]: "saved" },
+          );
+          void invalidateLayers();
+        });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
-  useEffect(
-    () => () => {
-      Object.values(styleTimers.current).forEach(clearTimeout);
+  /** Write a queued style right away, cancelling its debounce. */
+  const flushStyle = useCallback(
+    (layerId: string) => {
+      const timer = styleTimers.current[layerId];
+      if (timer) {
+        clearTimeout(timer);
+        delete styleTimers.current[layerId];
+      }
+      const pending = pendingStyles.current[layerId];
+      if (pending) writeStyle(layerId, pending);
     },
-    [],
+    [writeStyle],
   );
+
+  const flushAllStyles = useCallback(() => {
+    Object.keys(pendingStyles.current).forEach((layerId) => flushStyle(layerId));
+  }, [flushStyle]);
+
+  const persistStyle = useCallback(
+    (layerId: string, style: LayerStyle) => {
+      pendingStyles.current[layerId] = style;
+      setSaveState((prev) => ({ ...prev, [layerId]: "dirty" }));
+      const timers = styleTimers.current;
+      if (timers[layerId]) clearTimeout(timers[layerId]);
+      timers[layerId] = setTimeout(() => {
+        delete timers[layerId];
+        writeStyle(layerId, style);
+      }, 400);
+    },
+    [writeStyle],
+  );
+
+  // Never drop a queued style: flush on unmount, tab hide and page unload.
+  const flushRef = useRef(flushAllStyles);
+  flushRef.current = flushAllStyles;
+  useEffect(() => {
+    const flush = () => flushRef.current();
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, []);
+
 
   const orderedLayers = useMemo(
     () => flattenLayerOrder(layers, folders) as LayerWithStyle[],
