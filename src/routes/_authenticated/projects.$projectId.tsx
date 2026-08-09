@@ -10,10 +10,10 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId")({
 });
 
 const TABS = [
-  { to: "/projects/$projectId/map", label: "Map Editor" },
-  { to: "/projects/$projectId/details", label: "Details" },
-  { to: "/projects/$projectId/styling", label: "Styling" },
-  { to: "/projects/$projectId/publishing", label: "Publishing" },
+  { to: "/projects/$projectId/map", label: "Map Editor", primary: true },
+  { to: "/projects/$projectId/details", label: "Details", primary: false },
+  { to: "/projects/$projectId/styling", label: "Styling", primary: false },
+  { to: "/projects/$projectId/publishing", label: "Publishing", primary: false },
 ] as const;
 
 function ProjectLayout() {
