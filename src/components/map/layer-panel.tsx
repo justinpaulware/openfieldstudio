@@ -19,7 +19,6 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -211,7 +210,6 @@ type Props = {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onToggleVisible: (layer: LayerRow) => void;
-  onOpacity: (layer: LayerRow, opacity: number) => void;
   onZoomTo: (layer: LayerRow) => void;
   onRename: (layer: LayerRow, name: string) => void;
   onDelete: (layer: LayerRow) => void;
@@ -238,7 +236,6 @@ export function LayerPanel({
   selectedId,
   onSelect,
   onToggleVisible,
-  onOpacity,
   onZoomTo,
   onRename,
   onDelete,
