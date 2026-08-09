@@ -12,10 +12,24 @@ export type LayerStyle = {
   strokeWidth: number;
   circleRadius: number;
   fillOpacity: number;
+  strokeOpacity: number;
   markerShape: MarkerShape;
   dashPattern: DashPattern;
   lineCap: LineCapStyle;
 };
+
+/** Sentinel for "no fill" / "no color". */
+export const TRANSPARENT = "transparent";
+
+export function isTransparent(color: string): boolean {
+  const value = (color ?? "").trim().toLowerCase();
+  return value === "transparent" || value === "none" || value === "#00000000";
+}
+
+/** Safe hex for canvas/svg/maplibre when a color may be the transparent sentinel. */
+export function paintColor(color: string): string {
+  return isTransparent(color) ? "#000000" : color;
+}
 
 export const DEFAULT_LAYER_STYLE: LayerStyle = {
   fillColor: "#f5c518",
@@ -23,12 +37,13 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   strokeWidth: 1,
   circleRadius: 5,
   fillOpacity: 0.55,
+  strokeOpacity: 1,
   markerShape: "circle",
   dashPattern: "solid",
   lineCap: "round",
 };
 
-/** Curated palette — warm primary first, then complementary accents and neutrals. */
+/** Curated palette — hues first, then a grayscale ramp, then "no color". */
 export const STYLE_PALETTE = [
   "#f5c518",
   "#f0932b",
@@ -38,10 +53,13 @@ export const STYLE_PALETTE = [
   "#4f7cf7",
   "#2bb1a8",
   "#4caf6a",
-  "#9aa2ad",
-  "#f5f7fa",
-  "#1b1d22",
-  "#00000000",
+  "#ffffff",
+  "#cccccc",
+  "#999999",
+  "#666666",
+  "#333333",
+  "#111111",
+  TRANSPARENT,
 ];
 
 const MARKER_SHAPES: MarkerShape[] = ["circle", "ring", "square", "triangle"];
@@ -65,6 +83,7 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
     strokeWidth: num(row?.stroke_width, DEFAULT_LAYER_STYLE.strokeWidth),
     circleRadius: num(row?.circle_radius, DEFAULT_LAYER_STYLE.circleRadius),
     fillOpacity: num(row?.fill_opacity, DEFAULT_LAYER_STYLE.fillOpacity),
+    strokeOpacity: num(config["strokeOpacity"], DEFAULT_LAYER_STYLE.strokeOpacity),
     markerShape: pick(config["markerShape"], MARKER_SHAPES, DEFAULT_LAYER_STYLE.markerShape),
     dashPattern: pick(config["dashPattern"], DASH_PATTERNS, DEFAULT_LAYER_STYLE.dashPattern),
     lineCap: pick(config["lineCap"], LINE_CAPS, DEFAULT_LAYER_STYLE.lineCap),
@@ -84,6 +103,7 @@ export function styleToRow(style: LayerStyle) {
       markerShape: style.markerShape,
       dashPattern: style.dashPattern,
       lineCap: style.lineCap,
+      strokeOpacity: style.strokeOpacity,
     },
   };
 }
