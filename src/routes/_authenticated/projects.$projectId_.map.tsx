@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Plus, X } from "lucide-react";
+import { ArrowLeft, FolderPlus, Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,9 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { LayerPanel } from "@/components/map/layer-panel";
+import { LayerPanel, type FolderRow } from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
+import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
+import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import { BASEMAPS, type MapHandle, type RenderLayer } from "@/components/map/map-canvas";
 import type { Bbox, PropertyValue } from "@/lib/geo";
@@ -93,10 +95,72 @@ function MapEditor() {
     },
   });
 
+  const { data: folders = [] } = useQuery({
+    queryKey: ["layer-folders", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("layer_folders")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as FolderRow[];
+    },
+  });
+
   const { byId, loading, errors } = useLayerData(layers);
 
   const invalidateLayers = () =>
     queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+  const invalidateFolders = () =>
+    queryClient.invalidateQueries({ queryKey: ["layer-folders", projectId] });
+
+  const refreshLayer = useLayerRefresh(projectId);
+  const [sourceLayerId, setSourceLayerId] = useState<string | null>(null);
+
+  const createFolder = useMutation({
+    mutationFn: async (parentId: string | null) => {
+      const { error } = await supabase.from("layer_folders").insert({
+        project_id: projectId,
+        parent_id: parentId,
+        name: parentId ? "New subfolder" : "New folder",
+        sort_order: folders.length,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidateFolders,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const updateFolder = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<FolderRow> }) => {
+      const { error } = await supabase.from("layer_folders").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidateFolders,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const deleteFolder = useMutation({
+    mutationFn: async (folder: FolderRow) => {
+      const childIds = folders.filter((f) => f.parent_id === folder.id).map((f) => f.id);
+      const ids = [folder.id, ...childIds];
+      const { error: moveError } = await supabase
+        .from("layers")
+        .update({ folder_id: null })
+        .in("folder_id", ids);
+      if (moveError) throw moveError;
+      const { error } = await supabase.from("layer_folders").delete().eq("id", folder.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Folder deleted — its layers moved to the top level.");
+      void invalidateFolders();
+      void invalidateLayers();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
 
   const updateLayer = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<LayerRow> }) => {
@@ -214,6 +278,7 @@ function MapEditor() {
   };
 
   const tableLayer = layers.find((l) => l.id === tableLayerId) ?? null;
+  const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
   const nextSortOrder = layers.length
     ? Math.min(...layers.map((l) => l.sort_order)) - 1
     : 0;
@@ -283,18 +348,38 @@ function MapEditor() {
             {saveView.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {viewDirty ? "Save view" : "View saved"}
           </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-1.5 h-4 w-4" />
-            Add data
-          </Button>
         </div>
       </header>
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-card/40 md:flex">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h2 className="text-sm font-semibold">Layers</h2>
-            <span className="font-secondary text-xs text-muted-foreground">{layers.length}</span>
+          <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-sm font-semibold">Layers</h2>
+              <span className="font-secondary text-xs text-muted-foreground">{layers.length}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="New folder"
+                aria-label="New folder"
+                onClick={() => createFolder.mutate(null)}
+              >
+                <FolderPlus className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="Add data"
+                aria-label="Add data"
+                onClick={() => setAddOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {layersLoading ? (
@@ -304,8 +389,10 @@ function MapEditor() {
             ) : (
               <LayerPanel
                 layers={layers}
+                folders={folders}
                 loading={loading}
                 errors={errors}
+                refreshingId={refreshLayer.isPending ? (refreshLayer.variables?.layer.id ?? null) : null}
                 selectedId={selectedId}
                 onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
                 onToggleVisible={(layer) =>
@@ -319,10 +406,24 @@ function MapEditor() {
                 onDelete={(layer) => deleteLayer.mutate(layer)}
                 onReorder={(ids) => reorder.mutate(ids)}
                 onOpenTable={(layer) => setTableLayerId(layer.id)}
+                onRefresh={(layer) => refreshLayer.mutate({ layer })}
+                onEditSource={(layer) => setSourceLayerId(layer.id)}
+                onMoveToFolder={(layer, folderId) =>
+                  updateLayer.mutate({ id: layer.id, patch: { folder_id: folderId } })
+                }
+                onFolderRename={(folder, name) =>
+                  updateFolder.mutate({ id: folder.id, patch: { name } })
+                }
+                onFolderToggle={(folder) =>
+                  updateFolder.mutate({ id: folder.id, patch: { collapsed: !folder.collapsed } })
+                }
+                onFolderDelete={(folder) => deleteFolder.mutate(folder)}
+                onCreateFolder={(parentId) => createFolder.mutate(parentId)}
               />
             )}
           </div>
         </aside>
+
 
         <main className="relative min-w-0 flex-1">
           <ClientOnly
@@ -395,6 +496,21 @@ function MapEditor() {
         layerName={tableLayer?.name ?? ""}
         data={tableLayer ? (byId[tableLayer.id] ?? null) : null}
       />
+
+      <LayerSourceDialog
+        layer={sourceLayer}
+        open={!!sourceLayer}
+        onOpenChange={(open) => !open && setSourceLayerId(null)}
+        saving={refreshLayer.isPending}
+        onSave={(patch: SourcePatch) => {
+          if (!sourceLayer) return;
+          refreshLayer.mutate(
+            { layer: sourceLayer, patch },
+            { onSuccess: () => setSourceLayerId(null) },
+          );
+        }}
+      />
+
     </div>
   );
 }
