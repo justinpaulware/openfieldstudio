@@ -5,6 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Check, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
+import { dashArray, type LayerStyle } from "@/lib/layer-style";
 
 export type RenderLayer = {
   id: string;
@@ -12,13 +13,7 @@ export type RenderLayer = {
   opacity: number;
   geometryType: SimpleGeometryType;
   data: FeatureCollection | null;
-  style: {
-    fillColor: string;
-    strokeColor: string;
-    strokeWidth: number;
-    circleRadius: number;
-    fillOpacity: number;
-  };
+  style: LayerStyle;
 };
 
 export type MapHandle = {
