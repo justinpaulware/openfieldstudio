@@ -244,8 +244,8 @@ function MapEditor() {
 
   const renderLayers: RenderLayer[] = useMemo(
     () =>
-      layers.map((layer) => {
-        const style = layer.layer_styles?.[0];
+      flattenLayerOrder(layers, folders).map((layer) => {
+        const style = (layer as LayerWithStyle).layer_styles?.[0];
         return {
           id: layer.id,
           visible: layer.visible,
@@ -261,7 +261,7 @@ function MapEditor() {
           },
         };
       }),
-    [layers, byId],
+    [layers, folders, byId],
   );
 
   const handleMoveEnd = useCallback(
