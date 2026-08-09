@@ -133,6 +133,19 @@ function MapEditor() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  const reorderFolders = useMutation({
+    mutationFn: async (orderedIds: string[]) => {
+      await Promise.all(
+        orderedIds.map((id, index) =>
+          supabase.from("layer_folders").update({ sort_order: index }).eq("id", id),
+        ),
+      );
+    },
+    onSuccess: invalidateFolders,
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+
   const updateFolder = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<FolderRow> }) => {
       const { error } = await supabase.from("layer_folders").update(patch).eq("id", id);
