@@ -247,7 +247,7 @@ function NameEditor({
 
 
 type Props = {
-  layers: LayerRow[];
+  layers: PanelLayer[];
   folders: FolderRow[];
   loading: Record<string, boolean>;
   errors: Record<string, string | null>;
