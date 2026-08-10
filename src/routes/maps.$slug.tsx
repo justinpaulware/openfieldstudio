@@ -30,14 +30,13 @@ const SITE = "https://openfieldstudio.lovable.app";
 type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
 
-type ViewerSearch = { sidebar?: false; legend?: false; title?: false };
+type ViewerSearch = { legend?: false; title?: false };
 
 /** Only "off" flags are kept, so canonical URLs stay clean. */
 const off = (value: unknown) => value === false || value === "0" || value === "false";
 
 export const Route = createFileRoute("/maps/$slug")({
   validateSearch: (search: Record<string, unknown>): ViewerSearch => ({
-    ...(off(search["sidebar"]) ? { sidebar: false as const } : {}),
     ...(off(search["legend"]) ? { legend: false as const } : {}),
     ...(off(search["title"]) ? { title: false as const } : {}),
   }),
@@ -95,7 +94,6 @@ function PublicMap() {
   const folders = loaderData.folders as unknown as ViewerFolder[];
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const ordered = useMemo(
     () => flattenLayerOrder(layers, folders) as ViewerLayer[],
@@ -199,7 +197,6 @@ function PublicMap() {
     bearing: project.map_bearing ?? 0,
   };
 
-  const showSidebar = search.sidebar !== false && ordered.length > 0;
   const showLegend = search.legend !== false && project.show_legend;
   const showTitle = search.title !== false;
 
