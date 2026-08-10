@@ -115,6 +115,8 @@ function ProjectPublish() {
   const [credits, setCredits] = useState("");
   const [dataSources, setDataSources] = useState("");
   const [embed, setEmbed] = useState<EmbedConfig>(DEFAULT_EMBED);
+  const [commentsEnabled, setCommentsEnabled] = useState(false);
+  const [categories, setCategories] = useState("");
 
   useEffect(() => {
     if (!project) return;
@@ -126,6 +128,8 @@ function ProjectPublish() {
     setCredits(project.credits ?? "");
     setDataSources(project.data_sources ?? "");
     setEmbed(parseEmbed(project.embed_config));
+    setCommentsEnabled(project.comments_enabled);
+    setCategories((project.comment_categories ?? []).join(", "));
   }, [project]);
 
   const invalidate = () => {
@@ -149,6 +153,11 @@ function ProjectPublish() {
           credits: credits.trim() || null,
           data_sources: dataSources.trim() || null,
           embed_config: embed,
+          comments_enabled: commentsEnabled,
+          comment_categories: categories
+            .split(",")
+            .map((c) => c.trim())
+            .filter(Boolean),
         })
         .eq("id", projectId);
       if (error) throw error;

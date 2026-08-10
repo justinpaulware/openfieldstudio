@@ -34,7 +34,12 @@ export const submitComment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitPublicComment } = await import("./publish.server");
     return submitPublicComment({
-      ...data,
+      slug: data.slug,
+      lng: data.lng,
+      lat: data.lat,
+      body: data.body,
+      category: data.category ?? null,
+      authorName: data.authorName ?? null,
       authorEmail: data.authorEmail || null,
     });
   });
