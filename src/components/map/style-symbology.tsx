@@ -1,21 +1,27 @@
-import { Eye, EyeOff, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_PALETTES,
   buildCategories,
+  buildGraduated,
   categoryDrives,
+  classLabel,
   recolorCategories,
+  recolorGraduated,
   type CategorySpec,
   type CategoryTarget,
   type DashPattern,
+  type GraduatedSpec,
   type LayerStyle,
   type LineCapStyle,
   type MarkerShape,
   type SimpleKind,
   type StyleMode,
 } from "@/lib/layer-style";
+import { CLASS_METHODS, COLOR_RAMPS, rampGradient, type ClassifyMethod } from "@/lib/classify";
 import { ColorField, Swatch } from "./color-field";
 
 export type FieldValue = { value: string; count: number };
@@ -25,8 +31,11 @@ type Props = {
   style: LayerStyle;
   fields: string[];
   valuesFor: (field: string) => FieldValue[];
+  numericFields: string[];
+  numbersFor: (field: string) => number[];
   onChange: (patch: Partial<LayerStyle>) => void;
 };
+
 
 export function SliderField({
   label,
