@@ -511,6 +511,10 @@ export default function MapCanvas({
             </dl>
           </div>
         )}
+        {rightSlot}
+      </div>
+
+
 
 
       {mapError ? (
