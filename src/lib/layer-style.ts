@@ -56,6 +56,49 @@ export type GraduatedSpec = {
   maxRadius: number;
 };
 
+export type LabelPlacement = "center" | "above" | "below" | "left" | "right";
+export type LabelLinePlacement = "line" | "horizontal";
+
+export type LabelSpec = {
+  enabled: boolean;
+  field: string;
+  size: number;
+  bold: boolean;
+  color: string;
+  haloColor: string;
+  haloWidth: number;
+  placement: LabelPlacement;
+  offset: number;
+  linePlacement: LabelLinePlacement;
+  allowOverlap: boolean;
+  minZoom: number;
+  maxZoom: number;
+  uppercase: boolean;
+  maxWidth: number;
+};
+
+export type PopupTrigger = "click" | "hover";
+export type PopupFieldFormat = "text" | "number" | "date" | "link" | "image";
+
+export type PopupField = {
+  name: string;
+  alias: string;
+  visible: boolean;
+  format: PopupFieldFormat;
+};
+
+export type PopupSpec = {
+  enabled: boolean;
+  trigger: PopupTrigger;
+  titleField: string;
+  titleText: string;
+  /** Empty means "every attribute, in data order". */
+  fields: PopupField[];
+  hideEmpty: boolean;
+  density: "compact" | "roomy";
+  maxWidth: number;
+};
+
 export type LayerStyle = {
   fillColor: string;
   strokeColor: string;
@@ -69,7 +112,10 @@ export type LayerStyle = {
   mode: StyleMode;
   categories: CategorySpec | null;
   graduated: GraduatedSpec | null;
+  labels: LabelSpec;
+  popup: PopupSpec;
 };
+
 
 
 /** Sentinel for "no fill" / "no color". */
