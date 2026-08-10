@@ -291,7 +291,7 @@ export function MapTitleCard({ title, className }: { title: string; className?: 
   return (
     <div
       className={cn(
-        "flex w-64 items-center gap-2.5 rounded-lg border border-map-overlay-border bg-map-overlay px-3.5 py-2.5 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "inline-flex w-fit min-w-56 max-w-[22rem] items-center gap-2.5 rounded-lg border border-map-overlay-border bg-map-overlay p-2.5 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
         className,
       )}
     >

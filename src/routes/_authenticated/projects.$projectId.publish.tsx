@@ -245,22 +245,6 @@ function ProjectPublish() {
         </div>
       </div>
 
-      <Section
-        title="Public link"
-        description={
-          isPublished
-            ? "Anyone with this link can view the map."
-            : "Publish the map to make this link work."
-        }
-      >
-        <CopyField label="Map URL" value={publicUrl} />
-        {project.published_at && (
-          <p className="font-secondary text-xs text-muted-foreground">
-            Last published {new Date(project.published_at).toLocaleString()}
-          </p>
-        )}
-      </Section>
-
       <Section title="Project details" description="Shown on the public map and in your dashboard.">
         <div className="space-y-2">
           <Label htmlFor="title">Title</Label>
@@ -291,6 +275,23 @@ function ProjectPublish() {
           </div>
         </div>
       </Section>
+
+      <Section
+        title="Public link"
+        description={
+          isPublished
+            ? "Anyone with this link can view the map."
+            : "Publish the map to make this link work."
+        }
+      >
+        <CopyField label="Map URL" value={publicUrl} />
+        {project.published_at && (
+          <p className="font-secondary text-xs text-muted-foreground">
+            Last published {new Date(project.published_at).toLocaleString()}
+          </p>
+        )}
+      </Section>
+
 
       <Section title="Attribution" description="Credit yourself and the data behind the map.">
         <div className="space-y-2">
