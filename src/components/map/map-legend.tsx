@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LayerStyle, SimpleKind } from "@/lib/layer-style";
-import { dashArray, isTransparent, paintColor } from "@/lib/layer-style";
+import { activeCategories, dashArray, isTransparent, paintColor } from "@/lib/layer-style";
 
 export type LegendEntry = {
   id: string;
@@ -20,14 +20,54 @@ export type LegendGroup = {
   entries: LegendEntry[];
 };
 
-export function LegendSwatch({ kind, style }: { kind: SimpleKind; style: LayerStyle }) {
+/** Category rows for a categorized layer: value label + color. */
+export function categoryRows(style: LayerStyle): { label: string; color: string }[] {
+  const spec = activeCategories(style);
+  if (!spec) return [];
+  const rows = spec.entries
+    .filter((entry) => entry.visible)
+    .map((entry) => ({ label: entry.value === "" ? "(blank)" : entry.value, color: entry.color }));
+  if (spec.otherVisible) rows.push({ label: "Other", color: spec.otherColor });
+  return rows;
+}
+
+/** Small multi-color chip standing in for a categorized layer. */
+export function CategoryChip({ colors }: { colors: string[] }) {
+  const shown = colors.slice(0, 4);
+  return (
+    <span
+      className="flex h-[14px] w-[18px] shrink-0 overflow-hidden rounded-[3px] border border-border/80"
+      aria-hidden="true"
+    >
+      {shown.length ? (
+        shown.map((color, index) => (
+          <span key={`${color}-${index}`} className="flex-1" style={{ backgroundColor: color }} />
+        ))
+      ) : (
+        <span className="flex-1 bg-muted" />
+      )}
+    </span>
+  );
+}
+
+export function LegendSwatch({
+  kind,
+  style,
+  colorOverride,
+}: {
+  kind: SimpleKind;
+  style: LayerStyle;
+  colorOverride?: string;
+}) {
   const dash = dashArray(style.dashPattern);
   const dashProp = dash
     ? dash.map((n) => n * Math.max(1, style.strokeWidth)).join(" ")
     : undefined;
   const strokeWidth = Math.max(1, Math.min(style.strokeWidth, 3));
-  const fill = isTransparent(style.fillColor) ? "none" : paintColor(style.fillColor);
+  const baseColor = colorOverride ?? style.fillColor;
+  const fill = isTransparent(baseColor) ? "none" : paintColor(baseColor);
   const stroke = isTransparent(style.strokeColor) ? "none" : paintColor(style.strokeColor);
+
 
   // Nothing to paint: show the same "no color" mark the palette uses.
   if (fill === "none" && (kind === "line" || stroke === "none")) {
