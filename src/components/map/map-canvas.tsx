@@ -6,12 +6,13 @@ import { Check, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
 import {
-  activeCategories,
+  isDataDriven,
   categoryFilter,
   dashArray,
   isTransparent,
   paintColor,
   primaryColorPaint,
+  radiusPaint,
   strokeColorPaint,
   categoryDrives,
   type LayerStyle,
@@ -362,7 +363,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
     const visibility = layer.visible ? "visible" : "none";
     const { style } = layer;
-    const categorized = activeCategories(style);
+    const categorized = isDataDriven(style);
     const primaryColor = primaryColorPaint(style) as never;
     const strokeColor = strokeColorPaint(style) as never;
     const fillCategorized = categoryDrives(style, "fill");
@@ -478,7 +479,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         map.setFilter(LYR(layer.id, "circle"), pointFilter);
         map.setLayoutProperty(LYR(layer.id, "circle"), "visibility", visibility);
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", primaryColor);
-        map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", style.circleRadius);
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", radiusPaint(style) as never);
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", ring ? 0 : fillAlpha);
         map.setPaintProperty(
           LYR(layer.id, "circle"),

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  CopyPlus,
   ChevronDown,
   ChevronRight,
   Crosshair,
@@ -230,6 +231,7 @@ type Props = {
   onRefresh: (layer: LayerRow) => void;
   onEditSource: (layer: LayerRow) => void;
   onStyle: (layer: PanelLayer) => void;
+  onDuplicate: (layer: LayerRow) => void;
   onMoveToFolder: (layer: LayerRow, folderId: string | null) => void;
   onFolderRename: (folder: FolderRow, name: string) => void;
   onFolderToggle: (folder: FolderRow) => void;
@@ -258,6 +260,7 @@ export function LayerPanel({
   onRefresh,
   onEditSource,
   onStyle,
+  onDuplicate,
   onMoveToFolder,
   onFolderRename,
   onFolderToggle,
@@ -522,6 +525,10 @@ export function LayerPanel({
               <DropdownMenuItem onClick={() => onOpenTable(layer)}>
                 <Table2 className="mr-2 h-4 w-4" />
                 Attribute table
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDuplicate(layer)}>
+                <CopyPlus className="mr-2 h-4 w-4" />
+                Duplicate layer
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onRefresh(layer)}>

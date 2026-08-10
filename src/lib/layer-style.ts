@@ -1,4 +1,10 @@
 import type { Tables } from "@/integrations/supabase/types";
+import {
+  computeBreaks,
+  formatNumber,
+  rampColors,
+  type ClassifyMethod,
+} from "@/lib/classify";
 
 export type StyleRow = Tables<"layer_styles">;
 export type StyleRelation = StyleRow | StyleRow[] | null | undefined;
@@ -6,7 +12,7 @@ export type StyleRelation = StyleRow | StyleRow[] | null | undefined;
 export type MarkerShape = "circle" | "ring" | "square" | "triangle";
 export type DashPattern = "solid" | "dashed" | "dotted";
 export type LineCapStyle = "butt" | "round" | "square";
-export type StyleMode = "single" | "categorized";
+export type StyleMode = "single" | "categorized" | "graduated";
 
 export type CategoryEntry = {
   /** Stringified attribute value. */
@@ -15,7 +21,7 @@ export type CategoryEntry = {
   visible: boolean;
 };
 
-/** Which paint the category colors drive. */
+/** Which paint the category / class colors drive. */
 export type CategoryTarget = "fill" | "stroke" | "both";
 
 export type CategorySpec = {
@@ -25,6 +31,29 @@ export type CategorySpec = {
   otherColor: string;
   otherVisible: boolean;
   palette: string;
+  reversed: boolean;
+};
+
+export type GraduatedClass = {
+  min: number;
+  max: number;
+  color: string;
+  visible: boolean;
+};
+
+export type GraduatedSpec = {
+  field: string;
+  method: ClassifyMethod;
+  classCount: number;
+  classes: GraduatedClass[];
+  ramp: string;
+  reversed: boolean;
+  target: CategoryTarget;
+  otherColor: string;
+  otherVisible: boolean;
+  sizeEnabled: boolean;
+  minRadius: number;
+  maxRadius: number;
 };
 
 export type LayerStyle = {
@@ -39,6 +68,7 @@ export type LayerStyle = {
   lineCap: LineCapStyle;
   mode: StyleMode;
   categories: CategorySpec | null;
+  graduated: GraduatedSpec | null;
 };
 
 
@@ -73,6 +103,7 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   lineCap: "round",
   mode: "single",
   categories: null,
+  graduated: null,
 };
 
 
@@ -149,15 +180,17 @@ export const CATEGORY_PALETTES: { id: string; label: string; colors: string[] }[
   },
 ];
 
-export function paletteColors(id: string): string[] {
-  return (CATEGORY_PALETTES.find((p) => p.id === id) ?? CATEGORY_PALETTES[0]!).colors;
+export function paletteColors(id: string, reversed = false): string[] {
+  const colors = (CATEGORY_PALETTES.find((p) => p.id === id) ?? CATEGORY_PALETTES[0]!).colors;
+  return reversed ? [...colors].reverse() : colors;
 }
 
 const MARKER_SHAPES: MarkerShape[] = ["circle", "ring", "square", "triangle"];
 const DASH_PATTERNS: DashPattern[] = ["solid", "dashed", "dotted"];
 const LINE_CAPS: LineCapStyle[] = ["butt", "round", "square"];
-const STYLE_MODES: StyleMode[] = ["single", "categorized"];
+const STYLE_MODES: StyleMode[] = ["single", "categorized", "graduated"];
 const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
+const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
 
 function pick<T extends string>(value: unknown, allowed: T[], fallback: T): T {
   return typeof value === "string" && (allowed as string[]).includes(value) ? (value as T) : fallback;
@@ -193,6 +226,42 @@ function parseCategories(value: unknown): CategorySpec | null {
     otherColor: typeof raw["otherColor"] === "string" ? raw["otherColor"] : "#999999",
     otherVisible: raw["otherVisible"] !== false,
     palette: typeof raw["palette"] === "string" ? raw["palette"] : CATEGORY_PALETTES[0]!.id,
+    reversed: raw["reversed"] === true,
+  };
+}
+
+function parseGraduated(value: unknown): GraduatedSpec | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw["field"] !== "string" || !raw["field"]) return null;
+  const classes = Array.isArray(raw["classes"])
+    ? (raw["classes"] as unknown[]).flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const c = item as Record<string, unknown>;
+        if (typeof c["min"] !== "number" || typeof c["max"] !== "number") return [];
+        return [
+          {
+            min: c["min"],
+            max: c["max"],
+            color: typeof c["color"] === "string" ? c["color"] : "#999999",
+            visible: c["visible"] !== false,
+          } satisfies GraduatedClass,
+        ];
+      })
+    : [];
+  return {
+    field: raw["field"],
+    method: pick(raw["method"], CLASSIFY_METHODS, "quantile"),
+    classCount: num(raw["classCount"], classes.length || 5),
+    classes,
+    ramp: typeof raw["ramp"] === "string" ? raw["ramp"] : "viridis",
+    reversed: raw["reversed"] === true,
+    target: pick(raw["target"], CATEGORY_TARGETS, "fill"),
+    otherColor: typeof raw["otherColor"] === "string" ? raw["otherColor"] : "#999999",
+    otherVisible: raw["otherVisible"] !== false,
+    sizeEnabled: raw["sizeEnabled"] === true,
+    minRadius: num(raw["minRadius"], 4),
+    maxRadius: num(raw["maxRadius"], 14),
   };
 }
 
@@ -200,7 +269,14 @@ function parseCategories(value: unknown): CategorySpec | null {
 export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
   const config = (row?.style_config ?? {}) as Record<string, unknown>;
   const categories = parseCategories(config["categories"]);
-  const mode = pick(row?.style_mode, STYLE_MODES, DEFAULT_LAYER_STYLE.mode);
+  const graduated = parseGraduated(config["graduated"]);
+  const saved = pick(row?.style_mode, STYLE_MODES, DEFAULT_LAYER_STYLE.mode);
+  const mode: StyleMode =
+    saved === "categorized" && !categories
+      ? "single"
+      : saved === "graduated" && !graduated
+        ? "single"
+        : saved;
   return {
     fillColor: row?.fill_color ?? DEFAULT_LAYER_STYLE.fillColor,
     strokeColor: row?.stroke_color ?? DEFAULT_LAYER_STYLE.strokeColor,
@@ -211,8 +287,9 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
     markerShape: pick(config["markerShape"], MARKER_SHAPES, DEFAULT_LAYER_STYLE.markerShape),
     dashPattern: pick(config["dashPattern"], DASH_PATTERNS, DEFAULT_LAYER_STYLE.dashPattern),
     lineCap: pick(config["lineCap"], LINE_CAPS, DEFAULT_LAYER_STYLE.lineCap),
-    mode: categories ? mode : "single",
+    mode,
     categories,
+    graduated,
   };
 }
 
@@ -231,6 +308,7 @@ export function styleToRow(style: LayerStyle) {
       lineCap: style.lineCap,
       strokeOpacity: style.strokeOpacity,
       categories: style.categories,
+      graduated: style.graduated,
     },
   };
 }
@@ -243,6 +321,21 @@ export function activeCategories(style: LayerStyle): CategorySpec | null {
   return spec;
 }
 
+/** Graduated styling is only live when a field and at least one class exist. */
+export function activeGraduated(style: LayerStyle): GraduatedSpec | null {
+  if (style.mode !== "graduated") return null;
+  const spec = style.graduated;
+  if (!spec || !spec.field || !spec.classes.length) return null;
+  return spec;
+}
+
+/** Sentinel returned by to-number when a value cannot be read as numeric. */
+const NON_NUMERIC = -1.7976931348623157e307;
+
+function numericValue(field: string): unknown[] {
+  return ["to-number", ["get", field], NON_NUMERIC];
+}
+
 function matchExpression(spec: CategorySpec): unknown[] {
   const match: unknown[] = ["match", ["to-string", ["get", spec.field]]];
   for (const entry of spec.entries) {
@@ -252,40 +345,105 @@ function matchExpression(spec: CategorySpec): unknown[] {
   return match;
 }
 
+function stepExpression(spec: GraduatedSpec, values: (number | string)[]): unknown[] {
+  const value = numericValue(spec.field);
+  const step: unknown[] = ["step", value, values[0]];
+  for (let i = 1; i < spec.classes.length; i += 1) {
+    step.push(spec.classes[i]!.min, values[i]);
+  }
+  return step;
+}
+
+function graduatedColorExpression(spec: GraduatedSpec): unknown[] {
+  const colors = spec.classes.map((c) => paintColor(c.color));
+  return [
+    "case",
+    ["==", numericValue(spec.field), NON_NUMERIC],
+    paintColor(spec.otherColor),
+    stepExpression(spec, colors),
+  ];
+}
+
 /** MapLibre color for the layer's primary paint (fill / circle / line). */
 export function primaryColorPaint(style: LayerStyle): string | unknown[] {
-  const spec = activeCategories(style);
-  if (!spec || spec.target === "stroke") return paintColor(style.fillColor);
-  return matchExpression(spec);
+  const cat = activeCategories(style);
+  if (cat) return cat.target === "stroke" ? paintColor(style.fillColor) : matchExpression(cat);
+  const grad = activeGraduated(style);
+  if (grad)
+    return grad.target === "stroke" ? paintColor(style.fillColor) : graduatedColorExpression(grad);
+  return paintColor(style.fillColor);
 }
 
 /** MapLibre color for the layer's stroke / outline paint. */
 export function strokeColorPaint(style: LayerStyle): string | unknown[] {
-  const spec = activeCategories(style);
-  if (!spec || spec.target === "fill") return paintColor(style.strokeColor);
-  return matchExpression(spec);
+  const cat = activeCategories(style);
+  if (cat) return cat.target === "fill" ? paintColor(style.strokeColor) : matchExpression(cat);
+  const grad = activeGraduated(style);
+  if (grad)
+    return grad.target === "fill" ? paintColor(style.strokeColor) : graduatedColorExpression(grad);
+  return paintColor(style.strokeColor);
 }
 
-/** True when category colors drive that paint. */
+/** MapLibre circle-radius, graduated by class when enabled. */
+export function radiusPaint(style: LayerStyle): number | unknown[] {
+  const grad = activeGraduated(style);
+  if (!grad || !grad.sizeEnabled) return style.circleRadius;
+  const count = grad.classes.length;
+  const radii = grad.classes.map((_, index) =>
+    count <= 1
+      ? grad.maxRadius
+      : grad.minRadius + ((grad.maxRadius - grad.minRadius) * index) / (count - 1),
+  );
+  return [
+    "case",
+    ["==", numericValue(grad.field), NON_NUMERIC],
+    style.circleRadius,
+    stepExpression(grad, radii),
+  ];
+}
+
+/** True when data-driven colors drive that paint. */
 export function categoryDrives(style: LayerStyle, part: "fill" | "stroke"): boolean {
-  const spec = activeCategories(style);
+  const spec = activeCategories(style) ?? activeGraduated(style);
   if (!spec) return false;
   return spec.target === "both" || spec.target === part;
 }
 
-/** Filter hiding categories the user switched off; null when nothing is hidden. */
+/** True when the layer paints per feature (categories or graduated classes). */
+export function isDataDriven(style: LayerStyle): boolean {
+  return !!(activeCategories(style) ?? activeGraduated(style));
+}
+
+/** Filter hiding categories / classes the user switched off; null when nothing is hidden. */
 export function categoryFilter(style: LayerStyle): unknown[] | null {
   const spec = activeCategories(style);
-  if (!spec) return null;
-  const hidden = spec.entries.filter((entry) => !entry.visible).map((entry) => entry.value);
+  if (spec) {
+    const hidden = spec.entries.filter((entry) => !entry.visible).map((entry) => entry.value);
+    const clauses: unknown[] = [];
+    if (hidden.length) {
+      clauses.push(["!", ["in", ["to-string", ["get", spec.field]], ["literal", hidden]]]);
+    }
+    if (!spec.otherVisible) {
+      const known = spec.entries.map((entry) => entry.value);
+      clauses.push(["in", ["to-string", ["get", spec.field]], ["literal", known]]);
+    }
+    if (!clauses.length) return null;
+    return clauses.length === 1 ? (clauses[0] as unknown[]) : ["all", ...clauses];
+  }
+
+  const grad = activeGraduated(style);
+  if (!grad) return null;
+  const value = numericValue(grad.field);
   const clauses: unknown[] = [];
-  if (hidden.length) {
-    clauses.push(["!", ["in", ["to-string", ["get", spec.field]], ["literal", hidden]]]);
-  }
-  if (!spec.otherVisible) {
-    const known = spec.entries.map((entry) => entry.value);
-    clauses.push(["in", ["to-string", ["get", spec.field]], ["literal", known]]);
-  }
+  grad.classes.forEach((cls, index) => {
+    if (cls.visible) return;
+    const last = index === grad.classes.length - 1;
+    clauses.push([
+      "!",
+      ["all", [">=", value, cls.min], last ? ["<=", value, cls.max] : ["<", value, cls.max]],
+    ]);
+  });
+  if (!grad.otherVisible) clauses.push(["!=", value, NON_NUMERIC]);
   if (!clauses.length) return null;
   return clauses.length === 1 ? (clauses[0] as unknown[]) : ["all", ...clauses];
 }
@@ -297,11 +455,13 @@ export function buildCategories(
   paletteId: string,
   previous?: CategorySpec | null,
 ): CategorySpec {
-  const colors = paletteColors(paletteId);
+  const reversed = previous?.reversed ?? false;
+  const colors = paletteColors(paletteId, reversed);
   const prior = new Map((previous?.entries ?? []).map((entry) => [entry.value, entry]));
   return {
     field,
     palette: paletteId,
+    reversed,
     target: previous?.target ?? "both",
     otherColor: previous?.otherColor ?? "#999999",
     otherVisible: previous?.otherVisible ?? true,
@@ -317,16 +477,80 @@ export function buildCategories(
 }
 
 /** Reapply a palette to every category in order. */
-export function recolorCategories(spec: CategorySpec, paletteId: string): CategorySpec {
-  const colors = paletteColors(paletteId);
+export function recolorCategories(
+  spec: CategorySpec,
+  paletteId: string,
+  reversed = spec.reversed,
+): CategorySpec {
+  const colors = paletteColors(paletteId, reversed);
   return {
     ...spec,
     palette: paletteId,
+    reversed,
     entries: spec.entries.map((entry, index) => ({
       ...entry,
       color: colors[index % colors.length]!,
     })),
   };
+}
+
+/** Build (or rebuild) graduated classes from the layer's numeric values. */
+export function buildGraduated(
+  field: string,
+  values: number[],
+  previous?: Partial<GraduatedSpec> | null,
+): GraduatedSpec {
+  const method = previous?.method ?? "quantile";
+  const classCount = previous?.classCount ?? 5;
+  const rampId = previous?.ramp ?? "viridis";
+  const reversed = previous?.reversed ?? false;
+  const ranges =
+    method === "manual" && previous?.classes?.length
+      ? previous.classes.map((c) => ({ min: c.min, max: c.max }))
+      : computeBreaks(values, classCount, method);
+  const colors = rampColors(rampId, Math.max(1, ranges.length), reversed);
+  const priorVisible = previous?.classes ?? [];
+  return {
+    field,
+    method,
+    classCount,
+    ramp: rampId,
+    reversed,
+    target: previous?.target ?? "both",
+    otherColor: previous?.otherColor ?? "#999999",
+    otherVisible: previous?.otherVisible ?? true,
+    sizeEnabled: previous?.sizeEnabled ?? false,
+    minRadius: previous?.minRadius ?? 4,
+    maxRadius: previous?.maxRadius ?? 14,
+    classes: ranges.map((range, index) => ({
+      min: range.min,
+      max: range.max,
+      color: colors[index] ?? colors[colors.length - 1]!,
+      visible: priorVisible[index]?.visible ?? true,
+    })),
+  };
+}
+
+/** Reapply a ramp across the classes, honoring the reverse toggle. */
+export function recolorGraduated(
+  spec: GraduatedSpec,
+  rampId: string,
+  reversed = spec.reversed,
+): GraduatedSpec {
+  const colors = rampColors(rampId, Math.max(1, spec.classes.length), reversed);
+  return {
+    ...spec,
+    ramp: rampId,
+    reversed,
+    classes: spec.classes.map((cls, index) => ({
+      ...cls,
+      color: colors[index] ?? colors[colors.length - 1]!,
+    })),
+  };
+}
+
+export function classLabel(cls: GraduatedClass): string {
+  return `${formatNumber(cls.min)} – ${formatNumber(cls.max)}`;
 }
 
 /** MapLibre line-dasharray (units of line width). Solid returns null. */

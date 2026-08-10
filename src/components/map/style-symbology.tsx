@@ -1,21 +1,27 @@
-import { Eye, EyeOff, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_PALETTES,
   buildCategories,
+  buildGraduated,
   categoryDrives,
+  classLabel,
   recolorCategories,
+  recolorGraduated,
   type CategorySpec,
   type CategoryTarget,
   type DashPattern,
+  type GraduatedSpec,
   type LayerStyle,
   type LineCapStyle,
   type MarkerShape,
   type SimpleKind,
   type StyleMode,
 } from "@/lib/layer-style";
+import { CLASS_METHODS, COLOR_RAMPS, rampGradient, type ClassifyMethod } from "@/lib/classify";
 import { ColorField, Swatch } from "./color-field";
 
 export type FieldValue = { value: string; count: number };
@@ -25,8 +31,11 @@ type Props = {
   style: LayerStyle;
   fields: string[];
   valuesFor: (field: string) => FieldValue[];
+  numericFields: string[];
+  numbersFor: (field: string) => number[];
   onChange: (patch: Partial<LayerStyle>) => void;
 };
+
 
 export function SliderField({
   label,
@@ -366,7 +375,11 @@ function CategoryEditor({
           />
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Palette</Label>
+            <PaletteHeader
+              label="Palette"
+              reversed={spec.reversed}
+              onReverse={() => setSpec(recolorCategories(spec, spec.palette, !spec.reversed))}
+            />
             <div className="grid grid-cols-4 gap-1">
               {CATEGORY_PALETTES.map((palette) => (
                 <button
@@ -379,13 +392,16 @@ function CategoryEditor({
                     palette.id === spec.palette && "ring-2 ring-ring ring-offset-1 ring-offset-card",
                   )}
                 >
-                  {palette.colors.slice(0, 5).map((color) => (
-                    <span key={color} className="h-5 flex-1" style={{ backgroundColor: color }} />
-                  ))}
+                  {(spec.reversed ? [...palette.colors].reverse() : palette.colors)
+                    .slice(0, 5)
+                    .map((color) => (
+                      <span key={color} className="h-5 flex-1" style={{ backgroundColor: color }} />
+                    ))}
                 </button>
               ))}
             </div>
           </div>
+
 
           <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground">
@@ -477,12 +493,257 @@ function CategoryColor({ color, onChange }: { color: string; onChange: (color: s
   );
 }
 
+/** Palette label with a reverse-order toggle. */
+function PaletteHeader({
+  label,
+  reversed,
+  onReverse,
+}: {
+  label: string;
+  reversed: boolean;
+  onReverse: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <button
+        type="button"
+        onClick={onReverse}
+        title="Reverse color order"
+        aria-label="Reverse color order"
+        aria-pressed={reversed}
+        className={cn(
+          "inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+          reversed && "border-primary/60 bg-primary/15 text-foreground",
+        )}
+      >
+        <ArrowLeftRight className="h-3 w-3" />
+        Reverse
+      </button>
+    </div>
+  );
+}
+
+function GraduatedEditor({
+  style,
+  numericFields,
+  numbersFor,
+  onChange,
+  kind,
+}: Omit<Props, "fields" | "valuesFor">) {
+  const spec = style.graduated;
+  const field = spec?.field ?? "";
+
+  const setSpec = (next: GraduatedSpec) => onChange({ graduated: next, mode: "graduated" });
+
+  const rebuild = (nextField: string, patch?: Partial<GraduatedSpec>) => {
+    if (!nextField) {
+      onChange({ graduated: null });
+      return;
+    }
+    const base = spec?.field === nextField ? { ...spec, ...patch } : { ...(patch ?? {}) };
+    setSpec(buildGraduated(nextField, numbersFor(nextField), base));
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Numeric field</Label>
+        <select
+          value={field}
+          onChange={(event) => rebuild(event.target.value)}
+          className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+        >
+          <option value="">Choose a field…</option>
+          {numericFields.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+        {!numericFields.length && (
+          <p className="font-secondary text-[11px] text-muted-foreground">
+            No numeric attributes were found in this layer.
+          </p>
+        )}
+      </div>
+
+      {!spec ? (
+        <p className="font-secondary text-[11px] text-muted-foreground">
+          Pick a numeric field and Open Field will classify it into colored ranges.
+        </p>
+      ) : (
+        <>
+          <OptionRow<CategoryTarget>
+            label="Apply colors to"
+            value={spec.target}
+            onChange={(target) => setSpec({ ...spec, target })}
+            options={[
+              { value: "fill", label: "Fill" },
+              { value: "stroke", label: "Stroke" },
+              { value: "both", label: "Fill + stroke" },
+            ]}
+          />
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Classification</Label>
+            <select
+              value={spec.method}
+              onChange={(event) =>
+                rebuild(spec.field, { method: event.target.value as ClassifyMethod })
+              }
+              className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+            >
+              {CLASS_METHODS.map((method) => (
+                <option key={method.value} value={method.value}>
+                  {method.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <SliderField
+            label="Classes"
+            value={spec.classes.length}
+            min={2}
+            max={9}
+            step={1}
+            onChange={(classCount) => rebuild(spec.field, { classCount, method: spec.method === "manual" ? "quantile" : spec.method })}
+          />
+
+          <div className="space-y-1.5">
+            <PaletteHeader
+              label="Color ramp"
+              reversed={spec.reversed}
+              onReverse={() => setSpec(recolorGraduated(spec, spec.ramp, !spec.reversed))}
+            />
+            <div className="grid grid-cols-4 gap-1">
+              {COLOR_RAMPS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  title={item.label}
+                  onClick={() => setSpec(recolorGraduated(spec, item.id))}
+                  className={cn(
+                    "h-5 overflow-hidden rounded border border-border",
+                    item.id === spec.ramp && "ring-2 ring-ring ring-offset-1 ring-offset-card",
+                  )}
+                  style={{ backgroundImage: rampGradient(item.id, spec.reversed) }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <Label className="text-xs text-muted-foreground">{spec.classes.length} classes</Label>
+            <button
+              type="button"
+              onClick={() => rebuild(spec.field, { method: spec.method === "manual" ? "quantile" : spec.method })}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Recalculate
+            </button>
+          </div>
+
+          <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
+            {spec.classes.map((cls, index) => (
+              <li key={`${cls.min}-${cls.max}-${index}`} className="flex items-center gap-2">
+                <CategoryColor
+                  color={cls.color}
+                  onChange={(color) => {
+                    const classes = [...spec.classes];
+                    classes[index] = { ...cls, color };
+                    setSpec({ ...spec, classes });
+                  }}
+                />
+                <span className="min-w-0 flex-1 truncate text-xs">{classLabel(cls)}</span>
+                <button
+                  type="button"
+                  aria-label={cls.visible ? "Hide class" : "Show class"}
+                  onClick={() => {
+                    const classes = [...spec.classes];
+                    classes[index] = { ...cls, visible: !cls.visible };
+                    setSpec({ ...spec, classes });
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  {cls.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                </button>
+              </li>
+            ))}
+            <li className="flex items-center gap-2 border-t border-border pt-1">
+              <CategoryColor
+                color={spec.otherColor}
+                onChange={(otherColor) => setSpec({ ...spec, otherColor })}
+              />
+              <span className="min-w-0 flex-1 truncate text-xs italic text-muted-foreground">
+                No value
+              </span>
+              <button
+                type="button"
+                aria-label={spec.otherVisible ? "Hide no-value features" : "Show no-value features"}
+                onClick={() => setSpec({ ...spec, otherVisible: !spec.otherVisible })}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                {spec.otherVisible ? (
+                  <Eye className="h-3.5 w-3.5" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5" />
+                )}
+              </button>
+            </li>
+          </ul>
+
+          {kind === "point" && (
+            <div className="space-y-2 rounded-md border border-border p-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Graduated size</Label>
+                <Switch
+                  checked={spec.sizeEnabled}
+                  onCheckedChange={(sizeEnabled) => setSpec({ ...spec, sizeEnabled })}
+                />
+              </div>
+              {spec.sizeEnabled && (
+                <>
+                  <SliderField
+                    label="Smallest radius"
+                    value={spec.minRadius}
+                    min={1}
+                    max={30}
+                    step={1}
+                    suffix="px"
+                    onChange={(minRadius) =>
+                      setSpec({ ...spec, minRadius, maxRadius: Math.max(minRadius, spec.maxRadius) })
+                    }
+                  />
+                  <SliderField
+                    label="Largest radius"
+                    value={spec.maxRadius}
+                    min={1}
+                    max={40}
+                    step={1}
+                    suffix="px"
+                    onChange={(maxRadius) =>
+                      setSpec({ ...spec, maxRadius, minRadius: Math.min(maxRadius, spec.minRadius) })
+                    }
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 export function StyleSymbology(props: Props) {
   const { style, onChange } = props;
-  const modes: { value: StyleMode | "graduated"; label: string; disabled?: boolean }[] = [
+  const modes: { value: StyleMode; label: string }[] = [
     { value: "single", label: "Single symbol" },
     { value: "categorized", label: "Categories" },
-    { value: "graduated", label: "Graduated", disabled: true },
+    { value: "graduated", label: "Graduated" },
   ];
 
   return (
@@ -494,13 +755,11 @@ export function StyleSymbology(props: Props) {
             <button
               key={mode.value}
               type="button"
-              disabled={mode.disabled}
-              title={mode.disabled ? "Coming next" : mode.label}
-              onClick={() => onChange({ mode: mode.value as StyleMode })}
+              title={mode.label}
+              onClick={() => onChange({ mode: mode.value })}
               className={cn(
                 "flex-1 rounded-md border border-border px-2 py-1 text-[11px] transition-colors hover:bg-muted",
                 style.mode === mode.value && "border-primary/60 bg-primary/15 text-foreground",
-                mode.disabled && "cursor-not-allowed opacity-40 hover:bg-transparent",
               )}
             >
               {mode.label}
@@ -514,6 +773,18 @@ export function StyleSymbology(props: Props) {
           style={props.style}
           fields={props.fields}
           valuesFor={props.valuesFor}
+          numericFields={props.numericFields}
+          numbersFor={props.numbersFor}
+          onChange={onChange}
+        />
+      )}
+
+      {style.mode === "graduated" && (
+        <GraduatedEditor
+          kind={props.kind}
+          style={props.style}
+          numericFields={props.numericFields}
+          numbersFor={props.numbersFor}
           onChange={onChange}
         />
       )}
@@ -527,4 +798,5 @@ export function StyleSymbology(props: Props) {
       </div>
     </div>
   );
+
 }

@@ -65,6 +65,38 @@ function fieldValues(
 }
 
 
+/** Attribute names whose values parse as numbers on most features. */
+function numericFields(data: FeatureCollection | null | undefined): string[] {
+  if (!data) return [];
+  const seen = new Map<string, { numeric: number; total: number }>();
+  for (const feature of data.features.slice(0, 500)) {
+    for (const [key, raw] of Object.entries(feature.properties ?? {})) {
+      if (raw === null || raw === undefined || raw === "") continue;
+      const entry = seen.get(key) ?? { numeric: 0, total: 0 };
+      entry.total += 1;
+      if (Number.isFinite(Number(raw))) entry.numeric += 1;
+      seen.set(key, entry);
+    }
+  }
+  return [...seen.entries()]
+    .filter(([, entry]) => entry.total > 0 && entry.numeric / entry.total >= 0.8)
+    .map(([key]) => key)
+    .sort((a, b) => a.localeCompare(b));
+}
+
+/** All finite numeric values for a field, used to compute class breaks. */
+function numberValues(data: FeatureCollection | null | undefined, field: string): number[] {
+  if (!data || !field) return [];
+  const out: number[] = [];
+  for (const feature of data.features) {
+    const raw = (feature.properties ?? {})[field];
+    if (raw === null || raw === undefined || raw === "") continue;
+    const value = Number(raw);
+    if (Number.isFinite(value)) out.push(value);
+  }
+  return out;
+}
+
 type MapSearch = { style?: boolean | undefined };
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId/map")({
@@ -223,7 +255,11 @@ function MapEditor() {
 
   const deleteLayer = useMutation({
     mutationFn: async (layer: LayerRow) => {
-      if (layer.storage_path) {
+      // Duplicated layers share a stored file — only remove it with the last copy.
+      const shared = layers.some(
+        (other) => other.id !== layer.id && other.storage_path === layer.storage_path,
+      );
+      if (layer.storage_path && !shared) {
         await supabase.storage.from("datasets").remove([layer.storage_path]);
       }
       const { error } = await supabase.from("layers").delete().eq("id", layer.id);
@@ -232,6 +268,69 @@ function MapEditor() {
     onSuccess: () => {
       toast.success("Layer removed.");
       setSelectedId(null);
+      void invalidateLayers();
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const duplicateLayer = useMutation({
+    mutationFn: async (layer: LayerRow) => {
+      const { data: styleRow } = await supabase
+        .from("layer_styles")
+        .select("*")
+        .eq("layer_id", layer.id)
+        .maybeSingle();
+
+      // sort_order is an integer: push the original and everything below it down
+      // by one so the copy can sit directly above it.
+      await Promise.all(
+        layers
+          .filter((other) => other.sort_order >= layer.sort_order)
+          .map((other) =>
+            supabase
+              .from("layers")
+              .update({ sort_order: other.sort_order + 1 })
+              .eq("id", other.id),
+          ),
+      );
+
+      const { data: created, error } = await supabase
+        .from("layers")
+        .insert({
+          project_id: projectId,
+          name: `${layer.name} copy`,
+          source_type: layer.source_type,
+          source_url: layer.source_url,
+          storage_path: layer.storage_path,
+          geometry_type: layer.geometry_type,
+          feature_count: layer.feature_count,
+          fields: layer.fields,
+          bbox: layer.bbox,
+          folder_id: layer.folder_id,
+          visible: layer.visible,
+          opacity: layer.opacity,
+          sort_order: layer.sort_order,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+
+      if (styleRow && created) {
+        const { error: styleError } = await supabase.from("layer_styles").insert({
+          layer_id: created.id,
+          fill_color: styleRow.fill_color,
+          stroke_color: styleRow.stroke_color,
+          stroke_width: styleRow.stroke_width,
+          circle_radius: styleRow.circle_radius,
+          fill_opacity: styleRow.fill_opacity,
+          style_mode: styleRow.style_mode,
+          style_config: styleRow.style_config,
+        });
+        if (styleError) throw styleError;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Layer duplicated.");
       void invalidateLayers();
     },
     onError: (error: Error) => toast.error(error.message),
@@ -665,6 +764,7 @@ function MapEditor() {
                 onRename={(layer, name) => updateLayer.mutate({ id: layer.id, patch: { name } })}
                 onZoomTo={(layer) => zoomTo(layer.bbox as Bbox | null)}
                 onDelete={(layer) => deleteLayer.mutate(layer)}
+                onDuplicate={(layer) => duplicateLayer.mutate(layer)}
                 onReorder={(ids) => reorder.mutate(ids)}
                 onOpenTable={(layer) => setTableLayerId(layer.id)}
                 onRefresh={(layer) => refreshLayer.mutate({ layer })}
@@ -772,6 +872,8 @@ function MapEditor() {
             saveState={saveState[styleLayer.id] ?? "idle"}
             fields={attributeFields(byId[styleLayer.id])}
             valuesFor={(field) => fieldValues(byId[styleLayer.id], field)}
+            numericFields={numericFields(byId[styleLayer.id])}
+            numbersFor={(field) => numberValues(byId[styleLayer.id], field)}
             onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
             onSave={() => flushStyle(styleLayer.id)}
             onReset={() => applyStyle(styleLayer.id, DEFAULT_LAYER_STYLE, {})}
