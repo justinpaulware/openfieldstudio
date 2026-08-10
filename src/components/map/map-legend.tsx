@@ -187,15 +187,40 @@ export function MapLegend({
                 </p>
               )}
               <ul className="space-y-1.5">
-                {group.entries.map((entry) => (
-                  <li key={entry.id} className="flex items-center gap-2">
-                    <span className="flex">
-                      <LegendSwatch kind={entry.kind} style={entry.style} />
-                    </span>
-                    <span className="truncate text-xs">{entry.name}</span>
-                  </li>
-                ))}
+                {group.entries.map((entry) => {
+                  const rows = categoryRows(entry.style);
+                  if (rows.length) {
+                    return (
+                      <li key={entry.id} className="space-y-1">
+                        <span className="block truncate text-xs font-medium">{entry.name}</span>
+                        <ul className="space-y-1 pl-1">
+                          {rows.map((row) => (
+                            <li key={row.label} className="flex items-center gap-2">
+                              <span className="flex">
+                                <LegendSwatch
+                                  kind={entry.kind}
+                                  style={entry.style}
+                                  colorOverride={row.color}
+                                />
+                              </span>
+                              <span className="truncate text-xs">{row.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </li>
+                    );
+                  }
+                  return (
+                    <li key={entry.id} className="flex items-center gap-2">
+                      <span className="flex">
+                        <LegendSwatch kind={entry.kind} style={entry.style} />
+                      </span>
+                      <span className="truncate text-xs">{entry.name}</span>
+                    </li>
+                  );
+                })}
               </ul>
+
             </div>
           ))}
         </div>
