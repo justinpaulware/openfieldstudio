@@ -77,6 +77,8 @@ type Props = {
   onPick?: (lng: number, lat: number) => void;
   /** Temporary marker drawn at this location, e.g. a comment being written. */
   pin?: [number, number] | null;
+  /** Extra cards stacked under the info popup in the top-right column. */
+  rightSlot?: ReactNode;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
