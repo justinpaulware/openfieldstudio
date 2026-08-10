@@ -483,6 +483,7 @@ function MapEditor() {
     () =>
       orderedLayers.map((layer) => ({
         id: layer.id,
+        name: layer.name,
         visible: layer.visible,
         opacity: layer.opacity,
         geometryType: layer.geometry_type,
@@ -814,7 +815,6 @@ function MapEditor() {
                 layers={renderLayers}
                 initialView={initialView}
                 onMoveEnd={handleMoveEnd}
-                onFeatureClick={handleFeatureClick}
                 handleRef={mapHandle}
                 onBasemapChange={(id) => {
                   setBasemap(id);

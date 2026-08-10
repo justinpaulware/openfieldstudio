@@ -63,7 +63,6 @@ type Props = {
   layers: RenderLayer[];
   initialView: { center: [number, number]; zoom: number; pitch: number; bearing: number };
   onMoveEnd?: (view: { center: [number, number]; zoom: number; pitch: number; bearing: number }) => void;
-  onFeatureClick?: (layerId: string, properties: Record<string, unknown>) => void;
   handleRef?: Ref<MapHandle>;
   /** When provided, style picks are reported upward (editor persists the default). */
   onBasemapChange?: (id: string) => void;
@@ -80,7 +79,6 @@ export default function MapCanvas({
   layers,
   initialView,
   onMoveEnd,
-  onFeatureClick,
   handleRef,
   onBasemapChange,
   scaleUnits = "imperial",
@@ -403,7 +401,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   // Drop anything we own that no longer belongs.
   for (const layer of map.getStyle().layers ?? []) {
-    const match = /^of-(fill|line|circle|outline|symbol)-(.+)$/.exec(layer.id);
+    const match = /^of-(fill|line|circle|outline|symbol|label)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
