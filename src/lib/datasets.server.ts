@@ -57,9 +57,10 @@ async function fetchText(url: URL): Promise<string> {
     throw new Error(`The source responded with ${response.status} ${response.statusText}.`);
   }
   const length = Number(response.headers.get("content-length") ?? 0);
-  if (length > MAX_BYTES) throw new Error("That file is larger than the 25 MB limit.");
+  if (length > MAX_BYTES) throw new Error("That response is larger than the 50 MB limit.");
   const text = await response.text();
-  if (text.length > MAX_BYTES) throw new Error("That file is larger than the 25 MB limit.");
+  if (text.length > MAX_BYTES) throw new Error("That response is larger than the 50 MB limit.");
+
   return text;
 }
 
