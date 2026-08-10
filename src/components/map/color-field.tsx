@@ -4,10 +4,17 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { STYLE_PALETTE, TRANSPARENT, isTransparent } from "@/lib/layer-style";
+import { PALETTE_HUES, PALETTE_NEUTRALS, TRANSPARENT, isTransparent } from "@/lib/layer-style";
 
-const CHECKER =
-  "repeating-conic-gradient(oklch(0.75 0 0) 0% 25%, oklch(0.95 0 0) 0% 50%) 50% / 8px 8px";
+/** Clear box with a red slash — the "no color" marker. */
+export function NoColorMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 12 12" preserveAspectRatio="none" className={cn("block", className)} aria-hidden="true">
+      <line x1="1" y1="11" x2="11" y2="1" stroke="#e0533d" strokeWidth="1.25" vectorEffect="non-scaling-stroke" />
+    </svg>
+  );
+}
+
 
 function hexToRgb(hex: string): [number, number, number] {
   const value = hex.replace("#", "");
