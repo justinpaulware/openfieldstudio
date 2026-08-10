@@ -2,7 +2,7 @@ import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "reac
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Check, Layers } from "lucide-react";
+import { Check, Layers, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
 import {
@@ -22,6 +22,7 @@ import {
   popupTitle,
   formatPopupValue,
   type LayerStyle,
+  type PopupSpec,
 } from "@/lib/layer-style";
 
 
@@ -88,8 +89,11 @@ export default function MapCanvas({
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
   const scaleRef = useRef<maplibregl.ScaleControl | null>(null);
-  const popupRef = useRef<maplibregl.Popup | null>(null);
-  const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
+  const [popupHit, setPopupHit] = useState<{
+    layerName: string;
+    spec: PopupSpec;
+    properties: Record<string, unknown>;
+  } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
   const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
@@ -246,7 +250,7 @@ export default function MapCanvas({
     syncLayers(map, layers);
   }, [layers]);
 
-  // Feature popups (click or hover), driven by each layer's popup settings.
+  // Feature popups (click or hover), rendered as a docked card in the top-right.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -269,44 +273,31 @@ export default function MapCanvas({
       return { layer, properties: (feature.properties ?? {}) as Record<string, unknown> };
     };
 
-    const show = (event: maplibregl.MapMouseEvent, trigger: "click" | "hover") => {
+    const onClick = (event: maplibregl.MapMouseEvent) => {
       const hit = hitFor(event.point);
-      if (!hit || hit.layer.style.popup.trigger !== trigger) {
-        if (trigger === "click") popupRef.current?.remove();
-        else if (hoverPopupRef.current) hoverPopupRef.current.remove();
+      if (!hit || hit.layer.style.popup.trigger !== "click") {
+        setPopupHit((current) => (current && current.spec.trigger === "click" ? null : current));
         return;
       }
-      const spec = hit.layer.style.popup;
-      const popup = trigger === "hover" ? ensureHoverPopup() : ensurePopup();
-      popup
-        .setMaxWidth(`${spec.maxWidth}px`)
-        .setLngLat(event.lngLat)
-        .setDOMContent(popupContent(hit.layer.name, spec, hit.properties))
-        .addTo(map);
+      setPopupHit({
+        layerName: hit.layer.name,
+        spec: hit.layer.style.popup,
+        properties: hit.properties,
+      });
     };
 
-    const ensurePopup = () => {
-      if (!popupRef.current) {
-        popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true });
-      }
-      return popupRef.current;
-    };
-    const ensureHoverPopup = () => {
-      if (!hoverPopupRef.current) {
-        hoverPopupRef.current = new maplibregl.Popup({
-          closeButton: false,
-          closeOnClick: false,
-          
-        });
-      }
-      return hoverPopupRef.current;
-    };
-
-    const onClick = (event: maplibregl.MapMouseEvent) => show(event, "click");
     const onMove = (event: maplibregl.MapMouseEvent) => {
       const hit = hitFor(event.point);
       map.getCanvas().style.cursor = hit ? "pointer" : "";
-      show(event, "hover");
+      if (hit && hit.layer.style.popup.trigger === "hover") {
+        setPopupHit({
+          layerName: hit.layer.name,
+          spec: hit.layer.style.popup,
+          properties: hit.properties,
+        });
+      } else {
+        setPopupHit((current) => (current && current.spec.trigger === "hover" ? null : current));
+      }
     };
 
     map.on("click", onClick);
@@ -314,8 +305,6 @@ export default function MapCanvas({
     return () => {
       map.off("click", onClick);
       map.off("mousemove", onMove);
-      popupRef.current?.remove();
-      hoverPopupRef.current?.remove();
     };
   }, []);
 
@@ -324,19 +313,24 @@ export default function MapCanvas({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="absolute right-2.5 top-[146px] z-10 flex flex-col items-end gap-1">
+      <div className="absolute right-2.5 top-[146px] z-10 flex max-h-[calc(100%-160px)] flex-col items-end gap-1">
         <button
           type="button"
           onClick={() => setPickerOpen((open) => !open)}
           aria-expanded={pickerOpen}
           aria-label="Basemap"
           title="Basemap"
-          className="flex h-[29px] w-[29px] items-center justify-center rounded border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur hover:bg-muted"
+          className={cn(
+            "flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded border border-border shadow-[var(--shadow-soft)] backdrop-blur transition-colors",
+            pickerOpen
+              ? "bg-card/95 text-foreground"
+              : "bg-foreground/85 text-background hover:bg-foreground",
+          )}
         >
           <Layers className="h-4 w-4" />
         </button>
         {pickerOpen && (
-          <div className="w-52 overflow-hidden rounded-lg border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur">
+          <div className="w-52 shrink-0 overflow-hidden rounded-lg border border-border bg-card/95 shadow-[var(--shadow-soft)] backdrop-blur">
             {BASEMAPS.map((option) => (
               <button
                 key={option.id}
@@ -360,6 +354,62 @@ export default function MapCanvas({
                 {option.label}
               </button>
             ))}
+          </div>
+        )}
+        {popupHit && (
+          <div
+            className="min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
+            style={{ width: Math.min(popupHit.spec.maxWidth, 420) }}
+          >
+            <div className="mb-1.5 flex items-start justify-between gap-2">
+              <h3 className="text-sm font-semibold text-neutral-900">
+                {popupTitle(popupHit.spec, popupHit.properties, popupHit.layerName)}
+              </h3>
+              {popupHit.spec.trigger === "click" && (
+                <button
+                  type="button"
+                  onClick={() => setPopupHit(null)}
+                  aria-label="Close popup"
+                  className="text-neutral-500 hover:text-neutral-900"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            <dl className={popupHit.spec.density === "roomy" ? "space-y-2" : "space-y-1"}>
+              {popupRows(popupHit.spec, popupHit.properties).map((row) => {
+                const raw =
+                  row.value === null || row.value === undefined ? "" : String(row.value);
+                return (
+                  <div key={row.label}>
+                    <dt className="text-[10px] uppercase tracking-wide text-neutral-500">
+                      {row.label}
+                    </dt>
+                    <dd className="break-words text-[13px] text-neutral-900">
+                      {row.format === "link" && raw ? (
+                        <a
+                          href={raw}
+                          target="_blank"
+                          rel="noreferrer noopener"
+                          className="text-[13px] text-blue-700 underline"
+                        >
+                          {raw}
+                        </a>
+                      ) : row.format === "image" && raw ? (
+                        <img
+                          src={raw}
+                          alt={row.label}
+                          loading="lazy"
+                          className="mt-1 max-h-32 w-full rounded object-cover"
+                        />
+                      ) : (
+                        formatPopupValue(row.value, row.format)
+                      )}
+                    </dd>
+                  </div>
+                );
+              })}
+            </dl>
           </div>
         )}
       </div>
@@ -599,54 +649,6 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
   }
 }
 
-/** Build popup markup as DOM nodes — values are never injected as HTML. */
-function popupContent(
-  layerName: string,
-  spec: import("@/lib/layer-style").PopupSpec,
-  properties: Record<string, unknown>,
-): HTMLElement {
-  const root = document.createElement("div");
-  root.className = spec.density === "roomy" ? "space-y-2.5 py-0.5" : "space-y-1.5 py-0.5";
-
-  const heading = document.createElement("h3");
-  heading.className = "text-sm font-semibold text-neutral-900";
-  heading.textContent = popupTitle(spec, properties, layerName);
-  root.append(heading);
-
-  const list = document.createElement("dl");
-  list.className = spec.density === "roomy" ? "space-y-2" : "space-y-1";
-  for (const row of popupRows(spec, properties)) {
-    const wrap = document.createElement("div");
-    const dt = document.createElement("dt");
-    dt.className = "text-[10px] uppercase tracking-wide text-neutral-500";
-    dt.textContent = row.label;
-    const dd = document.createElement("dd");
-    dd.className = "text-[13px] break-words text-neutral-900";
-    const raw = row.value === null || row.value === undefined ? "" : String(row.value);
-    if (row.format === "link" && raw) {
-      const link = document.createElement("a");
-      link.href = raw;
-      link.target = "_blank";
-      link.rel = "noreferrer noopener";
-      link.className = "text-[13px] text-blue-700 underline";
-      link.textContent = raw;
-      dd.append(link);
-    } else if (row.format === "image" && raw) {
-      const img = document.createElement("img");
-      img.src = raw;
-      img.alt = row.label;
-      img.loading = "lazy";
-      img.className = "mt-1 max-h-32 w-full rounded object-cover";
-      dd.append(img);
-    } else {
-      dd.textContent = formatPopupValue(row.value, row.format);
-    }
-    wrap.append(dt, dd);
-    list.append(wrap);
-  }
-  root.append(list);
-  return root;
-}
 
 
 /** Rasterise square / triangle markers so MapLibre can draw them as icons. */
