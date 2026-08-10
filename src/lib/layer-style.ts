@@ -67,7 +67,10 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   markerShape: "circle",
   dashPattern: "solid",
   lineCap: "round",
+  mode: "single",
+  categories: null,
 };
+
 
 /** Row one: hues in rainbow order. */
 export const PALETTE_HUES = [
