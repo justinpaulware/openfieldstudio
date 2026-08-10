@@ -318,7 +318,7 @@ function ProjectPublish() {
       </Section>
 
       <Section title="Embed" description="Drop this snippet into any website or CMS.">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {(
             [
               ["legend", "Legend"],
