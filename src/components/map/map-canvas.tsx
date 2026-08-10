@@ -563,7 +563,93 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     }
 
   }
+
+  // Labels sit above every data layer, added last in reverse draw order.
+  for (const layer of [...layers].reverse()) {
+    const labelId = LYR(layer.id, "label");
+    const spec = layer.data ? activeLabels(layer.style) : null;
+    if (!spec) {
+      removeLayerIfPresent(map, labelId);
+      continue;
+    }
+    const sourceId = SRC(layer.id);
+    const { anchor, offset } = labelAnchorOffset(spec);
+    const alongLine = layer.geometryType === "line" && spec.linePlacement === "line";
+    if (!map.getLayer(labelId)) {
+      map.addLayer({ id: labelId, type: "symbol", source: sourceId });
+    } else {
+      map.moveLayer(labelId);
+    }
+    const hideFilter = categoryFilter(layer.style);
+    map.setFilter(labelId, (hideFilter ?? null) as maplibregl.FilterSpecification | null);
+    map.setLayoutProperty(labelId, "visibility", layer.visible ? "visible" : "none");
+    map.setLayoutProperty(labelId, "text-field", labelTextExpression(spec) as never);
+    map.setLayoutProperty(labelId, "text-font", [
+      spec.bold ? "Noto Sans Bold" : "Noto Sans Regular",
+    ]);
+    map.setLayoutProperty(labelId, "text-size", spec.size);
+    map.setLayoutProperty(labelId, "text-anchor", alongLine ? "center" : anchor);
+    map.setLayoutProperty(labelId, "text-offset", alongLine ? [0, 0] : offset);
+    map.setLayoutProperty(labelId, "text-max-width", spec.maxWidth);
+    map.setLayoutProperty(labelId, "text-allow-overlap", spec.allowOverlap);
+    map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
+    map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
+    map.setPaintProperty(labelId, "text-color", paintColor(spec.color));
+    map.setPaintProperty(labelId, "text-halo-color", paintColor(spec.haloColor));
+    map.setPaintProperty(labelId, "text-halo-width", spec.haloWidth);
+    map.setLayerZoomRange(labelId, spec.minZoom, Math.max(spec.minZoom + 0.1, spec.maxZoom));
+  }
 }
+
+/** Build popup markup as DOM nodes — values are never injected as HTML. */
+function popupContent(
+  layerName: string,
+  spec: import("@/lib/layer-style").PopupSpec,
+  properties: Record<string, unknown>,
+): HTMLElement {
+  const root = document.createElement("div");
+  root.className = spec.density === "roomy" ? "space-y-2.5 py-0.5" : "space-y-1.5 py-0.5";
+
+  const heading = document.createElement("h3");
+  heading.className = "text-sm font-semibold text-neutral-900";
+  heading.textContent = popupTitle(spec, properties, layerName);
+  root.append(heading);
+
+  const list = document.createElement("dl");
+  list.className = spec.density === "roomy" ? "space-y-2" : "space-y-1";
+  for (const row of popupRows(spec, properties)) {
+    const wrap = document.createElement("div");
+    const dt = document.createElement("dt");
+    dt.className = "text-[10px] uppercase tracking-wide text-neutral-500";
+    dt.textContent = row.label;
+    const dd = document.createElement("dd");
+    dd.className = "text-[13px] break-words text-neutral-900";
+    const raw = row.value === null || row.value === undefined ? "" : String(row.value);
+    if (row.format === "link" && raw) {
+      const link = document.createElement("a");
+      link.href = raw;
+      link.target = "_blank";
+      link.rel = "noreferrer noopener";
+      link.className = "text-[13px] text-blue-700 underline";
+      link.textContent = raw;
+      dd.append(link);
+    } else if (row.format === "image" && raw) {
+      const img = document.createElement("img");
+      img.src = raw;
+      img.alt = row.label;
+      img.loading = "lazy";
+      img.className = "mt-1 max-h-32 w-full rounded object-cover";
+      dd.append(img);
+    } else {
+      dd.textContent = formatPopupValue(row.value, row.format);
+    }
+    wrap.append(dt, dd);
+    list.append(wrap);
+  }
+  root.append(list);
+  return root;
+}
+
 
 /** Rasterise square / triangle markers so MapLibre can draw them as icons. */
 function markerImage(style: LayerStyle): ImageData | null {
