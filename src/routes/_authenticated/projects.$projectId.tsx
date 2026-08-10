@@ -31,6 +31,7 @@ const TABS = [
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
+  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -65,41 +66,48 @@ function ProjectLayout() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col">
-      <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-border px-4 py-2">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link
-            to="/projects"
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Projects
-          </Link>
-          <span className="truncate text-sm font-semibold">{project.title}</span>
-          <StatusChip status={project.status} />
-        </div>
-        <nav className="flex items-center gap-1">
-          {TABS.map((tab) => (
-            <Link
-              key={tab.to}
-              to={tab.to}
-              params={{ projectId }}
-              className={
-                tab.primary
-                  ? "rounded-md px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-                  : "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              }
-              activeProps={{ className: "bg-muted text-foreground font-semibold" }}
-            >
-              {tab.label}
-            </Link>
-          ))}
-        </nav>
-      </header>
+    <ProjectActionsContext.Provider value={actionsSlot}>
+      <div className="flex h-full min-h-0 flex-col">
+        <AppHeaderSlot>
+          <nav className="flex items-center gap-1">
+            {TABS.map((tab) => (
+              <Link
+                key={tab.to}
+                to={tab.to}
+                params={{ projectId }}
+                className={
+                  tab.primary
+                    ? "rounded-md px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                    : "rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                }
+                activeProps={{ className: "bg-muted text-foreground font-semibold" }}
+              >
+                {tab.label}
+              </Link>
+            ))}
+          </nav>
+        </AppHeaderSlot>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <Outlet />
+        <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-border px-4 py-1.5">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              to="/projects"
+              className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Projects
+            </Link>
+            <span className="truncate text-sm font-semibold">{project.title}</span>
+            <StatusChip status={project.status} />
+          </div>
+          <div ref={setActionsSlot} className="flex items-center gap-2" />
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <Outlet />
+        </div>
       </div>
-    </div>
+    </ProjectActionsContext.Provider>
   );
+
 }
