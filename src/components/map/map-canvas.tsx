@@ -138,6 +138,43 @@ export default function MapCanvas({
           bearing: map.getBearing(),
         };
       },
+      captureThumbnail: async (width = 800, height = 450) => {
+        const map = mapRef.current;
+        if (!map) return null;
+        await new Promise<void>((resolve) => {
+          if (map.loaded() && !map.isMoving()) {
+            map.once("render", () => resolve());
+            map.triggerRepaint();
+          } else {
+            map.once("idle", () => resolve());
+          }
+        });
+        const source = map.getCanvas();
+        if (!source.width || !source.height) return null;
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        // Cover-crop the map canvas into the thumbnail aspect ratio.
+        const scale = Math.max(width / source.width, height / source.height);
+        const sw = width / scale;
+        const sh = height / scale;
+        ctx.drawImage(
+          source,
+          (source.width - sw) / 2,
+          (source.height - sh) / 2,
+          sw,
+          sh,
+          0,
+          0,
+          width,
+          height,
+        );
+        return new Promise<Blob | null>((resolve) =>
+          canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.8),
+        );
+      },
     }),
     [],
   );
