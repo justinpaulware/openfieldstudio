@@ -269,6 +269,11 @@ const LINE_CAPS: LineCapStyle[] = ["butt", "round", "square"];
 const STYLE_MODES: StyleMode[] = ["single", "categorized", "graduated"];
 const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
+const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "above", "below", "left", "right"];
+const LINE_PLACEMENTS: LabelLinePlacement[] = ["line", "horizontal"];
+const POPUP_TRIGGERS: PopupTrigger[] = ["click", "hover"];
+const POPUP_FORMATS: PopupFieldFormat[] = ["text", "number", "date", "link", "image"];
+const POPUP_DENSITIES: ("compact" | "roomy")[] = ["compact", "roomy"];
 
 function pick<T extends string>(value: unknown, allowed: T[], fallback: T): T {
   return typeof value === "string" && (allowed as string[]).includes(value) ? (value as T) : fallback;
