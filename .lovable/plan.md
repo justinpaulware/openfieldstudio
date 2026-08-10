@@ -1,4 +1,4 @@
-# Taller legend, reversible palettes, and graduated styling
+# Taller legend, reversible palettes, duplicate layer, and graduated styling
 
 ## 1. Legend can grow
 
@@ -8,7 +8,16 @@ The legend body is currently capped at a short fixed height, so long layer/categ
 
 A small flip icon button sits next to the Palette label in both Categories and Graduated. Clicking it reverses the color order across the entries (and reverses the swatch preview), so a light-to-dark ramp becomes dark-to-light. The choice is remembered with the layer, so regenerating categories or changing class count keeps the reversed direction.
 
-## 3. Graduated styling
+## 3. Duplicate layer
+
+The layer `...` menu gains **Duplicate layer**, between Edit style and Zoom to layer.
+
+- Creates a new layer named "<name> copy" directly above the original, in the same folder, with the same source (same file / CSV URL / ArcGIS service — nothing is re-uploaded or re-fetched) and a full copy of the current style, including categories and graduated settings.
+- From then on the two layers are fully independent: styling, renaming, visibility, and future filters/labels apply to only one of them.
+- Refreshing either layer pulls from the shared source as before; deleting a copy never touches the original's data.
+
+## 4. Graduated styling
+
 
 "Graduated" becomes selectable in the Style type row and gets its own editor:
 
@@ -34,3 +43,5 @@ Legend and the sidebar layer symbol show graduated classes the same way they sho
 - `src/components/map/style-symbology.tsx`: `PaletteHeader` with the flip button shared by both editors; new `GraduatedEditor`; enable the Graduated mode button.
 - `src/routes/_authenticated/projects.$projectId.map.tsx`: add a `numericFieldValues(field)` helper (raw numeric array from the loaded features) passed to the style panel for break computation and class counts.
 - `src/components/map/map-canvas.tsx`: already reads `primaryColorPaint` / `strokeColorPaint`; add the graduated radius expression for circle layers.
+- Duplicate: new `onDuplicate` entry in `layer-panel.tsx`'s layer menu; handler in the map route inserts a `layers` row copying every source/metadata column (source type, storage path or URL, geometry type, feature count, folder, bbox) with `sort_order` just after the original, then inserts a matching `layer_styles` row from the original's columns + `style_config`, and invalidates the layers query. No schema change.
+
