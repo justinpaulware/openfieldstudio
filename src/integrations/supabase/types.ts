@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      comments: {
+        Row: {
+          attributes: Json
+          author_email: string | null
+          author_name: string | null
+          body: string
+          category: string | null
+          created_at: string
+          geometry: Json
+          id: string
+          lat: number
+          lng: number
+          project_id: string
+          status: Database["public"]["Enums"]["comment_status"]
+          updated_at: string
+        }
+        Insert: {
+          attributes?: Json
+          author_email?: string | null
+          author_name?: string | null
+          body: string
+          category?: string | null
+          created_at?: string
+          geometry?: Json
+          id?: string
+          lat: number
+          lng: number
+          project_id: string
+          status?: Database["public"]["Enums"]["comment_status"]
+          updated_at?: string
+        }
+        Update: {
+          attributes?: Json
+          author_email?: string | null
+          author_name?: string | null
+          body?: string
+          category?: string | null
+          created_at?: string
+          geometry?: Json
+          id?: string
+          lat?: number
+          lng?: number
+          project_id?: string
+          status?: Database["public"]["Enums"]["comment_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layer_folders: {
         Row: {
           collapsed: boolean
@@ -262,6 +318,8 @@ export type Database = {
         Row: {
           author: string | null
           basemap: string
+          comment_categories: string[]
+          comments_enabled: boolean
           created_at: string
           credits: string | null
           data_sources: string | null
@@ -288,6 +346,8 @@ export type Database = {
         Insert: {
           author?: string | null
           basemap?: string
+          comment_categories?: string[]
+          comments_enabled?: boolean
           created_at?: string
           credits?: string | null
           data_sources?: string | null
@@ -314,6 +374,8 @@ export type Database = {
         Update: {
           author?: string | null
           basemap?: string
+          comment_categories?: string[]
+          comments_enabled?: boolean
           created_at?: string
           credits?: string | null
           data_sources?: string | null
@@ -355,6 +417,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      comment_status: "pending" | "approved" | "hidden" | "rejected"
       layer_geometry_type: "point" | "line" | "polygon" | "mixed"
       layer_source_type: "geojson_file" | "csv_url" | "arcgis_rest"
       project_status: "draft" | "published" | "archived"
@@ -485,6 +548,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      comment_status: ["pending", "approved", "hidden", "rejected"],
       layer_geometry_type: ["point", "line", "polygon", "mixed"],
       layer_source_type: ["geojson_file", "csv_url", "arcgis_rest"],
       project_status: ["draft", "published", "archived"],
