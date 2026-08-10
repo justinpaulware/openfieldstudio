@@ -8,7 +8,16 @@ The legend body is currently capped at a short fixed height, so long layer/categ
 
 A small flip icon button sits next to the Palette label in both Categories and Graduated. Clicking it reverses the color order across the entries (and reverses the swatch preview), so a light-to-dark ramp becomes dark-to-light. The choice is remembered with the layer, so regenerating categories or changing class count keeps the reversed direction.
 
-## 3. Graduated styling
+## 3. Duplicate layer
+
+The layer `...` menu gains **Duplicate layer**, between Edit style and Zoom to layer.
+
+- Creates a new layer named "<name> copy" directly above the original, in the same folder, with the same source (same file / CSV URL / ArcGIS service — nothing is re-uploaded or re-fetched) and a full copy of the current style, including categories and graduated settings.
+- From then on the two layers are fully independent: styling, renaming, visibility, and future filters/labels apply to only one of them.
+- Refreshing either layer pulls from the shared source as before; deleting a copy never touches the original's data.
+
+## 4. Graduated styling
+
 
 "Graduated" becomes selectable in the Style type row and gets its own editor:
 
