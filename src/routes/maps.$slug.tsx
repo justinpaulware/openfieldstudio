@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { createFileRoute, ClientOnly, Link, notFound } from "@tanstack/react-router";
 import { useQueries } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageSquarePlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
 import { getPublishedLayerData, getPublishedMap } from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import {
@@ -93,6 +94,22 @@ function PublicMap() {
   const folders = loaderData.folders as unknown as ViewerFolder[];
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  const [commentMode, setCommentMode] = useState(false);
+  const [pin, setPin] = useState<PendingPin | null>(null);
+  const commentsEnabled = project.comments_enabled;
+  const commentCategories = project.comment_categories ?? [];
+
+  useEffect(() => {
+    if (!commentMode) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setCommentMode(false);
+        setPin(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [commentMode]);
   // Credit sits right after the scale bar, so it shifts as the scale bar resizes.
   const [creditLeft, setCreditLeft] = useState(150);
 
@@ -229,6 +246,9 @@ function PublicMap() {
               layers={renderLayers}
               initialView={initialView}
               scaleUnits={(project.scale_units as ScaleUnits) ?? "imperial"}
+              pickMode={commentMode && !pin}
+              onPick={(lng, lat) => setPin({ lng, lat })}
+              pin={pin ? [pin.lng, pin.lat] : null}
               handleRef={{ current: null } as unknown as React.RefObject<MapHandle>}
             />
           </Suspense>
@@ -244,6 +264,35 @@ function PublicMap() {
             />
           )}
         </div>
+
+        {commentsEnabled && (
+          <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
+            {pin ? (
+              <CommentComposer
+                slug={slug}
+                pin={pin}
+                categories={commentCategories}
+                onClose={() => {
+                  setPin(null);
+                  setCommentMode(false);
+                }}
+                onSubmitted={() => undefined}
+              />
+            ) : commentMode ? (
+              <div className="flex items-center gap-3 rounded-lg border border-map-overlay-border bg-map-overlay px-3 py-2 text-xs text-map-overlay-foreground shadow-[var(--shadow-lift)]">
+                Click the map to place your comment.
+                <Button size="sm" variant="ghost" onClick={() => setCommentMode(false)}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" onClick={() => setCommentMode(true)}>
+                <MessageSquarePlus className="mr-1.5 h-4 w-4" />
+                Leave feedback
+              </Button>
+            )}
+          </div>
+        )}
 
         <a
           href={SITE}
