@@ -137,6 +137,35 @@ export function styleRowFromRelation(relation: StyleRelation): StyleRow | null {
   return relation ?? null;
 }
 
+export const DEFAULT_LABELS: LabelSpec = {
+  enabled: false,
+  field: "",
+  size: 12,
+  bold: false,
+  color: "#1b1d22",
+  haloColor: "#ffffff",
+  haloWidth: 1.2,
+  placement: "center",
+  offset: 0.9,
+  linePlacement: "line",
+  allowOverlap: false,
+  minZoom: 0,
+  maxZoom: 22,
+  uppercase: false,
+  maxWidth: 10,
+};
+
+export const DEFAULT_POPUP: PopupSpec = {
+  enabled: true,
+  trigger: "click",
+  titleField: "",
+  titleText: "",
+  fields: [],
+  hideEmpty: true,
+  density: "compact",
+  maxWidth: 280,
+};
+
 export const DEFAULT_LAYER_STYLE: LayerStyle = {
   fillColor: "#f5c518",
   strokeColor: "#1b1d22",
@@ -150,7 +179,10 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   mode: "single",
   categories: null,
   graduated: null,
+  labels: DEFAULT_LABELS,
+  popup: DEFAULT_POPUP,
 };
+
 
 
 /** Row one: hues in rainbow order. */
