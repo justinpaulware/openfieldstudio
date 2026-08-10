@@ -414,7 +414,6 @@ export default function MapCanvas({
             </dl>
           </div>
         )}
-      </div>
 
 
       {mapError ? (
