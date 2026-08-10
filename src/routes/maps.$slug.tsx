@@ -249,10 +249,12 @@ function PublicMap() {
           href={SITE}
           target="_blank"
           rel="noreferrer"
-          className="absolute bottom-[7px] left-[150px] z-10 font-secondary text-[11px] text-map-overlay-foreground/80 hover:text-map-overlay-foreground"
+          style={{ left: creditLeft }}
+          className="absolute bottom-[7px] z-10 font-secondary text-[11px] text-map-overlay-foreground/80 hover:text-map-overlay-foreground"
         >
-          Made with <span className="font-semibold">Open Field</span>
+          Made with <span className="font-semibold">Open Field</span>.
         </a>
+
 
         {loading && (
           <div className="absolute bottom-12 left-4 z-10 flex items-center gap-2 rounded-md bg-map-overlay px-3 py-1.5 text-xs text-map-overlay-foreground shadow-[var(--shadow-lift)]">
