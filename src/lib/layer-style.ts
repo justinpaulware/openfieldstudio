@@ -6,6 +6,22 @@ export type StyleRelation = StyleRow | StyleRow[] | null | undefined;
 export type MarkerShape = "circle" | "ring" | "square" | "triangle";
 export type DashPattern = "solid" | "dashed" | "dotted";
 export type LineCapStyle = "butt" | "round" | "square";
+export type StyleMode = "single" | "categorized";
+
+export type CategoryEntry = {
+  /** Stringified attribute value. */
+  value: string;
+  color: string;
+  visible: boolean;
+};
+
+export type CategorySpec = {
+  field: string;
+  entries: CategoryEntry[];
+  otherColor: string;
+  otherVisible: boolean;
+  palette: string;
+};
 
 export type LayerStyle = {
   fillColor: string;
@@ -17,7 +33,10 @@ export type LayerStyle = {
   markerShape: MarkerShape;
   dashPattern: DashPattern;
   lineCap: LineCapStyle;
+  mode: StyleMode;
+  categories: CategorySpec | null;
 };
+
 
 /** Sentinel for "no fill" / "no color". */
 export const TRANSPARENT = "transparent";
