@@ -1,22 +1,25 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderKanban, Globe2, MessageSquare, Settings, Layers, LogOut } from "lucide-react";
-import type { ReactNode } from "react";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
+  FolderKanban,
+  Globe2,
+  MessageSquare,
+  Settings,
+  Layers,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 
 const items = [
@@ -25,6 +28,15 @@ const items = [
   { title: "Comments", url: "/comments", icon: MessageSquare },
   { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
+
+const HeaderSlotContext = createContext<HTMLElement | null>(null);
+
+/** Renders `children` into the right side of the top app header band. */
+export function AppHeaderSlot({ children }: { children: ReactNode }) {
+  const node = useContext(HeaderSlotContext);
+  if (!node) return null;
+  return createPortal(children, node);
+}
 
 function useProfile() {
   return useQuery({
@@ -42,7 +54,7 @@ function useProfile() {
   });
 }
 
-function AppSidebar() {
+function BrandMenu() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { data: profile } = useProfile();
   const navigate = useNavigate();
@@ -58,75 +70,61 @@ function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <Link
-          to="/projects"
-          className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-        >
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Layers className="h-4 w-4" />
-          </span>
-          <span className="truncate font-display text-base font-semibold group-data-[collapsible=icon]:hidden">
-            Open Field
-          </span>
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)} tooltip={item.title}>
-                    <Link to={item.url} className="flex items-center gap-2">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <div className="mt-auto border-t border-sidebar-border p-2">
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
-          <Avatar className="h-8 w-8 shrink-0">
+    <DropdownMenu>
+      <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Layers className="h-4 w-4" />
+        </span>
+        <span className="font-display text-sm font-semibold">Open Field</span>
+        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-60">
+        {items.map((item) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link
+              to={item.url}
+              className={
+                pathname.startsWith(item.url) ? "font-semibold text-foreground" : undefined
+              }
+            >
+              <item.icon className="mr-2 h-4 w-4" />
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="flex items-center gap-2 font-normal">
+          <Avatar className="h-7 w-7 shrink-0">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
-          <div className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-medium">{profile?.display_name || "Account"}</p>
-            <p className="truncate text-xs text-muted-foreground">{profile?.email}</p>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 group-data-[collapsible=icon]:hidden"
-            onClick={signOut}
-            aria-label="Sign out"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-    </Sidebar>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-medium">
+              {profile?.display_name || "Account"}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">{profile?.email}</span>
+          </span>
+        </DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => void signOut()}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        <AppSidebar />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-14 items-center gap-2 border-b border-border px-4">
-            <SidebarTrigger />
-          </header>
-          <main className="flex-1">{children}</main>
-        </div>
+    <HeaderSlotContext.Provider value={slot}>
+      <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+        <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-border px-3 py-1">
+          <BrandMenu />
+          <div ref={setSlot} className="flex items-center gap-1" />
+        </header>
+        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>
-    </SidebarProvider>
+    </HeaderSlotContext.Provider>
   );
 }

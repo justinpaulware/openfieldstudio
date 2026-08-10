@@ -7,6 +7,8 @@ import { FolderPlus, List, Loader2, Maximize, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { ProjectHeaderActions } from "@/components/project-header";
+
 import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
@@ -504,43 +506,41 @@ function MapEditor() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="flex flex-wrap items-center justify-end gap-3 border-b border-border px-4 py-2">
-        <div className="flex items-center gap-2">
-          <Button
-            variant={showLegend ? "secondary" : "outline"}
-            size="sm"
-            title="Show legend on the map"
-            onClick={() => {
-              const next = !showLegend;
-              setLegend(next);
-              saveView.mutate({ show_legend: next });
-            }}
-          >
-            <List className="mr-1.5 h-4 w-4" />
-            Legend
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={!allLayersBbox}
-            title="Zoom to all layers"
-            onClick={() => allLayersBbox && mapHandle.current?.fitBbox(allLayersBbox)}
-          >
-            <Maximize className="mr-1.5 h-4 w-4" />
-            Zoom to all layers
-          </Button>
-          <Button
+      <ProjectHeaderActions>
+        <Button
+          variant={showLegend ? "secondary" : "outline"}
+          size="sm"
+          title="Show legend on the map"
+          onClick={() => {
+            const next = !showLegend;
+            setLegend(next);
+            saveView.mutate({ show_legend: next });
+          }}
+        >
+          <List className="mr-1.5 h-4 w-4" />
+          Legend
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!allLayersBbox}
+          title="Zoom to all layers"
+          onClick={() => allLayersBbox && mapHandle.current?.fitBbox(allLayersBbox)}
+        >
+          <Maximize className="mr-1.5 h-4 w-4" />
+          Zoom to all layers
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!viewDirty || saveView.isPending}
+          onClick={() => saveView.mutate(undefined)}
+        >
+          {saveView.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {viewDirty ? "Save view" : "View saved"}
+        </Button>
+      </ProjectHeaderActions>
 
-            variant="outline"
-            size="sm"
-            disabled={!viewDirty || saveView.isPending}
-            onClick={() => saveView.mutate(undefined)}
-          >
-            {saveView.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {viewDirty ? "Save view" : "View saved"}
-          </Button>
-        </div>
-      </header>
 
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-card/40 md:flex">
