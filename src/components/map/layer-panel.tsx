@@ -70,7 +70,7 @@ type StyleRow = Tables<"layer_styles">;
 export type PanelLayer = LayerRow & { layer_styles?: StyleRow[] | null };
 
 /** Legend swatch mirroring how the layer draws on the map. */
-function LayerSymbol({ layer }: { layer: PanelLayer }) {
+function LayerSymbol({ layer, style }: { layer: PanelLayer; style?: LayerStyle }) {
   return (
     <span
       className="flex h-4 w-4 shrink-0 items-center justify-center"
@@ -78,11 +78,12 @@ function LayerSymbol({ layer }: { layer: PanelLayer }) {
     >
       <LegendSwatch
         kind={geometryKind(layer.geometry_type)}
-        style={resolveLayerStyle(layer.layer_styles?.[0])}
+        style={style ?? resolveLayerStyle(layer.layer_styles?.[0])}
       />
     </span>
   );
 }
+
 
 function relativeTime(iso: string | null): string | null {
   if (!iso) return null;
