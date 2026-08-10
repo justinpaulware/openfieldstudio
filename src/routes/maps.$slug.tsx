@@ -3,7 +3,6 @@ import { createFileRoute, ClientOnly, Link, notFound } from "@tanstack/react-rou
 import { useQueries } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { getPublishedLayerData, getPublishedMap } from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
