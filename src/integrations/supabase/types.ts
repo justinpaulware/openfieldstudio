@@ -217,6 +217,47 @@ export type Database = {
         }
         Relationships: []
       }
+      project_folders: {
+        Row: {
+          collapsed: boolean
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          collapsed?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          collapsed?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           author: string | null
@@ -226,6 +267,7 @@ export type Database = {
           data_sources: string | null
           description: string | null
           embed_config: Json
+          folder_id: string | null
           id: string
           map_bearing: number
           map_center: number[]
@@ -236,6 +278,7 @@ export type Database = {
           scale_units: string
           show_legend: boolean
           slug: string
+          sort_order: number
           status: Database["public"]["Enums"]["project_status"]
           tags: string[]
           thumbnail_url: string | null
@@ -250,6 +293,7 @@ export type Database = {
           data_sources?: string | null
           description?: string | null
           embed_config?: Json
+          folder_id?: string | null
           id?: string
           map_bearing?: number
           map_center?: number[]
@@ -260,6 +304,7 @@ export type Database = {
           scale_units?: string
           show_legend?: boolean
           slug: string
+          sort_order?: number
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]
           thumbnail_url?: string | null
@@ -274,6 +319,7 @@ export type Database = {
           data_sources?: string | null
           description?: string | null
           embed_config?: Json
+          folder_id?: string | null
           id?: string
           map_bearing?: number
           map_center?: number[]
@@ -284,13 +330,22 @@ export type Database = {
           scale_units?: string
           show_legend?: boolean
           slug?: string
+          sort_order?: number
           status?: Database["public"]["Enums"]["project_status"]
           tags?: string[]
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
