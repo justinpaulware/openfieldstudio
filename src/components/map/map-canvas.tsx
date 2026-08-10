@@ -246,26 +246,79 @@ export default function MapCanvas({
     syncLayers(map, layers);
   }, [layers]);
 
-  // Feature click handling.
+  // Feature popups (click or hover), driven by each layer's popup settings.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !onFeatureClick) return;
-    const handler = (event: maplibregl.MapMouseEvent) => {
-      const ids = layersRef.current
-        .filter((l) => l.visible && l.data)
-        .flatMap((l) => ["fill", "line", "circle", "symbol"].map((k) => LYR(l.id, k)))
-        .filter((id) => map.getLayer(id));
-      if (!ids.length) return;
-      const [hit] = map.queryRenderedFeatures(event.point, { layers: ids });
-      if (!hit) return;
-      const layerId = String(hit.layer.id).replace(/^of-(fill|line|circle|symbol)-/, "");
-      onFeatureClick(layerId, (hit.properties ?? {}) as Record<string, unknown>);
+    if (!map) return;
+
+    const hitFor = (point: maplibregl.Point) => {
+      const candidates = layersRef.current.filter((l) => l.visible && l.data && l.style.popup.enabled);
+      if (!candidates.length) return null;
+      const owner = new Map<string, RenderLayer>();
+      for (const layer of candidates) {
+        for (const kind of ["fill", "line", "circle", "symbol"]) {
+          const id = LYR(layer.id, kind);
+          if (map.getLayer(id)) owner.set(id, layer);
+        }
+      }
+      if (!owner.size) return null;
+      const [feature] = map.queryRenderedFeatures(point, { layers: [...owner.keys()] });
+      if (!feature) return null;
+      const layer = owner.get(String(feature.layer.id));
+      if (!layer) return null;
+      return { layer, properties: (feature.properties ?? {}) as Record<string, unknown> };
     };
-    map.on("click", handler);
+
+    const show = (event: maplibregl.MapMouseEvent, trigger: "click" | "hover") => {
+      const hit = hitFor(event.point);
+      if (!hit || hit.layer.style.popup.trigger !== trigger) {
+        if (trigger === "click") popupRef.current?.remove();
+        else if (hoverPopupRef.current) hoverPopupRef.current.remove();
+        return;
+      }
+      const spec = hit.layer.style.popup;
+      const popup = trigger === "hover" ? ensureHoverPopup() : ensurePopup();
+      popup
+        .setMaxWidth(`${spec.maxWidth}px`)
+        .setLngLat(event.lngLat)
+        .setDOMContent(popupContent(hit.layer.name, spec, hit.properties))
+        .addTo(map);
+    };
+
+    const ensurePopup = () => {
+      if (!popupRef.current) {
+        popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true });
+      }
+      return popupRef.current;
+    };
+    const ensureHoverPopup = () => {
+      if (!hoverPopupRef.current) {
+        hoverPopupRef.current = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          
+        });
+      }
+      return hoverPopupRef.current;
+    };
+
+    const onClick = (event: maplibregl.MapMouseEvent) => show(event, "click");
+    const onMove = (event: maplibregl.MapMouseEvent) => {
+      const hit = hitFor(event.point);
+      map.getCanvas().style.cursor = hit ? "pointer" : "";
+      show(event, "hover");
+    };
+
+    map.on("click", onClick);
+    map.on("mousemove", onMove);
     return () => {
-      map.off("click", handler);
+      map.off("click", onClick);
+      map.off("mousemove", onMove);
+      popupRef.current?.remove();
+      hoverPopupRef.current?.remove();
     };
-  }, [onFeatureClick]);
+  }, []);
+
 
   return (
     <div className="relative h-full w-full">
