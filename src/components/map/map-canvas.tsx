@@ -100,6 +100,9 @@ export default function MapCanvas({
   pickMode = false,
   onPick,
   pin = null,
+  commentPins,
+  selectedCommentId = null,
+  onCommentClick,
   rightSlot,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
