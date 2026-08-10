@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, List } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
 import { cn } from "@/lib/utils";
+
 import type { LayerStyle, SimpleKind } from "@/lib/layer-style";
 import {
   activeCategories,
