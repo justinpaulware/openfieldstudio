@@ -1,12 +1,11 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusChip } from "@/components/status-chip";
 import { AppHeaderSlot } from "@/components/app-shell";
-import { ProjectActionsContext } from "@/components/project-header";
+import { PROJECT_ACTIONS_ID } from "@/components/project-header";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
   component: ProjectLayout,
@@ -22,7 +21,6 @@ const TABS = [
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
-  const [actionsSlot, setActionsSlot] = useState<HTMLElement | null>(null);
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -57,7 +55,6 @@ function ProjectLayout() {
   }
 
   return (
-    <ProjectActionsContext.Provider value={actionsSlot}>
       <div className="flex h-full min-h-0 flex-col">
         <AppHeaderSlot>
           <nav className="flex items-center gap-1">
@@ -91,14 +88,13 @@ function ProjectLayout() {
             <span className="truncate text-sm font-semibold">{project.title}</span>
             <StatusChip status={project.status} />
           </div>
-          <div ref={setActionsSlot} className="flex items-center gap-2" />
+          <div id={PROJECT_ACTIONS_ID} className="flex items-center gap-2" />
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           <Outlet />
         </div>
       </div>
-    </ProjectActionsContext.Provider>
   );
 
 }
