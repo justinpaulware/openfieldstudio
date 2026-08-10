@@ -90,6 +90,8 @@ export default function MapCanvas({
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
   const scaleRef = useRef<maplibregl.ScaleControl | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
+  const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
   const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
