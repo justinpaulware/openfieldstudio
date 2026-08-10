@@ -96,6 +96,7 @@ export default function MapCanvas({
   pickMode = false,
   onPick,
   pin = null,
+  rightSlot,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
