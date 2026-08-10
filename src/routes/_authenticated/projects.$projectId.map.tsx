@@ -363,6 +363,7 @@ function MapEditor() {
         })
         .eq("id", projectId);
       if (error) throw error;
+      await captureProjectThumbnail(projectId, mapHandle.current);
     },
     onSuccess: () => {
       setViewDirty(false);
