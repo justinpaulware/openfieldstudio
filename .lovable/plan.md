@@ -1,6 +1,7 @@
 # Published map: drop the sidebar, branded title card, on-map credit
 
-Three changes to the public viewer at `/maps/:slug` so it matches the map editor's cartographic look.
+Four changes to the public viewer at `/maps/:slug` so it matches the map editor's cartographic look.
+
 
 ## 1. Remove the collapsible sidebar
 
