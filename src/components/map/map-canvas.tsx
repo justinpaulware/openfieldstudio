@@ -12,6 +12,8 @@ import {
   isTransparent,
   paintColor,
   primaryColorPaint,
+  strokeColorPaint,
+  categoryDrives,
   type LayerStyle,
 } from "@/lib/layer-style";
 
@@ -362,13 +364,17 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     const { style } = layer;
     const categorized = activeCategories(style);
     const primaryColor = primaryColorPaint(style) as never;
+    const strokeColor = strokeColorPaint(style) as never;
+    const fillCategorized = categoryDrives(style, "fill");
+    const strokeCategorized = categoryDrives(style, "stroke");
     const hideFilter = categoryFilter(style);
     const withCategories = (base: unknown[]): maplibregl.FilterSpecification =>
       (hideFilter ? ["all", base, hideFilter] : base) as maplibregl.FilterSpecification;
     // Opacity now lives entirely in the layer style (fill + stroke, separately).
-    const fillAlpha = categorized || !isTransparent(style.fillColor) ? style.fillOpacity : 0;
-    const strokeAlpha = isTransparent(style.strokeColor) ? 0 : style.strokeOpacity;
-    const lineAlpha = categorized || !isTransparent(style.fillColor) ? style.strokeOpacity : 0;
+    const fillAlpha = fillCategorized || !isTransparent(style.fillColor) ? style.fillOpacity : 0;
+    const strokeAlpha =
+      strokeCategorized || !isTransparent(style.strokeColor) ? style.strokeOpacity : 0;
+    const lineAlpha = fillCategorized || !isTransparent(style.fillColor) ? style.strokeOpacity : 0;
 
     const ensure = (id: string, spec: maplibregl.AddLayerObject) => {
       if (!map.getLayer(id)) map.addLayer(spec);
@@ -399,7 +405,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       });
       map.setFilter(LYR(layer.id, "outline"), withCategories(polygonBase));
       map.setLayoutProperty(LYR(layer.id, "outline"), "visibility", visibility);
-      map.setPaintProperty(LYR(layer.id, "outline"), "line-color", paintColor(style.strokeColor));
+      map.setPaintProperty(LYR(layer.id, "outline"), "line-color", strokeColor);
       map.setPaintProperty(LYR(layer.id, "outline"), "line-width", style.strokeWidth);
       map.setPaintProperty(LYR(layer.id, "outline"), "line-opacity", strokeAlpha);
       map.setPaintProperty(
@@ -477,7 +483,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         map.setPaintProperty(
           LYR(layer.id, "circle"),
           "circle-stroke-color",
-          ring ? primaryColor : (paintColor(style.strokeColor) as never),
+          ring ? primaryColor : strokeColor,
         );
         map.setPaintProperty(
           LYR(layer.id, "circle"),

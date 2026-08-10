@@ -15,8 +15,12 @@ export type CategoryEntry = {
   visible: boolean;
 };
 
+/** Which paint the category colors drive. */
+export type CategoryTarget = "fill" | "stroke" | "both";
+
 export type CategorySpec = {
   field: string;
+  target: CategoryTarget;
   entries: CategoryEntry[];
   otherColor: string;
   otherVisible: boolean;
@@ -123,6 +127,26 @@ export const CATEGORY_PALETTES: { id: string; label: string; colors: string[] }[
     label: "Earth",
     colors: ["#8c6a4f", "#b8894b", "#6f8f4e", "#4c7d6d", "#9c5f4a", "#c2a878", "#5b6f52", "#7b5e3b"],
   },
+  {
+    id: "contrast",
+    label: "Contrast",
+    colors: ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#17becf"],
+  },
+  {
+    id: "cool",
+    label: "Cool",
+    colors: ["#0d3b66", "#1b6ca8", "#2e9cca", "#54c1c4", "#7fd8be", "#3f8f7a", "#5c7aa8", "#9ad1e5"],
+  },
+  {
+    id: "sunset",
+    label: "Sunset",
+    colors: ["#f9c74f", "#f8961e", "#f3722c", "#e0533d", "#c9426b", "#9d4edd", "#6a4c93", "#ffb4a2"],
+  },
+  {
+    id: "accessible",
+    label: "Accessible",
+    colors: ["#0072b2", "#e69f00", "#009e73", "#cc79a7", "#56b4e9", "#d55e00", "#f0e442", "#000000"],
+  },
 ];
 
 export function paletteColors(id: string): string[] {
@@ -133,6 +157,7 @@ const MARKER_SHAPES: MarkerShape[] = ["circle", "ring", "square", "triangle"];
 const DASH_PATTERNS: DashPattern[] = ["solid", "dashed", "dotted"];
 const LINE_CAPS: LineCapStyle[] = ["butt", "round", "square"];
 const STYLE_MODES: StyleMode[] = ["single", "categorized"];
+const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 
 function pick<T extends string>(value: unknown, allowed: T[], fallback: T): T {
   return typeof value === "string" && (allowed as string[]).includes(value) ? (value as T) : fallback;
@@ -162,6 +187,8 @@ function parseCategories(value: unknown): CategorySpec | null {
     : [];
   return {
     field: raw["field"],
+    // Saved layers predate targeting and only ever colored the fill.
+    target: pick(raw["target"], CATEGORY_TARGETS, "fill"),
     entries,
     otherColor: typeof raw["otherColor"] === "string" ? raw["otherColor"] : "#999999",
     otherVisible: raw["otherVisible"] !== false,
@@ -216,16 +243,34 @@ export function activeCategories(style: LayerStyle): CategorySpec | null {
   return spec;
 }
 
-/** MapLibre color for the layer's primary paint (fill / circle / line). */
-export function primaryColorPaint(style: LayerStyle): string | unknown[] {
-  const spec = activeCategories(style);
-  if (!spec) return paintColor(style.fillColor);
+function matchExpression(spec: CategorySpec): unknown[] {
   const match: unknown[] = ["match", ["to-string", ["get", spec.field]]];
   for (const entry of spec.entries) {
     match.push(entry.value, paintColor(entry.color));
   }
   match.push(paintColor(spec.otherColor));
   return match;
+}
+
+/** MapLibre color for the layer's primary paint (fill / circle / line). */
+export function primaryColorPaint(style: LayerStyle): string | unknown[] {
+  const spec = activeCategories(style);
+  if (!spec || spec.target === "stroke") return paintColor(style.fillColor);
+  return matchExpression(spec);
+}
+
+/** MapLibre color for the layer's stroke / outline paint. */
+export function strokeColorPaint(style: LayerStyle): string | unknown[] {
+  const spec = activeCategories(style);
+  if (!spec || spec.target === "fill") return paintColor(style.strokeColor);
+  return matchExpression(spec);
+}
+
+/** True when category colors drive that paint. */
+export function categoryDrives(style: LayerStyle, part: "fill" | "stroke"): boolean {
+  const spec = activeCategories(style);
+  if (!spec) return false;
+  return spec.target === "both" || spec.target === part;
 }
 
 /** Filter hiding categories the user switched off; null when nothing is hidden. */
@@ -257,6 +302,7 @@ export function buildCategories(
   return {
     field,
     palette: paletteId,
+    target: previous?.target ?? "both",
     otherColor: previous?.otherColor ?? "#999999",
     otherVisible: previous?.otherVisible ?? true,
     entries: values.map((value, index) => {
