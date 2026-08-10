@@ -1,13 +1,25 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusChip } from "@/components/status-chip";
+import { AppHeaderSlot } from "@/components/app-shell";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectId")({
   component: ProjectLayout,
 });
+
+const ProjectActionsContext = createContext<HTMLElement | null>(null);
+
+/** Renders `children` into the right side of the project header band. */
+export function ProjectHeaderActions({ children }: { children: ReactNode }) {
+  const node = useContext(ProjectActionsContext);
+  if (!node) return null;
+  return createPortal(children, node);
+}
 
 const TABS = [
   { to: "/projects/$projectId/map", label: "Map Editor", primary: true },
@@ -15,6 +27,7 @@ const TABS = [
   
   { to: "/projects/$projectId/publishing", label: "Publishing", primary: false },
 ] as const;
+
 
 function ProjectLayout() {
   const { projectId } = Route.useParams();
