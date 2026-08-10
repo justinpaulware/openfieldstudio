@@ -43,24 +43,34 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   lineCap: "round",
 };
 
-/** Curated palette — hues first, then a grayscale ramp, then "no color". */
-export const STYLE_PALETTE = [
-  "#f5c518",
-  "#f0932b",
+/** Row one: hues in rainbow order. */
+export const PALETTE_HUES = [
   "#e0533d",
-  "#c65fb5",
-  "#8b5cf6",
-  "#4f7cf7",
-  "#2bb1a8",
+  "#f0932b",
+  "#f5c518",
+  "#a8c545",
   "#4caf6a",
+  "#2bb1a8",
+  "#4f7cf7",
+  "#8b5cf6",
+  "#c65fb5",
+];
+
+/** Row two: white, gray ramp, black, then "no color". */
+export const PALETTE_NEUTRALS = [
   "#ffffff",
+  "#e5e5e5",
   "#cccccc",
   "#999999",
   "#666666",
-  "#333333",
-  "#111111",
+  "#444444",
+  "#222222",
+  "#000000",
   TRANSPARENT,
 ];
+
+export const STYLE_PALETTE = [...PALETTE_HUES, ...PALETTE_NEUTRALS];
+
 
 const MARKER_SHAPES: MarkerShape[] = ["circle", "ring", "square", "triangle"];
 const DASH_PATTERNS: DashPattern[] = ["solid", "dashed", "dotted"];
