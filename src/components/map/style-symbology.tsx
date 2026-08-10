@@ -375,7 +375,11 @@ function CategoryEditor({
           />
 
           <div className="space-y-1.5">
-            <Label className="text-xs text-muted-foreground">Palette</Label>
+            <PaletteHeader
+              label="Palette"
+              reversed={spec.reversed}
+              onReverse={() => setSpec(recolorCategories(spec, spec.palette, !spec.reversed))}
+            />
             <div className="grid grid-cols-4 gap-1">
               {CATEGORY_PALETTES.map((palette) => (
                 <button
@@ -388,13 +392,16 @@ function CategoryEditor({
                     palette.id === spec.palette && "ring-2 ring-ring ring-offset-1 ring-offset-card",
                   )}
                 >
-                  {palette.colors.slice(0, 5).map((color) => (
-                    <span key={color} className="h-5 flex-1" style={{ backgroundColor: color }} />
-                  ))}
+                  {(spec.reversed ? [...palette.colors].reverse() : palette.colors)
+                    .slice(0, 5)
+                    .map((color) => (
+                      <span key={color} className="h-5 flex-1" style={{ backgroundColor: color }} />
+                    ))}
                 </button>
               ))}
             </div>
           </div>
+
 
           <div className="flex items-center justify-between">
             <Label className="text-xs text-muted-foreground">
