@@ -265,7 +265,38 @@ function PublicMap() {
               pickMode={commentMode && !pin}
               onPick={(lng, lat) => setPin({ lng, lat })}
               pin={pin ? [pin.lng, pin.lat] : null}
-              handleRef={{ current: null } as unknown as React.RefObject<MapHandle>}
+              commentPins={commentsEnabled && commentsVisible ? comments : []}
+              selectedCommentId={selectedComment}
+              onCommentClick={(id) => setSelectedComment(id)}
+              handleRef={mapRef}
+              rightSlot={
+                commentsEnabled ? (
+                  <CommentPanel
+                    slug={slug}
+                    comments={comments}
+                    categories={commentCategories}
+                    visible={commentsVisible}
+                    onToggleVisible={() => setCommentsVisible((value) => !value)}
+                    adding={commentMode}
+                    onToggleAdding={() => {
+                      setPin(null);
+                      setCommentMode((value) => !value);
+                    }}
+                    pin={pin}
+                    selectedId={selectedComment}
+                    onSelect={(id) => {
+                      setSelectedComment(id);
+                      const found = comments.find((comment) => comment.id === id);
+                      if (found) mapRef.current?.flyTo(found.lng, found.lat);
+                    }}
+                    onSubmitted={() => {
+                      void commentsQuery.refetch();
+                      setPin(null);
+                      setCommentMode(false);
+                    }}
+                  />
+                ) : null
+              }
             />
           </Suspense>
         </ClientOnly>
@@ -281,34 +312,7 @@ function PublicMap() {
           )}
         </div>
 
-        {commentsEnabled && (
-          <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
-            {pin ? (
-              <CommentComposer
-                slug={slug}
-                pin={pin}
-                categories={commentCategories}
-                onClose={() => {
-                  setPin(null);
-                  setCommentMode(false);
-                }}
-                onSubmitted={() => undefined}
-              />
-            ) : commentMode ? (
-              <div className="flex items-center gap-3 rounded-lg border border-map-overlay-border bg-map-overlay px-3 py-2 text-xs text-map-overlay-foreground shadow-[var(--shadow-lift)]">
-                Click the map to place your comment.
-                <Button size="sm" variant="ghost" onClick={() => setCommentMode(false)}>
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <Button size="sm" onClick={() => setCommentMode(true)}>
-                <MessageSquarePlus className="mr-1.5 h-4 w-4" />
-                Leave feedback
-              </Button>
-            )}
-          </div>
-        )}
+
 
         <a
           href={SITE}
