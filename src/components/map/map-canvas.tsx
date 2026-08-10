@@ -160,6 +160,46 @@ export default function MapCanvas({
     [],
   );
 
+  // Approved comment markers.
+  const commentMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const onCommentClickRef = useRef(onCommentClick);
+  onCommentClickRef.current = onCommentClick;
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    for (const marker of commentMarkersRef.current) marker.remove();
+    commentMarkersRef.current = [];
+    for (const item of commentPins ?? []) {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", "Comment");
+      el.className = "of-comment-pin";
+      el.style.cssText = [
+        "width:22px",
+        "height:22px",
+        "border-radius:9999px",
+        "border:2px solid #ffffff",
+        "cursor:pointer",
+        "box-shadow:0 1px 4px rgba(0,0,0,.35)",
+        `background:${item.id === selectedCommentId ? "#6d28d9" : "#8b5cf6"}`,
+        item.id === selectedCommentId ? "transform:scale(1.25)" : "",
+      ].join(";");
+      el.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onCommentClickRef.current?.(item.id);
+      });
+      commentMarkersRef.current.push(
+        new maplibregl.Marker({ element: el }).setLngLat([item.lng, item.lat]).addTo(map),
+      );
+    }
+    return () => {
+      for (const marker of commentMarkersRef.current) marker.remove();
+      commentMarkersRef.current = [];
+    };
+  }, [commentPins, selectedCommentId, mapLoaded]);
+
+
   // Crosshair while placing a comment.
   useEffect(() => {
     const map = mapRef.current;
