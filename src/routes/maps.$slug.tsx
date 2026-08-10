@@ -101,8 +101,18 @@ function PublicMap() {
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [commentMode, setCommentMode] = useState(false);
   const [pin, setPin] = useState<PendingPin | null>(null);
+  const [commentsVisible, setCommentsVisible] = useState(true);
+  const [selectedComment, setSelectedComment] = useState<string | null>(null);
+  const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
+
+  const commentsQuery = useQuery({
+    queryKey: ["approved-comments", slug],
+    queryFn: () => listApprovedComments({ data: { slug } }),
+    enabled: commentsEnabled,
+  });
+  const comments = (commentsQuery.data ?? []) as PublicComment[];
 
   useEffect(() => {
     if (!commentMode) return;
@@ -115,6 +125,7 @@ function PublicMap() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [commentMode]);
+
   // Credit sits right after the scale bar, so it shifts as the scale bar resizes.
   const [creditLeft, setCreditLeft] = useState(150);
 
