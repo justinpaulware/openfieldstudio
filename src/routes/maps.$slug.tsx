@@ -100,7 +100,13 @@ function PublicMap() {
     let frame = 0;
     const measure = () => {
       const scale = document.querySelector<HTMLElement>(".maplibregl-ctrl-scale");
-      if (scale) setCreditLeft(scale.offsetLeft + scale.offsetWidth + 10);
+      const map = document.querySelector<HTMLElement>(".maplibregl-map");
+      if (scale && map) {
+        const gap = 10;
+        setCreditLeft(
+          scale.getBoundingClientRect().right - map.getBoundingClientRect().left + gap,
+        );
+      }
       frame = window.setTimeout(measure, 500);
     };
     measure();
