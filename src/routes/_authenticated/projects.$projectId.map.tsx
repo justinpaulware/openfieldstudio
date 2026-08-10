@@ -351,19 +351,35 @@ function MapEditor() {
     [orderedLayers, byId, styleFor],
   );
 
-  const legendEntries: LegendEntry[] = useMemo(
-    () =>
-      orderedLayers
-        .filter((layer) => layer.visible)
-        .map((layer) => ({
-          id: layer.id,
-          name: layer.name,
-          kind: geometryKind(layer.geometry_type),
-          opacity: layer.opacity,
-          style: styleFor(layer),
-        })),
-    [orderedLayers, styleFor],
-  );
+  const legendGroups: LegendGroup[] = useMemo(() => {
+    const toEntry = (layer: LayerWithStyle): LegendEntry => ({
+      id: layer.id,
+      name: layer.name,
+      kind: geometryKind(layer.geometry_type),
+      opacity: layer.opacity,
+      style: styleFor(layer),
+    });
+    const visibleIn = (folderId: string | null) =>
+      orderedLayers.filter((layer) => layer.visible && layer.folder_id === folderId).map(toEntry);
+
+    const groups: LegendGroup[] = [];
+    const ungrouped = visibleIn(null);
+    if (ungrouped.length) groups.push({ id: "ungrouped", name: null, depth: 0, entries: ungrouped });
+
+    const walk = (parentId: string | null, depth: number) => {
+      folders
+        .filter((folder) => folder.parent_id === parentId)
+        .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+        .forEach((folder) => {
+          const entries = visibleIn(folder.id);
+          if (entries.length) groups.push({ id: folder.id, name: folder.name, depth, entries });
+          walk(folder.id, depth + 1);
+        });
+    };
+    walk(null, 0);
+    return groups;
+  }, [orderedLayers, folders, styleFor]);
+
 
 
   const handleMoveEnd = useCallback(
