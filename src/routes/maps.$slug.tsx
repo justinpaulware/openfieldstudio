@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { createFileRoute, ClientOnly, Link, notFound } from "@tanstack/react-router";
 import { useQueries } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -93,6 +93,25 @@ function PublicMap() {
   const folders = loaderData.folders as unknown as ViewerFolder[];
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  // Credit sits right after the scale bar, so it shifts as the scale bar resizes.
+  const [creditLeft, setCreditLeft] = useState(150);
+
+  useEffect(() => {
+    let frame = 0;
+    const measure = () => {
+      const scale = document.querySelector<HTMLElement>(".maplibregl-ctrl-scale");
+      const map = document.querySelector<HTMLElement>(".maplibregl-map");
+      if (scale && map) {
+        const gap = 10;
+        setCreditLeft(
+          scale.getBoundingClientRect().right - map.getBoundingClientRect().left + gap,
+        );
+      }
+      frame = window.setTimeout(measure, 500);
+    };
+    measure();
+    return () => window.clearTimeout(frame);
+  }, []);
 
   const ordered = useMemo(
     () => flattenLayerOrder(layers, folders) as ViewerLayer[],
@@ -151,8 +170,9 @@ function PublicMap() {
       opacity: layer.opacity,
       style: styleFor(layer),
     });
+    // Hidden layers stay listed (dimmed) so they can be toggled back on.
     const inFolder = (folderId: string | null) =>
-      ordered.filter((layer) => isVisible(layer) && layer.folder_id === folderId).map(toEntry);
+      ordered.filter((layer) => layer.visible && layer.folder_id === folderId).map(toEntry);
 
     const groups: LegendGroup[] = [];
     const ungrouped = inFolder(null);
@@ -229,10 +249,12 @@ function PublicMap() {
           href={SITE}
           target="_blank"
           rel="noreferrer"
-          className="absolute bottom-[7px] left-[150px] z-10 font-secondary text-[11px] text-map-overlay-foreground/80 hover:text-map-overlay-foreground"
+          style={{ left: creditLeft }}
+          className="absolute bottom-[7px] z-10 font-secondary text-[11px] text-map-overlay-foreground/80 hover:text-map-overlay-foreground"
         >
-          Made with <span className="font-semibold">Open Field</span>
+          Made with <span className="font-semibold">Open Field</span>.
         </a>
+
 
         {loading && (
           <div className="absolute bottom-12 left-4 z-10 flex items-center gap-2 rounded-md bg-map-overlay px-3 py-1.5 text-xs text-map-overlay-foreground shadow-[var(--shadow-lift)]">

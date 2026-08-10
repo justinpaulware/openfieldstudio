@@ -295,7 +295,7 @@ export function MapTitleCard({ title, className }: { title: string; className?: 
         className,
       )}
     >
-      <BrandMark className="h-5 w-5 text-primary" />
+      <BrandMark />
       <h2 className="truncate text-base font-semibold leading-tight">{title}</h2>
     </div>
   );
