@@ -32,7 +32,6 @@ import {
   type StyleRelation,
 } from "@/lib/layer-style";
 import type { Bbox, PropertyValue } from "@/lib/geo";
-import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
