@@ -16,7 +16,12 @@ export type RemoteSummary = {
   fields: FieldDef[];
 };
 
-const MAX_BYTES = 25 * 1024 * 1024;
+/** Byte cap for any single remote response (a page, not the whole dataset). */
+const MAX_BYTES = 50 * 1024 * 1024;
+/** Overall feature cap for paged ArcGIS imports. */
+const MAX_ARCGIS_FEATURES = 100_000;
+const ARCGIS_PAGE_SIZE = 1000;
+
 
 export function assertPublicHttpUrl(raw: string): URL {
   let url: URL;
