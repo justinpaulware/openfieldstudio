@@ -1,10 +1,11 @@
-# Published map: floating legend, branded title card, on-map credit
+# Published map: drop the sidebar, branded title card, on-map credit
 
 Three changes to the public viewer at `/maps/:slug` so it matches the map editor's cartographic look.
 
-## 1. Legend as a floating white box
+## 1. Remove the collapsible sidebar
 
-Today the published viewer puts the layer list inside the left collapsible sidebar, so it reads as a panel instead of a legend. Change it so the legend renders as the same white floating card used in the editor, directly under the title card in the top-left of the map (it keeps its own collapse chevron). The sidebar keeps the project description, sources/credits and interactive layer toggles, but the legend itself is always the floating card — visible whether the sidebar is open or closed.
+The left sidebar duplicates the floating legend, so remove it entirely along with its show/hide tab. The map fills the full window, and the floating white legend card in the top-left becomes the only layer list. Project description, sources and credits move nowhere — they're dropped from the viewer chrome (title stays in the title card).
+
 
 ## 2. "Made with Open Field" on the map
 
