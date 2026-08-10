@@ -116,6 +116,7 @@ function ProjectPublish() {
   const [dataSources, setDataSources] = useState("");
   const [embed, setEmbed] = useState<EmbedConfig>(DEFAULT_EMBED);
   const [commentsEnabled, setCommentsEnabled] = useState(false);
+  const [requireApproval, setRequireApproval] = useState(false);
   const [categories, setCategories] = useState("");
 
   useEffect(() => {
