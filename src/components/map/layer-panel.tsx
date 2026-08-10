@@ -35,7 +35,7 @@ import {
   type LayerStyle,
   type StyleRelation,
 } from "@/lib/layer-style";
-import { LegendSwatch } from "./map-legend";
+import { CategoryChip, LegendSwatch, categoryRows } from "./map-legend";
 import type { Tables } from "@/integrations/supabase/types";
 import type { LayerRow } from "./use-layer-data";
 
