@@ -496,6 +496,21 @@ function MapEditor() {
   const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
   const styleLayer = layers.find((l) => l.id === styleLayerId) ?? null;
 
+  const toggleStyleEditor = () => {
+    if (styleLayerId) {
+      setStyleLayerId(null);
+      return;
+    }
+    const target =
+      orderedLayers.find((l) => l.id === selectedId) ??
+      orderedLayers.find((l) => l.visible) ??
+      orderedLayers[0];
+    if (target) {
+      setStyleLayerId(target.id);
+      setSelectedId(target.id);
+    }
+  };
+
   const applyStyle = (layerId: string, current: LayerStyle, patch: Partial<LayerStyle>) => {
     const next = { ...current, ...patch };
     setStyleDrafts((drafts) => ({ ...drafts, [layerId]: next }));
@@ -567,6 +582,16 @@ function MapEditor() {
           {saveView.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {viewDirty ? "Save view" : "View saved"}
         </Button>
+        <Button
+          variant={styleLayerId ? "secondary" : "outline"}
+          size="sm"
+          disabled={!orderedLayers.length}
+          title="Open the style editor"
+          onClick={toggleStyleEditor}
+        >
+          <Palette className="mr-1.5 h-4 w-4" />
+          Style editor
+        </Button>
       </ProjectHeaderActions>
 
 
@@ -585,20 +610,7 @@ function MapEditor() {
                 title="Style editor"
                 aria-label="Style editor"
                 disabled={!orderedLayers.length}
-                onClick={() => {
-                  if (styleLayerId) {
-                    setStyleLayerId(null);
-                    return;
-                  }
-                  const target =
-                    orderedLayers.find((l) => l.id === selectedId) ??
-                    orderedLayers.find((l) => l.visible) ??
-                    orderedLayers[0];
-                  if (target) {
-                    setStyleLayerId(target.id);
-                    setSelectedId(target.id);
-                  }
-                }}
+                onClick={toggleStyleEditor}
               >
                 <Palette className="h-4 w-4" />
               </Button>
