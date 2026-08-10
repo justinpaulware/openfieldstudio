@@ -178,10 +178,11 @@ export function StylePanel({
               value={style.strokeWidth}
               min={0}
               max={8}
-              step={0.5}
+              step={0.25}
               suffix="px"
               onChange={(strokeWidth) => onChange({ strokeWidth })}
             />
+
             <SliderField
               label="Stroke opacity"
               value={pct(style.strokeOpacity)}
@@ -204,12 +205,13 @@ export function StylePanel({
             <SliderField
               label="Line width"
               value={style.strokeWidth}
-              min={0.5}
+              min={0.25}
               max={12}
-              step={0.5}
+              step={0.25}
               suffix="px"
               onChange={(strokeWidth) => onChange({ strokeWidth })}
             />
+
             <SliderField
               label="Line opacity"
               value={pct(style.strokeOpacity)}
@@ -268,10 +270,11 @@ export function StylePanel({
               value={style.strokeWidth}
               min={0}
               max={8}
-              step={0.5}
+              step={0.25}
               suffix="px"
               onChange={(strokeWidth) => onChange({ strokeWidth })}
             />
+
             <SliderField
               label="Outline opacity"
               value={pct(style.strokeOpacity)}
