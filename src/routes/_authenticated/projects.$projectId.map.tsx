@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderPlus, List, Loader2, Maximize, Plus, X } from "lucide-react";
+import { Brush, FolderPlus, List, Loader2, Maximize, Plus, X } from "lucide-react";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -551,6 +551,30 @@ function MapEditor() {
             </div>
             <div className="flex items-center gap-1">
               <Button
+                variant={styleLayerId ? "secondary" : "ghost"}
+                size="icon"
+                className="h-7 w-7"
+                title="Style editor"
+                aria-label="Style editor"
+                disabled={!orderedLayers.length}
+                onClick={() => {
+                  if (styleLayerId) {
+                    setStyleLayerId(null);
+                    return;
+                  }
+                  const target =
+                    orderedLayers.find((l) => l.id === selectedId) ??
+                    orderedLayers.find((l) => l.visible) ??
+                    orderedLayers[0];
+                  if (target) {
+                    setStyleLayerId(target.id);
+                    setSelectedId(target.id);
+                  }
+                }}
+              >
+                <Brush className="h-4 w-4" />
+              </Button>
+              <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
@@ -587,7 +611,14 @@ function MapEditor() {
                 errors={errors}
                 refreshingId={refreshLayer.isPending ? (refreshLayer.variables?.layer.id ?? null) : null}
                 selectedId={selectedId}
-                onSelect={(id) => setSelectedId((current) => (current === id ? null : id))}
+                onSelect={(id) => {
+                  if (styleLayerId) {
+                    setStyleLayerId(id);
+                    setSelectedId(id);
+                    return;
+                  }
+                  setSelectedId((current) => (current === id ? null : id));
+                }}
                 onToggleVisible={(layer) =>
                   updateLayer.mutate({ id: layer.id, patch: { visible: !layer.visible } })
                 }
