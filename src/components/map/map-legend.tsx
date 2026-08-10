@@ -2,7 +2,13 @@ import { useState } from "react";
 import { ChevronDown, ChevronUp, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LayerStyle, SimpleKind } from "@/lib/layer-style";
-import { activeCategories, dashArray, isTransparent, paintColor } from "@/lib/layer-style";
+import {
+  activeCategories,
+  categoryDrives,
+  dashArray,
+  isTransparent,
+  paintColor,
+} from "@/lib/layer-style";
 
 export type LegendEntry = {
   id: string;
@@ -54,10 +60,12 @@ export function LegendSwatch({
   kind,
   style,
   colorOverride,
+  strokeOverride,
 }: {
   kind: SimpleKind;
   style: LayerStyle;
   colorOverride?: string;
+  strokeOverride?: string;
 }) {
   const dash = dashArray(style.dashPattern);
   const dashProp = dash
@@ -66,7 +74,8 @@ export function LegendSwatch({
   const strokeWidth = Math.max(1, Math.min(style.strokeWidth, 3));
   const baseColor = colorOverride ?? style.fillColor;
   const fill = isTransparent(baseColor) ? "none" : paintColor(baseColor);
-  const stroke = isTransparent(style.strokeColor) ? "none" : paintColor(style.strokeColor);
+  const strokeBase = strokeOverride ?? style.strokeColor;
+  const stroke = isTransparent(strokeBase) ? "none" : paintColor(strokeBase);
 
 
   // Nothing to paint: show the same "no color" mark the palette uses.
@@ -200,7 +209,12 @@ export function MapLegend({
                                 <LegendSwatch
                                   kind={entry.kind}
                                   style={entry.style}
-                                  colorOverride={row.color}
+                                  {...(categoryDrives(entry.style, "fill")
+                                    ? { colorOverride: row.color }
+                                    : {})}
+                                  {...(categoryDrives(entry.style, "stroke")
+                                    ? { strokeOverride: row.color }
+                                    : {})}
                                 />
                               </span>
                               <span className="truncate text-xs">{row.label}</span>
