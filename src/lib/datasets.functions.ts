@@ -28,6 +28,7 @@ export const loadArcgisLayer = createServerFn({ method: "POST" })
   .inputValidator((data) => z.object({ url: z.string().min(1) }).parse(data))
   .handler(async ({ data }) => {
     const { loadArcgisGeoJSON, summarize } = await import("./datasets.server");
-    const { name, featureCollection } = await loadArcgisGeoJSON(data.url);
-    return { featureCollection, summary: summarize(name, featureCollection) };
+    const { name, featureCollection, truncated } = await loadArcgisGeoJSON(data.url);
+    return { featureCollection, summary: summarize(name, featureCollection), truncated };
   });
+
