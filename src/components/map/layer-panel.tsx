@@ -35,7 +35,7 @@ import {
   type LayerStyle,
   type StyleRelation,
 } from "@/lib/layer-style";
-import { LegendSwatch } from "./map-legend";
+import { CategoryChip, LegendSwatch, categoryRows } from "./map-legend";
 import type { Tables } from "@/integrations/supabase/types";
 import type { LayerRow } from "./use-layer-data";
 
@@ -76,18 +76,22 @@ export type PanelLayer = LayerRow & { layer_styles?: StyleRelation };
 
 /** Legend swatch mirroring how the layer draws on the map. */
 function LayerSymbol({ layer, style }: { layer: PanelLayer; style?: LayerStyle | undefined }) {
+  const resolved = style ?? resolveLayerStyle(styleRowFromRelation(layer.layer_styles));
+  const rows = categoryRows(resolved);
   return (
     <span
       className="flex h-4 w-4 shrink-0 items-center justify-center"
       aria-hidden="true"
     >
-      <LegendSwatch
-        kind={geometryKind(layer.geometry_type)}
-        style={style ?? resolveLayerStyle(styleRowFromRelation(layer.layer_styles))}
-      />
+      {rows.length ? (
+        <CategoryChip colors={rows.map((row) => row.color)} />
+      ) : (
+        <LegendSwatch kind={geometryKind(layer.geometry_type)} style={resolved} />
+      )}
     </span>
   );
 }
+
 
 
 function relativeTime(iso: string | null): string | null {

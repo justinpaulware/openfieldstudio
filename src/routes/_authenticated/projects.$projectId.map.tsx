@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Brush, FolderPlus, List, Loader2, Maximize, Plus, X } from "lucide-react";
+import { FolderPlus, List, Loader2, Maximize, Palette, Plus, X } from "lucide-react";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,9 +33,37 @@ import {
   type LayerStyle,
   type StyleRelation,
 } from "@/lib/layer-style";
-import type { Bbox, PropertyValue } from "@/lib/geo";
+import type { Bbox, FeatureCollection, PropertyValue } from "@/lib/geo";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
+
+/** Attribute names present on the first few features of a dataset. */
+function attributeFields(data: FeatureCollection | null | undefined): string[] {
+  if (!data) return [];
+  const names = new Set<string>();
+  for (const feature of data.features.slice(0, 200)) {
+    for (const key of Object.keys(feature.properties ?? {})) names.add(key);
+  }
+  return [...names].sort((a, b) => a.localeCompare(b));
+}
+
+/** Unique values for a field, most common first. */
+function fieldValues(
+  data: FeatureCollection | null | undefined,
+  field: string,
+): { value: string; count: number }[] {
+  if (!data || !field) return [];
+  const counts = new Map<string, number>();
+  for (const feature of data.features) {
+    const raw = (feature.properties ?? {})[field];
+    const value = raw === null || raw === undefined ? "" : String(raw);
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([value, count]) => ({ value, count }))
+    .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
+}
+
 
 type MapSearch = { style?: boolean | undefined };
 
@@ -572,7 +600,7 @@ function MapEditor() {
                   }
                 }}
               >
-                <Brush className="h-4 w-4" />
+                <Palette className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -730,12 +758,15 @@ function MapEditor() {
             kind={geometryKind(styleLayer.geometry_type)}
             style={styleFor(styleLayer)}
             saveState={saveState[styleLayer.id] ?? "idle"}
+            fields={attributeFields(byId[styleLayer.id])}
+            valuesFor={(field) => fieldValues(byId[styleLayer.id], field)}
             onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
             onSave={() => flushStyle(styleLayer.id)}
             onReset={() => applyStyle(styleLayer.id, DEFAULT_LAYER_STYLE, {})}
             onClose={() => setStyleLayerId(null)}
           />
         )}
+
       </div>
 
 

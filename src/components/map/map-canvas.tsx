@@ -5,7 +5,16 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Check, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
-import { dashArray, isTransparent, paintColor, type LayerStyle } from "@/lib/layer-style";
+import {
+  activeCategories,
+  categoryFilter,
+  dashArray,
+  isTransparent,
+  paintColor,
+  primaryColorPaint,
+  type LayerStyle,
+} from "@/lib/layer-style";
+
 
 export type RenderLayer = {
   id: string;
@@ -351,33 +360,44 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
     const visibility = layer.visible ? "visible" : "none";
     const { style } = layer;
+    const categorized = activeCategories(style);
+    const primaryColor = primaryColorPaint(style) as never;
+    const hideFilter = categoryFilter(style);
+    const withCategories = (base: unknown[]): maplibregl.FilterSpecification =>
+      (hideFilter ? ["all", base, hideFilter] : base) as maplibregl.FilterSpecification;
     // Opacity now lives entirely in the layer style (fill + stroke, separately).
-    const fillAlpha = isTransparent(style.fillColor) ? 0 : style.fillOpacity;
+    const fillAlpha = categorized || !isTransparent(style.fillColor) ? style.fillOpacity : 0;
     const strokeAlpha = isTransparent(style.strokeColor) ? 0 : style.strokeOpacity;
-    const lineAlpha = isTransparent(style.fillColor) ? 0 : style.strokeOpacity;
+    const lineAlpha = categorized || !isTransparent(style.fillColor) ? style.strokeOpacity : 0;
 
     const ensure = (id: string, spec: maplibregl.AddLayerObject) => {
       if (!map.getLayer(id)) map.addLayer(spec);
       else map.moveLayer(id);
     };
 
+    const polygonBase = ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false];
+    const lineBase = ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false];
+    const pointBase = ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false];
+
     if (layer.geometryType === "polygon" || layer.geometryType === "mixed") {
       ensure(LYR(layer.id, "fill"), {
         id: LYR(layer.id, "fill"),
         type: "fill",
         source: sourceId,
-        filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
+        filter: withCategories(polygonBase),
       });
+      map.setFilter(LYR(layer.id, "fill"), withCategories(polygonBase));
       map.setLayoutProperty(LYR(layer.id, "fill"), "visibility", visibility);
-      map.setPaintProperty(LYR(layer.id, "fill"), "fill-color", paintColor(style.fillColor));
+      map.setPaintProperty(LYR(layer.id, "fill"), "fill-color", primaryColor);
       map.setPaintProperty(LYR(layer.id, "fill"), "fill-opacity", fillAlpha);
 
       ensure(LYR(layer.id, "outline"), {
         id: LYR(layer.id, "outline"),
         type: "line",
         source: sourceId,
-        filter: ["match", ["geometry-type"], ["Polygon", "MultiPolygon"], true, false],
+        filter: withCategories(polygonBase),
       });
+      map.setFilter(LYR(layer.id, "outline"), withCategories(polygonBase));
       map.setLayoutProperty(LYR(layer.id, "outline"), "visibility", visibility);
       map.setPaintProperty(LYR(layer.id, "outline"), "line-color", paintColor(style.strokeColor));
       map.setPaintProperty(LYR(layer.id, "outline"), "line-width", style.strokeWidth);
@@ -394,12 +414,13 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         id: LYR(layer.id, "line"),
         type: "line",
         source: sourceId,
-        filter: ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false],
+        filter: withCategories(lineBase),
       });
+      map.setFilter(LYR(layer.id, "line"), withCategories(lineBase));
       map.setLayoutProperty(LYR(layer.id, "line"), "visibility", visibility);
       map.setLayoutProperty(LYR(layer.id, "line"), "line-cap", style.lineCap);
       map.setLayoutProperty(LYR(layer.id, "line"), "line-join", "round");
-      map.setPaintProperty(LYR(layer.id, "line"), "line-color", paintColor(style.fillColor));
+      map.setPaintProperty(LYR(layer.id, "line"), "line-color", primaryColor);
       map.setPaintProperty(LYR(layer.id, "line"), "line-width", Math.max(0.5, style.strokeWidth));
       map.setPaintProperty(LYR(layer.id, "line"), "line-opacity", lineAlpha);
       map.setPaintProperty(
@@ -410,14 +431,11 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     }
 
     if (layer.geometryType === "point" || layer.geometryType === "mixed") {
-      const pointFilter: maplibregl.FilterSpecification = [
-        "match",
-        ["geometry-type"],
-        ["Point", "MultiPoint"],
-        true,
-        false,
-      ];
-      const useSymbol = style.markerShape === "square" || style.markerShape === "triangle";
+      const pointFilter = withCategories(pointBase);
+      // Square / triangle markers are rasterised icons, so a per-feature color
+      // expression cannot apply — categorized layers fall back to circles.
+      const useSymbol =
+        !categorized && (style.markerShape === "square" || style.markerShape === "triangle");
 
       if (useSymbol) {
         removeLayerIfPresent(map, LYR(layer.id, "circle"));
@@ -434,6 +452,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
           filter: pointFilter,
           layout: { "icon-image": iconId, "icon-allow-overlap": true },
         });
+        map.setFilter(LYR(layer.id, "symbol"), pointFilter);
         map.setLayoutProperty(LYR(layer.id, "symbol"), "icon-image", iconId);
         map.setLayoutProperty(LYR(layer.id, "symbol"), "visibility", visibility);
         map.setPaintProperty(
@@ -443,21 +462,22 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         );
       } else {
         removeLayerIfPresent(map, LYR(layer.id, "symbol"));
-        const ring = style.markerShape === "ring";
+        const ring = !categorized && style.markerShape === "ring";
         ensure(LYR(layer.id, "circle"), {
           id: LYR(layer.id, "circle"),
           type: "circle",
           source: sourceId,
           filter: pointFilter,
         });
+        map.setFilter(LYR(layer.id, "circle"), pointFilter);
         map.setLayoutProperty(LYR(layer.id, "circle"), "visibility", visibility);
-        map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", paintColor(style.fillColor));
+        map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", primaryColor);
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", style.circleRadius);
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", ring ? 0 : fillAlpha);
         map.setPaintProperty(
           LYR(layer.id, "circle"),
           "circle-stroke-color",
-          paintColor(ring ? style.fillColor : style.strokeColor),
+          ring ? primaryColor : (paintColor(style.strokeColor) as never),
         );
         map.setPaintProperty(
           LYR(layer.id, "circle"),
@@ -471,6 +491,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         );
       }
     }
+
   }
 }
 
