@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { activeCategories, activeGraduated, type LayerStyle, type SimpleKind } from "@/lib/layer-style";
 import { CategoryChip, LegendSwatch, categoryRows } from "./map-legend";
 import { StyleSymbology, type FieldValue } from "./style-symbology";
+import { StyleLabels } from "./style-labels";
+import { StylePopups } from "./style-popups";
 
 export type StyleSaveState = "idle" | "dirty" | "saving" | "saved";
 
@@ -127,7 +129,7 @@ export function StylePanel({
         </Section>
         <Section
           title="Labels"
-          hint={style.labels?.enabled ? "On" : undefined}
+          hint={style.labels?.enabled ? "On" : "Off"}
           open={openSection === "labels"}
           onToggle={() => toggle("labels")}
         >
