@@ -454,9 +454,10 @@ export default function MapCanvas({
         )}
       </div>
 
-      {popupHit && (
+      <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] w-auto flex-col items-end gap-2">
+        {popupHit && (
           <div
-            className="absolute right-[49px] top-[10px] z-10 max-h-[calc(100%-20px)] min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
+            className="pointer-events-auto max-h-[60%] min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
             style={{ width: Math.min(popupHit.spec.maxWidth, 420) }}
           >
             <div className="mb-1.5 flex items-start justify-between gap-2">
