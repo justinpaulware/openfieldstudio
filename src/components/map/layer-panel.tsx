@@ -70,7 +70,7 @@ type StyleRow = Tables<"layer_styles">;
 export type PanelLayer = LayerRow & { layer_styles?: StyleRow[] | null };
 
 /** Legend swatch mirroring how the layer draws on the map. */
-function LayerSymbol({ layer, style }: { layer: PanelLayer; style?: LayerStyle }) {
+function LayerSymbol({ layer, style }: { layer: PanelLayer; style?: LayerStyle | undefined }) {
   return (
     <span
       className="flex h-4 w-4 shrink-0 items-center justify-center"
