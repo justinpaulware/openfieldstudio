@@ -77,6 +77,10 @@ type Props = {
   onPick?: (lng: number, lat: number) => void;
   /** Temporary marker drawn at this location, e.g. a comment being written. */
   pin?: [number, number] | null;
+  /** Approved comments drawn as their own markers. */
+  commentPins?: { id: string; lng: number; lat: number }[];
+  selectedCommentId?: string | null;
+  onCommentClick?: (id: string) => void;
   /** Extra cards stacked under the info popup in the top-right column. */
   rightSlot?: ReactNode;
 };
