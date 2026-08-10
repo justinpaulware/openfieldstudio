@@ -72,6 +72,11 @@ type Props = {
   scaleUnits?: ScaleUnits;
   /** When provided, scale-unit picks are reported upward (editor persists the default). */
   onScaleUnitsChange?: (units: ScaleUnits) => void;
+  /** Comment placement mode: clicks report a location instead of opening popups. */
+  pickMode?: boolean;
+  onPick?: (lng: number, lat: number) => void;
+  /** Temporary marker drawn at this location, e.g. a comment being written. */
+  pin?: [number, number] | null;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
