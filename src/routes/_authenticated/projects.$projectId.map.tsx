@@ -2,7 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } fro
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderPlus, List, Loader2, Maximize, Palette, Plus, X } from "lucide-react";
+import { FolderPlus, List, Loader2, Maximize, Palette, Plus } from "lucide-react";
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,7 @@ import {
   type LayerStyle,
   type StyleRelation,
 } from "@/lib/layer-style";
-import type { Bbox, FeatureCollection, PropertyValue } from "@/lib/geo";
+import type { Bbox, FeatureCollection } from "@/lib/geo";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
@@ -127,9 +127,6 @@ function MapEditor() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [tableLayerId, setTableLayerId] = useState<string | null>(null);
-  const [popup, setPopup] = useState<{ name: string; props: Record<string, PropertyValue> } | null>(
-    null,
-  );
   const [viewDirty, setViewDirty] = useState(false);
   const viewRef = useRef<{
     center: [number, number];
@@ -532,17 +529,6 @@ function MapEditor() {
     [],
   );
 
-  const handleFeatureClick = useCallback(
-    (layerId: string, props: Record<string, unknown>) => {
-      const layer = layers.find((l) => l.id === layerId);
-      setPopup({
-        name: layer?.name ?? "Feature",
-        props: props as Record<string, PropertyValue>,
-      });
-    },
-    [layers],
-  );
-
   const zoomTo = (bbox: Bbox | null | undefined) => {
     if (!bbox) {
       toast.info("That layer has no coordinates to zoom to.");
@@ -837,31 +823,6 @@ function MapEditor() {
 
 
 
-          {popup && (
-            <div className="absolute right-4 top-4 max-h-[60%] w-72 overflow-y-auto rounded-xl border border-border bg-card/95 p-4 shadow-[var(--shadow-soft)] backdrop-blur">
-              <div className="flex items-start justify-between gap-2">
-                <h3 className="text-sm font-semibold">{popup.name}</h3>
-                <button
-                  type="button"
-                  onClick={() => setPopup(null)}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label="Close"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-              <dl className="mt-3 space-y-2">
-                {Object.entries(popup.props).map(([key, value]) => (
-                  <div key={key}>
-                    <dt className="font-secondary text-[11px] uppercase tracking-wide text-muted-foreground">
-                      {key}
-                    </dt>
-                    <dd className="text-sm break-words">{String(value ?? "—")}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-          )}
         </main>
 
         {styleLayer && (
