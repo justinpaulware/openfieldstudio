@@ -306,7 +306,7 @@ function ProjectPublish() {
 
       <Section
         title="Comments"
-        description="Let visitors drop pinned feedback on the published map. Every submission waits for your review before it appears."
+        description="Let visitors drop pinned feedback on the published map. Comments appear right away unless you require review."
       >
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
           <Label htmlFor="comments-enabled" className="font-secondary text-xs">
@@ -316,6 +316,17 @@ function ProjectPublish() {
             id="comments-enabled"
             checked={commentsEnabled}
             onCheckedChange={setCommentsEnabled}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="comments-approval" className="font-secondary text-xs">
+            Require review before comments appear
+          </Label>
+          <Switch
+            id="comments-approval"
+            checked={requireApproval}
+            disabled={!commentsEnabled}
+            onCheckedChange={setRequireApproval}
           />
         </div>
         <div className="space-y-2">
