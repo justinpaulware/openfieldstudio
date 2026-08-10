@@ -93,6 +93,19 @@ function PublicMap() {
   const folders = loaderData.folders as unknown as ViewerFolder[];
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  // Credit sits right after the scale bar, so it shifts as the scale bar resizes.
+  const [creditLeft, setCreditLeft] = useState(150);
+
+  useEffect(() => {
+    let frame = 0;
+    const measure = () => {
+      const scale = document.querySelector<HTMLElement>(".maplibregl-ctrl-scale");
+      if (scale) setCreditLeft(scale.offsetLeft + scale.offsetWidth + 10);
+      frame = window.setTimeout(measure, 500);
+    };
+    measure();
+    return () => window.clearTimeout(frame);
+  }, []);
 
   const ordered = useMemo(
     () => flattenLayerOrder(layers, folders) as ViewerLayer[],
