@@ -233,7 +233,9 @@ type Props = {
 export function LayerPanel({
   layers,
   folders,
+  styleFor,
   loading,
+
   errors,
   refreshingId,
   selectedId,
