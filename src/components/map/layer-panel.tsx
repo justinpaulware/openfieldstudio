@@ -204,7 +204,10 @@ function NameEditor({
 type Props = {
   layers: PanelLayer[];
   folders: FolderRow[];
+  /** Live style (including unsaved drafts) so the swatch matches the map. */
+  styleFor?: (layer: PanelLayer) => LayerStyle;
   loading: Record<string, boolean>;
+
   errors: Record<string, string | null>;
   refreshingId: string | null;
   selectedId: string | null;
