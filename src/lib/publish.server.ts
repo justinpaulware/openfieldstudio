@@ -103,3 +103,63 @@ export async function loadPublishedLayerData(slug: string, layerId: string) {
   const { featureCollection } = await loadArcgisGeoJSON(layer.source_url);
   return featureCollection;
 }
+
+const MAX_BODY = 2000;
+
+/** Public comment submission. RLS enforces "published + comments enabled". */
+export async function submitPublicComment(input: {
+  slug: string;
+  lng: number;
+  lat: number;
+  body: string;
+  category?: string | null;
+  authorName?: string | null;
+  authorEmail?: string | null;
+}) {
+  const supabase = publicClient();
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id, comments_enabled, comment_categories")
+    .eq("slug", input.slug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (!project) return { ok: false as const, error: "This map is not published." };
+  if (!project.comments_enabled) {
+    return { ok: false as const, error: "Comments are turned off for this map." };
+  }
+
+  const category =
+    input.category && project.comment_categories.includes(input.category) ? input.category : null;
+
+  const { error } = await supabase.from("comments").insert({
+    project_id: project.id,
+    lng: input.lng,
+    lat: input.lat,
+    body: input.body.trim().slice(0, MAX_BODY),
+    category,
+    author_name: input.authorName?.trim() || null,
+    author_email: input.authorEmail?.trim() || null,
+  });
+  if (error) return { ok: false as const, error: "Your comment could not be saved." };
+  return { ok: true as const };
+}
+
+/** Approved comments for a published map. */
+export async function loadApprovedComments(slug: string) {
+  const supabase = publicClient();
+  const { data: project } = await supabase
+    .from("projects")
+    .select("id")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (!project) return [];
+  const { data } = await supabase
+    .from("comments")
+    .select("id, lng, lat, body, category, author_name, created_at")
+    .eq("project_id", project.id)
+    .eq("status", "approved")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  return data ?? [];
+}
