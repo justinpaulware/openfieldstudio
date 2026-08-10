@@ -255,7 +255,7 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
               )}
               <p className="mt-3 text-sm font-medium">Drop a .geojson file here</p>
               <p className="mt-1 font-secondary text-xs text-muted-foreground">
-                or click to browse — up to 25 MB, WGS84 coordinates
+                or click to browse — up to 50 MB, WGS84 coordinates
               </p>
               <input
                 type="file"
