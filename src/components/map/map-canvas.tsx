@@ -195,6 +195,7 @@ export default function MapCanvas({
       pitch: initialView.pitch,
       bearing: initialView.bearing,
       attributionControl: { compact: true },
+      preserveDrawingBuffer: true,
     });
     mapRef.current = map;
 
