@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { createFileRoute, ClientOnly, Link, notFound } from "@tanstack/react-router";
 import { useQueries } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
