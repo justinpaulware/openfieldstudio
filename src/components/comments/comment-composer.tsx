@@ -20,12 +20,15 @@ export function CommentComposer({
   slug,
   pin,
   categories,
+  inline = false,
   onClose,
   onSubmitted,
 }: {
   slug: string;
   pin: PendingPin;
   categories: string[];
+  /** Rendered inside another card: no chrome, no header. */
+  inline?: boolean;
   onClose: () => void;
   onSubmitted: () => void;
 }) {
