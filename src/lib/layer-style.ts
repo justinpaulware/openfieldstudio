@@ -343,6 +343,62 @@ function parseGraduated(value: unknown): GraduatedSpec | null {
   };
 }
 
+function str(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function parseLabels(value: unknown): LabelSpec {
+  if (!value || typeof value !== "object") return DEFAULT_LABELS;
+  const raw = value as Record<string, unknown>;
+  return {
+    enabled: raw["enabled"] === true,
+    field: str(raw["field"], ""),
+    size: num(raw["size"], DEFAULT_LABELS.size),
+    bold: raw["bold"] === true,
+    color: str(raw["color"], DEFAULT_LABELS.color),
+    haloColor: str(raw["haloColor"], DEFAULT_LABELS.haloColor),
+    haloWidth: num(raw["haloWidth"], DEFAULT_LABELS.haloWidth),
+    placement: pick(raw["placement"], LABEL_PLACEMENTS, DEFAULT_LABELS.placement),
+    offset: num(raw["offset"], DEFAULT_LABELS.offset),
+    linePlacement: pick(raw["linePlacement"], LINE_PLACEMENTS, DEFAULT_LABELS.linePlacement),
+    allowOverlap: raw["allowOverlap"] === true,
+    minZoom: num(raw["minZoom"], DEFAULT_LABELS.minZoom),
+    maxZoom: num(raw["maxZoom"], DEFAULT_LABELS.maxZoom),
+    uppercase: raw["uppercase"] === true,
+    maxWidth: num(raw["maxWidth"], DEFAULT_LABELS.maxWidth),
+  };
+}
+
+function parsePopup(value: unknown): PopupSpec {
+  if (!value || typeof value !== "object") return DEFAULT_POPUP;
+  const raw = value as Record<string, unknown>;
+  const fields = Array.isArray(raw["fields"])
+    ? (raw["fields"] as unknown[]).flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const f = item as Record<string, unknown>;
+        if (typeof f["name"] !== "string" || !f["name"]) return [];
+        return [
+          {
+            name: f["name"],
+            alias: str(f["alias"], f["name"]),
+            visible: f["visible"] !== false,
+            format: pick(f["format"], POPUP_FORMATS, "text"),
+          } satisfies PopupField,
+        ];
+      })
+    : [];
+  return {
+    enabled: raw["enabled"] !== false,
+    trigger: pick(raw["trigger"], POPUP_TRIGGERS, DEFAULT_POPUP.trigger),
+    titleField: str(raw["titleField"], ""),
+    titleText: str(raw["titleText"], ""),
+    fields,
+    hideEmpty: raw["hideEmpty"] !== false,
+    density: pick(raw["density"], POPUP_DENSITIES, DEFAULT_POPUP.density),
+    maxWidth: num(raw["maxWidth"], DEFAULT_POPUP.maxWidth),
+  };
+}
+
 /** Merge a layer_styles row (columns + style_config jsonb) into a complete style. */
 export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
   const config = (row?.style_config ?? {}) as Record<string, unknown>;
@@ -368,8 +424,11 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
     mode,
     categories,
     graduated,
+    labels: parseLabels(config["labels"]),
+    popup: parsePopup(config["popup"]),
   };
 }
+
 
 /** Split the style back into database columns + jsonb config. */
 export function styleToRow(style: LayerStyle) {
