@@ -170,8 +170,9 @@ function PublicMap() {
       opacity: layer.opacity,
       style: styleFor(layer),
     });
+    // Hidden layers stay listed (dimmed) so they can be toggled back on.
     const inFolder = (folderId: string | null) =>
-      ordered.filter((layer) => isVisible(layer) && layer.folder_id === folderId).map(toEntry);
+      ordered.filter((layer) => layer.visible && layer.folder_id === folderId).map(toEntry);
 
     const groups: LegendGroup[] = [];
     const ungrouped = inFolder(null);
