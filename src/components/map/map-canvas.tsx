@@ -359,6 +359,10 @@ export default function MapCanvas({
     };
 
     const onClick = (event: maplibregl.MapMouseEvent) => {
+      if (pickModeRef.current) {
+        onPickRef.current?.(event.lngLat.lng, event.lngLat.lat);
+        return;
+      }
       const hit = hitFor(event.point);
       if (!hit || hit.layer.style.popup.trigger !== "click") {
         setPopupHit((current) => (current && current.spec.trigger === "click" ? null : current));
@@ -372,6 +376,10 @@ export default function MapCanvas({
     };
 
     const onMove = (event: maplibregl.MapMouseEvent) => {
+      if (pickModeRef.current) {
+        map.getCanvas().style.cursor = "crosshair";
+        return;
+      }
       const hit = hitFor(event.point);
       map.getCanvas().style.cursor = hit ? "pointer" : "";
       if (hit && hit.layer.style.popup.trigger === "hover") {
