@@ -452,7 +452,7 @@ export function LayerPanel({
           ) : error ? (
             <TriangleAlert className="h-4 w-4 shrink-0 text-destructive" />
           ) : (
-            <LayerSymbol layer={layer} />
+            <LayerSymbol layer={layer} style={styleFor?.(layer)} />
           )}
 
           <div className="min-w-0 flex-1">

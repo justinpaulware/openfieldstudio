@@ -575,6 +575,8 @@ function MapEditor() {
               <LayerPanel
                 layers={layers}
                 folders={folders}
+                styleFor={(layer) => styleFor(layer as LayerWithStyle)}
+
                 loading={loading}
                 errors={errors}
                 refreshingId={refreshLayer.isPending ? (refreshLayer.variables?.layer.id ?? null) : null}
