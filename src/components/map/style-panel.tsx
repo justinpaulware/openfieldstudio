@@ -127,18 +127,21 @@ export function StylePanel({
         </Section>
         <Section
           title="Labels"
-          hint="Coming next"
-          open={false}
+          hint={style.labels?.enabled ? "On" : undefined}
+          open={openSection === "labels"}
           onToggle={() => toggle("labels")}
-          disabled
-        />
+        >
+          <StyleLabels kind={kind} style={style} fields={fields} onChange={onChange} />
+        </Section>
         <Section
           title="Popups"
-          hint="Coming next"
-          open={false}
+          hint={style.popup?.enabled ? "On" : "Off"}
+          open={openSection === "popups"}
           onToggle={() => toggle("popups")}
-          disabled
-        />
+        >
+          <StylePopups style={style} fields={fields} onChange={onChange} />
+        </Section>
+
       </div>
 
       <div className="space-y-1.5 border-t border-border px-4 py-3">
