@@ -2,6 +2,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { parseLayerFields, toFeatureCollection } from "@/lib/geo";
+import type { StyleRelation } from "@/lib/layer-style";
 
 /** Publishable-key client: RLS applies as `anon`, so only published projects resolve. */
 export function publicClient() {
@@ -23,7 +24,7 @@ export function publicClient() {
 
 export type PublishedProject = Database["public"]["Tables"]["projects"]["Row"];
 export type PublishedLayer = Database["public"]["Tables"]["layers"]["Row"] & {
-  layer_styles: unknown;
+  layer_styles: StyleRelation;
 };
 export type PublishedFolder = Database["public"]["Tables"]["layer_folders"]["Row"];
 
