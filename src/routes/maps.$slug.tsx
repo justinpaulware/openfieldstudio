@@ -15,7 +15,12 @@ import {
   type LegendGroup,
 } from "@/components/map/map-legend";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
-import { geometryKind, resolveLayerStyle, styleRowFromRelation } from "@/lib/layer-style";
+import {
+  geometryKind,
+  resolveLayerStyle,
+  styleRowFromRelation,
+  type StyleRelation,
+} from "@/lib/layer-style";
 import type { Bbox, FeatureCollection } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
 
@@ -23,7 +28,7 @@ const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
 const SITE = "https://openfieldstudio.lovable.app";
 
-type ViewerLayer = Tables<"layers"> & { layer_styles: unknown };
+type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
 
 type ViewerSearch = { sidebar?: boolean; legend?: boolean; title?: boolean };
@@ -85,13 +90,16 @@ function ViewerMessage({ title }: { title: string }) {
 function PublicMap() {
   const { slug } = Route.useParams();
   const search = Route.useSearch();
-  const { project, layers, folders } = Route.useLoaderData();
+  const loaderData = Route.useLoaderData();
+  const project = loaderData.project;
+  const layers = loaderData.layers as unknown as ViewerLayer[];
+  const folders = loaderData.folders as unknown as ViewerFolder[];
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const ordered = useMemo(
-    () => flattenLayerOrder(layers as ViewerLayer[], folders as ViewerFolder[]) as ViewerLayer[],
+    () => flattenLayerOrder(layers, folders) as ViewerLayer[],
     [layers, folders],
   );
 

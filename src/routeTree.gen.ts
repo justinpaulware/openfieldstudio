@@ -16,6 +16,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedCommentsRouteImport } from './routes/_authenticated/comments'
 import { Route as AuthenticatedPublishedRouteImport } from './routes/_authenticated/published'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as MapsSlugRouteImport } from './routes/maps.$slug'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects.$projectId.index'
@@ -57,6 +58,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const MapsSlugRoute = MapsSlugRouteImport.update({
+  id: '/maps/$slug',
+  path: '/maps/$slug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/comments': typeof AuthenticatedCommentsRoute
   '/published': typeof AuthenticatedPublishedRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/maps/$slug': typeof MapsSlugRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/comments': typeof AuthenticatedCommentsRoute
   '/published': typeof AuthenticatedPublishedRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/maps/$slug': typeof MapsSlugRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
   '/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/_authenticated/comments': typeof AuthenticatedCommentsRoute
   '/_authenticated/published': typeof AuthenticatedPublishedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/maps/$slug': typeof MapsSlugRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
@@ -156,6 +165,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/published'
     | '/settings'
+    | '/maps/$slug'
     | '/projects/$projectId'
     | '/projects/'
     | '/projects/$projectId/details'
@@ -171,6 +181,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/published'
     | '/settings'
+    | '/maps/$slug'
     | '/projects'
     | '/projects/$projectId/details'
     | '/projects/$projectId/map'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
     | '/_authenticated/comments'
     | '/_authenticated/published'
     | '/_authenticated/settings'
+    | '/maps/$slug'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/'
     | '/_authenticated/projects/$projectId/details'
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  MapsSlugRoute: typeof MapsSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -252,6 +265,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/maps/$slug': {
+      id: '/maps/$slug'
+      path: '/maps/$slug'
+      fullPath: '/maps/$slug'
+      preLoaderRoute: typeof MapsSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/projects/': {
       id: '/_authenticated/projects/'
@@ -357,17 +377,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  MapsSlugRoute: MapsSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
