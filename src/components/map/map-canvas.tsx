@@ -91,6 +91,9 @@ export default function MapCanvas({
   onBasemapChange,
   scaleUnits = "imperial",
   onScaleUnitsChange,
+  pickMode = false,
+  onPick,
+  pin = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
