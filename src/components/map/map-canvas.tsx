@@ -119,6 +119,43 @@ export default function MapCanvas({
   toggleScaleRef.current = toggleScaleUnits;
   const layersRef = useRef<RenderLayer[]>(layers);
   layersRef.current = layers;
+  const pickModeRef = useRef(pickMode);
+  pickModeRef.current = pickMode;
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
+  const pinRef = useRef<maplibregl.Marker | null>(null);
+
+  // Temporary pin for the comment being written.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!pin) {
+      pinRef.current?.remove();
+      pinRef.current = null;
+      return;
+    }
+    if (!pinRef.current) {
+      pinRef.current = new maplibregl.Marker({ color: "#8b5cf6" }).setLngLat(pin).addTo(map);
+    } else {
+      pinRef.current.setLngLat(pin);
+    }
+  }, [pin]);
+
+  useEffect(
+    () => () => {
+      pinRef.current?.remove();
+      pinRef.current = null;
+    },
+    [],
+  );
+
+  // Crosshair while placing a comment.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getCanvas().style.cursor = pickMode ? "crosshair" : "";
+  }, [pickMode]);
+
 
 
 
