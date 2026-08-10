@@ -118,12 +118,12 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <HeaderSlotContext.Provider value={slot}>
-      <div className="flex min-h-screen w-full flex-col bg-background">
+      <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
         <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-border px-3 py-1">
           <BrandMenu />
           <div ref={setSlot} className="flex items-center gap-1" />
         </header>
-        <main className="min-h-0 flex-1">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>
     </HeaderSlotContext.Provider>
   );
