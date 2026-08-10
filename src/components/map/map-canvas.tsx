@@ -5,7 +5,16 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { Check, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Bbox, FeatureCollection, SimpleGeometryType } from "@/lib/geo";
-import { dashArray, isTransparent, paintColor, type LayerStyle } from "@/lib/layer-style";
+import {
+  activeCategories,
+  categoryFilter,
+  dashArray,
+  isTransparent,
+  paintColor,
+  primaryColorPaint,
+  type LayerStyle,
+} from "@/lib/layer-style";
+
 
 export type RenderLayer = {
   id: string;
