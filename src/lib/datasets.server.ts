@@ -203,11 +203,18 @@ export async function loadArcgisGeoJSON(rawUrl: string) {
   const features: FeatureCollection["features"] = [];
   let offset = 0;
   let truncated = false;
+  let previousFirst: string | null = null;
 
   for (;;) {
     const { fc, exceeded } = await fetchPage(offset);
     const page = fc.features ?? [];
     if (!page.length) break;
+
+    // A service that ignores resultOffset keeps replaying the same first page.
+    const firstKey = JSON.stringify(page[0]);
+    if (previousFirst !== null && firstKey === previousFirst) break;
+    previousFirst = firstKey;
+
     features.push(...page);
 
     if (features.length >= MAX_ARCGIS_FEATURES) {
@@ -215,11 +222,10 @@ export async function loadArcgisGeoJSON(rawUrl: string) {
       features.length = MAX_ARCGIS_FEATURES;
       break;
     }
-    // A service that ignores resultOffset keeps returning the same first page.
-    if (offset > 0 && page.length < ARCGIS_PAGE_SIZE && !exceeded) break;
     if (page.length < ARCGIS_PAGE_SIZE && !exceeded) break;
     offset += page.length;
   }
+
 
   if (!features.length) throw new Error("That service didn't return GeoJSON features.");
 

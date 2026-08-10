@@ -194,7 +194,7 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
   const handleArcgisAdd = async () => {
     setBusy(true);
     try {
-      const { summary } = await loadArcgisLayer({ data: { url: arcgisUrl } });
+      const { summary, truncated } = await loadArcgisLayer({ data: { url: arcgisUrl } });
       await insertLayer({
         name: arcgisName.trim() || summary.name,
         sourceType: "arcgis_rest",
@@ -204,7 +204,14 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
         bbox: summary.bbox,
         fields: summary.fields,
       });
-      toast.success("Service connected.");
+      if (truncated) {
+        toast.warning(
+          `Service connected, but only the first ${summary.featureCount.toLocaleString()} features were imported. Filter at the source for the rest.`,
+        );
+      } else {
+        toast.success("Service connected.");
+      }
+
       reset();
       onOpenChange(false);
       onCreated(summary.bbox);
