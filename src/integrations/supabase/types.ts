@@ -320,6 +320,7 @@ export type Database = {
           basemap: string
           comment_categories: string[]
           comments_enabled: boolean
+          comments_require_approval: boolean
           created_at: string
           credits: string | null
           data_sources: string | null
@@ -348,6 +349,7 @@ export type Database = {
           basemap?: string
           comment_categories?: string[]
           comments_enabled?: boolean
+          comments_require_approval?: boolean
           created_at?: string
           credits?: string | null
           data_sources?: string | null
@@ -376,6 +378,7 @@ export type Database = {
           basemap?: string
           comment_categories?: string[]
           comments_enabled?: boolean
+          comments_require_approval?: boolean
           created_at?: string
           credits?: string | null
           data_sources?: string | null

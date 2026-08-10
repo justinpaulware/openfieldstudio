@@ -116,6 +116,7 @@ function ProjectPublish() {
   const [dataSources, setDataSources] = useState("");
   const [embed, setEmbed] = useState<EmbedConfig>(DEFAULT_EMBED);
   const [commentsEnabled, setCommentsEnabled] = useState(false);
+  const [requireApproval, setRequireApproval] = useState(false);
   const [categories, setCategories] = useState("");
 
   useEffect(() => {
@@ -129,6 +130,7 @@ function ProjectPublish() {
     setDataSources(project.data_sources ?? "");
     setEmbed(parseEmbed(project.embed_config));
     setCommentsEnabled(project.comments_enabled);
+    setRequireApproval(project.comments_require_approval ?? false);
     setCategories((project.comment_categories ?? []).join(", "));
   }, [project]);
 
@@ -154,6 +156,7 @@ function ProjectPublish() {
           data_sources: dataSources.trim() || null,
           embed_config: embed,
           comments_enabled: commentsEnabled,
+          comments_require_approval: requireApproval,
           comment_categories: categories
             .split(",")
             .map((c) => c.trim())
@@ -303,7 +306,7 @@ function ProjectPublish() {
 
       <Section
         title="Comments"
-        description="Let visitors drop pinned feedback on the published map. Every submission waits for your review before it appears."
+        description="Let visitors drop pinned feedback on the published map. Comments appear right away unless you require review."
       >
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
           <Label htmlFor="comments-enabled" className="font-secondary text-xs">
@@ -313,6 +316,17 @@ function ProjectPublish() {
             id="comments-enabled"
             checked={commentsEnabled}
             onCheckedChange={setCommentsEnabled}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="comments-approval" className="font-secondary text-xs">
+            Require review before comments appear
+          </Label>
+          <Switch
+            id="comments-approval"
+            checked={requireApproval}
+            disabled={!commentsEnabled}
+            onCheckedChange={setRequireApproval}
           />
         </div>
         <div className="space-y-2">

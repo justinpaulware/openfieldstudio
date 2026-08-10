@@ -1,11 +1,16 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, ClientOnly, Link, notFound } from "@tanstack/react-router";
-import { useQueries } from "@tanstack/react-query";
-import { Loader2, MessageSquarePlus } from "lucide-react";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
-import { getPublishedLayerData, getPublishedMap } from "@/lib/publish.functions";
+import type { PendingPin } from "@/components/comments/comment-composer";
+import { CommentPanel, type PublicComment } from "@/components/comments/comment-panel";
+import {
+  getPublishedLayerData,
+  getPublishedMap,
+  listApprovedComments,
+} from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import {
   MapLegend,
@@ -96,8 +101,18 @@ function PublicMap() {
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [commentMode, setCommentMode] = useState(false);
   const [pin, setPin] = useState<PendingPin | null>(null);
+  const [commentsVisible, setCommentsVisible] = useState(true);
+  const [selectedComment, setSelectedComment] = useState<string | null>(null);
+  const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
+
+  const commentsQuery = useQuery({
+    queryKey: ["approved-comments", slug],
+    queryFn: () => listApprovedComments({ data: { slug } }),
+    enabled: commentsEnabled,
+  });
+  const comments = (commentsQuery.data ?? []) as PublicComment[];
 
   useEffect(() => {
     if (!commentMode) return;
@@ -110,6 +125,7 @@ function PublicMap() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [commentMode]);
+
   // Credit sits right after the scale bar, so it shifts as the scale bar resizes.
   const [creditLeft, setCreditLeft] = useState(150);
 
@@ -249,7 +265,38 @@ function PublicMap() {
               pickMode={commentMode && !pin}
               onPick={(lng, lat) => setPin({ lng, lat })}
               pin={pin ? [pin.lng, pin.lat] : null}
-              handleRef={{ current: null } as unknown as React.RefObject<MapHandle>}
+              commentPins={commentsEnabled && commentsVisible ? comments : []}
+              selectedCommentId={selectedComment}
+              onCommentClick={(id) => setSelectedComment(id)}
+              handleRef={mapRef}
+              rightSlot={
+                commentsEnabled ? (
+                  <CommentPanel
+                    slug={slug}
+                    comments={comments}
+                    categories={commentCategories}
+                    visible={commentsVisible}
+                    onToggleVisible={() => setCommentsVisible((value) => !value)}
+                    adding={commentMode}
+                    onToggleAdding={() => {
+                      setPin(null);
+                      setCommentMode((value) => !value);
+                    }}
+                    pin={pin}
+                    selectedId={selectedComment}
+                    onSelect={(id) => {
+                      setSelectedComment(id);
+                      const found = comments.find((comment) => comment.id === id);
+                      if (found) mapRef.current?.flyTo(found.lng, found.lat);
+                    }}
+                    onSubmitted={() => {
+                      void commentsQuery.refetch();
+                      setPin(null);
+                      setCommentMode(false);
+                    }}
+                  />
+                ) : null
+              }
             />
           </Suspense>
         </ClientOnly>
@@ -265,34 +312,7 @@ function PublicMap() {
           )}
         </div>
 
-        {commentsEnabled && (
-          <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
-            {pin ? (
-              <CommentComposer
-                slug={slug}
-                pin={pin}
-                categories={commentCategories}
-                onClose={() => {
-                  setPin(null);
-                  setCommentMode(false);
-                }}
-                onSubmitted={() => undefined}
-              />
-            ) : commentMode ? (
-              <div className="flex items-center gap-3 rounded-lg border border-map-overlay-border bg-map-overlay px-3 py-2 text-xs text-map-overlay-foreground shadow-[var(--shadow-lift)]">
-                Click the map to place your comment.
-                <Button size="sm" variant="ghost" onClick={() => setCommentMode(false)}>
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <Button size="sm" onClick={() => setCommentMode(true)}>
-                <MessageSquarePlus className="mr-1.5 h-4 w-4" />
-                Leave feedback
-              </Button>
-            )}
-          </div>
-        )}
+
 
         <a
           href={SITE}

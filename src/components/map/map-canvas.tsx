@@ -1,4 +1,4 @@
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
+import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -77,6 +77,12 @@ type Props = {
   onPick?: (lng: number, lat: number) => void;
   /** Temporary marker drawn at this location, e.g. a comment being written. */
   pin?: [number, number] | null;
+  /** Approved comments drawn as their own markers. */
+  commentPins?: { id: string; lng: number; lat: number }[];
+  selectedCommentId?: string | null;
+  onCommentClick?: (id: string) => void;
+  /** Extra cards stacked under the info popup in the top-right column. */
+  rightSlot?: ReactNode;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -94,6 +100,10 @@ export default function MapCanvas({
   pickMode = false,
   onPick,
   pin = null,
+  commentPins,
+  selectedCommentId = null,
+  onCommentClick,
+  rightSlot,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -108,6 +118,7 @@ export default function MapCanvas({
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
   const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const activeBasemap = localBasemap ?? basemap;
   const activeScaleUnits = localScaleUnits ?? scaleUnits;
   const toggleScaleUnits = () => {
@@ -148,6 +159,46 @@ export default function MapCanvas({
     },
     [],
   );
+
+  // Approved comment markers.
+  const commentMarkersRef = useRef<maplibregl.Marker[]>([]);
+  const onCommentClickRef = useRef(onCommentClick);
+  onCommentClickRef.current = onCommentClick;
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    for (const marker of commentMarkersRef.current) marker.remove();
+    commentMarkersRef.current = [];
+    for (const item of commentPins ?? []) {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", "Comment");
+      el.className = "of-comment-pin";
+      el.style.cssText = [
+        "width:22px",
+        "height:22px",
+        "border-radius:9999px",
+        "border:2px solid #ffffff",
+        "cursor:pointer",
+        "box-shadow:0 1px 4px rgba(0,0,0,.35)",
+        `background:${item.id === selectedCommentId ? "#6d28d9" : "#8b5cf6"}`,
+        item.id === selectedCommentId ? "transform:scale(1.25)" : "",
+      ].join(";");
+      el.addEventListener("click", (event) => {
+        event.stopPropagation();
+        onCommentClickRef.current?.(item.id);
+      });
+      commentMarkersRef.current.push(
+        new maplibregl.Marker({ element: el }).setLngLat([item.lng, item.lat]).addTo(map),
+      );
+    }
+    return () => {
+      for (const marker of commentMarkersRef.current) marker.remove();
+      commentMarkersRef.current = [];
+    };
+  }, [commentPins, selectedCommentId, mapLoaded]);
+
 
   // Crosshair while placing a comment.
   useEffect(() => {
@@ -244,14 +295,14 @@ export default function MapCanvas({
     });
     mapRef.current = map;
 
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+    map.addControl(
+      new maplibregl.GeolocateControl({ trackUserLocation: true, showAccuracyCircle: true }),
+      "bottom-right",
+    );
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
     const scale = new maplibregl.ScaleControl({ maxWidth: 120, unit: activeScaleUnits });
     scaleRef.current = scale;
     map.addControl(scale, "bottom-left");
-    map.addControl(
-      new maplibregl.GeolocateControl({ trackUserLocation: true, showAccuracyCircle: true }),
-      "top-right",
-    );
 
     // Clicking the scale bar flips imperial <-> metric (delegated: the element
     // is re-rendered by MapLibre whenever the unit or zoom changes).
@@ -276,6 +327,7 @@ export default function MapCanvas({
     let watchdog: ReturnType<typeof setTimeout> | undefined;
     map.on("load", () => {
       readyRef.current = true;
+      setMapLoaded(true);
       setMapError(null);
       // Start the attribution collapsed behind the "i" button.
       scaleContainerEl
@@ -406,7 +458,7 @@ export default function MapCanvas({
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="absolute right-2.5 top-[146px] z-10 flex max-h-[calc(100%-160px)] flex-col items-end gap-1">
+      <div className="absolute bottom-[196px] right-2.5 z-10 flex max-h-[calc(100%-220px)] flex-col-reverse items-end gap-1">
         <button
           type="button"
           onClick={() => setPickerOpen((open) => !open)}
@@ -451,9 +503,10 @@ export default function MapCanvas({
         )}
       </div>
 
-      {popupHit && (
+      <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] w-auto flex-col items-end gap-2">
+        {popupHit && (
           <div
-            className="absolute right-[49px] top-[10px] z-10 max-h-[calc(100%-20px)] min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
+            className="pointer-events-auto max-h-[60%] min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
             style={{ width: Math.min(popupHit.spec.maxWidth, 420) }}
           >
             <div className="mb-1.5 flex items-start justify-between gap-2">
@@ -507,6 +560,10 @@ export default function MapCanvas({
             </dl>
           </div>
         )}
+        {rightSlot}
+      </div>
+
+
 
 
       {mapError ? (
