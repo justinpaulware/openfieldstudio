@@ -321,10 +321,10 @@ function ProjectPublish() {
         <div className="grid gap-4 sm:grid-cols-3">
           {(
             [
-              ["sidebar", "Sidebar"],
               ["legend", "Legend"],
               ["title", "Title card"],
             ] as const
+
           ).map(([key, label]) => (
             <div key={key} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
               <Label htmlFor={`embed-${key}`} className="font-secondary text-xs">
