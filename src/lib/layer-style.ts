@@ -451,9 +451,94 @@ export function styleToRow(style: LayerStyle) {
       strokeOpacity: style.strokeOpacity,
       categories: style.categories,
       graduated: style.graduated,
+      labels: style.labels,
+      popup: style.popup,
     },
   };
 }
+
+/** Labels only render when switched on with a field chosen. */
+export function activeLabels(style: LayerStyle): LabelSpec | null {
+  const spec = style.labels;
+  if (!spec?.enabled || !spec.field) return null;
+  return spec;
+}
+
+/** MapLibre text-field expression for a label spec. */
+export function labelTextExpression(spec: LabelSpec): unknown[] {
+  const value: unknown[] = ["to-string", ["get", spec.field]];
+  return spec.uppercase ? ["upcase", value] : value;
+}
+
+/** text-anchor + text-offset (in ems) for the chosen placement. */
+export function labelAnchorOffset(spec: LabelSpec): {
+  anchor: string;
+  offset: [number, number];
+} {
+  const d = spec.offset;
+  switch (spec.placement) {
+    case "above":
+      return { anchor: "bottom", offset: [0, -d] };
+    case "below":
+      return { anchor: "top", offset: [0, d] };
+    case "left":
+      return { anchor: "right", offset: [-d, 0] };
+    case "right":
+      return { anchor: "left", offset: [d, 0] };
+    default:
+      return { anchor: "center", offset: [0, 0] };
+  }
+}
+
+/** Popup rows for a feature, resolving the "all fields" default. */
+export function popupRows(
+  spec: PopupSpec,
+  properties: Record<string, unknown>,
+): { label: string; value: unknown; format: PopupFieldFormat }[] {
+  const configured = spec.fields.filter((field) => field.visible);
+  const list: { label: string; value: unknown; format: PopupFieldFormat }[] = configured.length
+    ? configured.map((field) => ({
+        label: field.alias || field.name,
+        value: properties[field.name],
+        format: field.format,
+      }))
+    : Object.entries(properties).map(([name, value]) => ({
+        label: name,
+        value,
+        format: "text" as PopupFieldFormat,
+      }));
+  if (!spec.hideEmpty) return list;
+  return list.filter((row) => row.value !== null && row.value !== undefined && row.value !== "");
+}
+
+/** Popup heading for a feature. */
+export function popupTitle(
+  spec: PopupSpec,
+  properties: Record<string, unknown>,
+  fallback: string,
+): string {
+  if (spec.titleText.trim()) return spec.titleText.trim();
+  if (spec.titleField) {
+    const raw = properties[spec.titleField];
+    if (raw !== null && raw !== undefined && String(raw) !== "") return String(raw);
+  }
+  return fallback;
+}
+
+/** Format one popup value for display. */
+export function formatPopupValue(value: unknown, format: PopupFieldFormat): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (format === "number") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toLocaleString() : String(value);
+  }
+  if (format === "date") {
+    const d = new Date(String(value));
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString();
+  }
+  return String(value);
+}
+
 
 /** Categorized styling is only live when a field and at least one value exist. */
 export function activeCategories(style: LayerStyle): CategorySpec | null {
