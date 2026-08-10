@@ -219,15 +219,20 @@ export type Database = {
       }
       projects: {
         Row: {
+          author: string | null
           basemap: string
           created_at: string
+          credits: string | null
+          data_sources: string | null
           description: string | null
+          embed_config: Json
           id: string
           map_bearing: number
           map_center: number[]
           map_pitch: number
           map_zoom: number
           owner_id: string
+          published_at: string | null
           scale_units: string
           show_legend: boolean
           slug: string
@@ -238,15 +243,20 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          author?: string | null
           basemap?: string
           created_at?: string
+          credits?: string | null
+          data_sources?: string | null
           description?: string | null
+          embed_config?: Json
           id?: string
           map_bearing?: number
           map_center?: number[]
           map_pitch?: number
           map_zoom?: number
           owner_id: string
+          published_at?: string | null
           scale_units?: string
           show_legend?: boolean
           slug: string
@@ -257,15 +267,20 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          author?: string | null
           basemap?: string
           created_at?: string
+          credits?: string | null
+          data_sources?: string | null
           description?: string | null
+          embed_config?: Json
           id?: string
           map_bearing?: number
           map_center?: number[]
           map_pitch?: number
           map_zoom?: number
           owner_id?: string
+          published_at?: string | null
           scale_units?: string
           show_legend?: boolean
           slug?: string
