@@ -72,6 +72,11 @@ type Props = {
   scaleUnits?: ScaleUnits;
   /** When provided, scale-unit picks are reported upward (editor persists the default). */
   onScaleUnitsChange?: (units: ScaleUnits) => void;
+  /** Comment placement mode: clicks report a location instead of opening popups. */
+  pickMode?: boolean;
+  onPick?: (lng: number, lat: number) => void;
+  /** Temporary marker drawn at this location, e.g. a comment being written. */
+  pin?: [number, number] | null;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -86,6 +91,9 @@ export default function MapCanvas({
   onBasemapChange,
   scaleUnits = "imperial",
   onScaleUnitsChange,
+  pickMode = false,
+  onPick,
+  pin = null,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -111,6 +119,43 @@ export default function MapCanvas({
   toggleScaleRef.current = toggleScaleUnits;
   const layersRef = useRef<RenderLayer[]>(layers);
   layersRef.current = layers;
+  const pickModeRef = useRef(pickMode);
+  pickModeRef.current = pickMode;
+  const onPickRef = useRef(onPick);
+  onPickRef.current = onPick;
+  const pinRef = useRef<maplibregl.Marker | null>(null);
+
+  // Temporary pin for the comment being written.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!pin) {
+      pinRef.current?.remove();
+      pinRef.current = null;
+      return;
+    }
+    if (!pinRef.current) {
+      pinRef.current = new maplibregl.Marker({ color: "#8b5cf6" }).setLngLat(pin).addTo(map);
+    } else {
+      pinRef.current.setLngLat(pin);
+    }
+  }, [pin]);
+
+  useEffect(
+    () => () => {
+      pinRef.current?.remove();
+      pinRef.current = null;
+    },
+    [],
+  );
+
+  // Crosshair while placing a comment.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    map.getCanvas().style.cursor = pickMode ? "crosshair" : "";
+  }, [pickMode]);
+
 
 
 
@@ -314,6 +359,10 @@ export default function MapCanvas({
     };
 
     const onClick = (event: maplibregl.MapMouseEvent) => {
+      if (pickModeRef.current) {
+        onPickRef.current?.(event.lngLat.lng, event.lngLat.lat);
+        return;
+      }
       const hit = hitFor(event.point);
       if (!hit || hit.layer.style.popup.trigger !== "click") {
         setPopupHit((current) => (current && current.spec.trigger === "click" ? null : current));
@@ -327,6 +376,10 @@ export default function MapCanvas({
     };
 
     const onMove = (event: maplibregl.MapMouseEvent) => {
+      if (pickModeRef.current) {
+        map.getCanvas().style.cursor = "crosshair";
+        return;
+      }
       const hit = hitFor(event.point);
       map.getCanvas().style.cursor = hit ? "pointer" : "";
       if (hit && hit.layer.style.popup.trigger === "hover") {
