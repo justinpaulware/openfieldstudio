@@ -7,6 +7,8 @@ import { FolderPlus, List, Loader2, Maximize, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { ProjectHeaderActions } from "./projects.$projectId";
+
 import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
