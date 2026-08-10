@@ -281,6 +281,19 @@ function MapEditor() {
         .eq("layer_id", layer.id)
         .maybeSingle();
 
+      // sort_order is an integer: push the original and everything below it down
+      // by one so the copy can sit directly above it.
+      await Promise.all(
+        layers
+          .filter((other) => other.sort_order >= layer.sort_order)
+          .map((other) =>
+            supabase
+              .from("layers")
+              .update({ sort_order: other.sort_order + 1 })
+              .eq("id", other.id),
+          ),
+      );
+
       const { data: created, error } = await supabase
         .from("layers")
         .insert({
@@ -296,7 +309,7 @@ function MapEditor() {
           folder_id: layer.folder_id,
           visible: layer.visible,
           opacity: layer.opacity,
-          sort_order: layer.sort_order - 0.5,
+          sort_order: layer.sort_order,
         })
         .select("id")
         .single();
