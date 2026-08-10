@@ -24,6 +24,7 @@ import {
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
+import { captureProjectThumbnail } from "@/lib/thumbnails";
 import {
   DEFAULT_LAYER_STYLE,
   geometryKind,
