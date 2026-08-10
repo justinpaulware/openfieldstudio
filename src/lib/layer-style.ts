@@ -56,6 +56,49 @@ export type GraduatedSpec = {
   maxRadius: number;
 };
 
+export type LabelPlacement = "center" | "above" | "below" | "left" | "right";
+export type LabelLinePlacement = "line" | "horizontal";
+
+export type LabelSpec = {
+  enabled: boolean;
+  field: string;
+  size: number;
+  bold: boolean;
+  color: string;
+  haloColor: string;
+  haloWidth: number;
+  placement: LabelPlacement;
+  offset: number;
+  linePlacement: LabelLinePlacement;
+  allowOverlap: boolean;
+  minZoom: number;
+  maxZoom: number;
+  uppercase: boolean;
+  maxWidth: number;
+};
+
+export type PopupTrigger = "click" | "hover";
+export type PopupFieldFormat = "text" | "number" | "date" | "link" | "image";
+
+export type PopupField = {
+  name: string;
+  alias: string;
+  visible: boolean;
+  format: PopupFieldFormat;
+};
+
+export type PopupSpec = {
+  enabled: boolean;
+  trigger: PopupTrigger;
+  titleField: string;
+  titleText: string;
+  /** Empty means "every attribute, in data order". */
+  fields: PopupField[];
+  hideEmpty: boolean;
+  density: "compact" | "roomy";
+  maxWidth: number;
+};
+
 export type LayerStyle = {
   fillColor: string;
   strokeColor: string;
@@ -69,7 +112,10 @@ export type LayerStyle = {
   mode: StyleMode;
   categories: CategorySpec | null;
   graduated: GraduatedSpec | null;
+  labels: LabelSpec;
+  popup: PopupSpec;
 };
+
 
 
 /** Sentinel for "no fill" / "no color". */
@@ -91,6 +137,35 @@ export function styleRowFromRelation(relation: StyleRelation): StyleRow | null {
   return relation ?? null;
 }
 
+export const DEFAULT_LABELS: LabelSpec = {
+  enabled: false,
+  field: "",
+  size: 12,
+  bold: false,
+  color: "#1b1d22",
+  haloColor: "#ffffff",
+  haloWidth: 1.2,
+  placement: "center",
+  offset: 0.9,
+  linePlacement: "line",
+  allowOverlap: false,
+  minZoom: 0,
+  maxZoom: 22,
+  uppercase: false,
+  maxWidth: 10,
+};
+
+export const DEFAULT_POPUP: PopupSpec = {
+  enabled: true,
+  trigger: "click",
+  titleField: "",
+  titleText: "",
+  fields: [],
+  hideEmpty: true,
+  density: "compact",
+  maxWidth: 280,
+};
+
 export const DEFAULT_LAYER_STYLE: LayerStyle = {
   fillColor: "#f5c518",
   strokeColor: "#1b1d22",
@@ -104,7 +179,10 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   mode: "single",
   categories: null,
   graduated: null,
+  labels: DEFAULT_LABELS,
+  popup: DEFAULT_POPUP,
 };
+
 
 
 /** Row one: hues in rainbow order. */
@@ -191,6 +269,11 @@ const LINE_CAPS: LineCapStyle[] = ["butt", "round", "square"];
 const STYLE_MODES: StyleMode[] = ["single", "categorized", "graduated"];
 const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
+const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "above", "below", "left", "right"];
+const LINE_PLACEMENTS: LabelLinePlacement[] = ["line", "horizontal"];
+const POPUP_TRIGGERS: PopupTrigger[] = ["click", "hover"];
+const POPUP_FORMATS: PopupFieldFormat[] = ["text", "number", "date", "link", "image"];
+const POPUP_DENSITIES: ("compact" | "roomy")[] = ["compact", "roomy"];
 
 function pick<T extends string>(value: unknown, allowed: T[], fallback: T): T {
   return typeof value === "string" && (allowed as string[]).includes(value) ? (value as T) : fallback;
@@ -265,6 +348,62 @@ function parseGraduated(value: unknown): GraduatedSpec | null {
   };
 }
 
+function str(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function parseLabels(value: unknown): LabelSpec {
+  if (!value || typeof value !== "object") return DEFAULT_LABELS;
+  const raw = value as Record<string, unknown>;
+  return {
+    enabled: raw["enabled"] === true,
+    field: str(raw["field"], ""),
+    size: num(raw["size"], DEFAULT_LABELS.size),
+    bold: raw["bold"] === true,
+    color: str(raw["color"], DEFAULT_LABELS.color),
+    haloColor: str(raw["haloColor"], DEFAULT_LABELS.haloColor),
+    haloWidth: num(raw["haloWidth"], DEFAULT_LABELS.haloWidth),
+    placement: pick(raw["placement"], LABEL_PLACEMENTS, DEFAULT_LABELS.placement),
+    offset: num(raw["offset"], DEFAULT_LABELS.offset),
+    linePlacement: pick(raw["linePlacement"], LINE_PLACEMENTS, DEFAULT_LABELS.linePlacement),
+    allowOverlap: raw["allowOverlap"] === true,
+    minZoom: num(raw["minZoom"], DEFAULT_LABELS.minZoom),
+    maxZoom: num(raw["maxZoom"], DEFAULT_LABELS.maxZoom),
+    uppercase: raw["uppercase"] === true,
+    maxWidth: num(raw["maxWidth"], DEFAULT_LABELS.maxWidth),
+  };
+}
+
+function parsePopup(value: unknown): PopupSpec {
+  if (!value || typeof value !== "object") return DEFAULT_POPUP;
+  const raw = value as Record<string, unknown>;
+  const fields = Array.isArray(raw["fields"])
+    ? (raw["fields"] as unknown[]).flatMap((item) => {
+        if (!item || typeof item !== "object") return [];
+        const f = item as Record<string, unknown>;
+        if (typeof f["name"] !== "string" || !f["name"]) return [];
+        return [
+          {
+            name: f["name"],
+            alias: str(f["alias"], f["name"]),
+            visible: f["visible"] !== false,
+            format: pick(f["format"], POPUP_FORMATS, "text"),
+          } satisfies PopupField,
+        ];
+      })
+    : [];
+  return {
+    enabled: raw["enabled"] !== false,
+    trigger: pick(raw["trigger"], POPUP_TRIGGERS, DEFAULT_POPUP.trigger),
+    titleField: str(raw["titleField"], ""),
+    titleText: str(raw["titleText"], ""),
+    fields,
+    hideEmpty: raw["hideEmpty"] !== false,
+    density: pick(raw["density"], POPUP_DENSITIES, DEFAULT_POPUP.density),
+    maxWidth: num(raw["maxWidth"], DEFAULT_POPUP.maxWidth),
+  };
+}
+
 /** Merge a layer_styles row (columns + style_config jsonb) into a complete style. */
 export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
   const config = (row?.style_config ?? {}) as Record<string, unknown>;
@@ -290,8 +429,11 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
     mode,
     categories,
     graduated,
+    labels: parseLabels(config["labels"]),
+    popup: parsePopup(config["popup"]),
   };
 }
+
 
 /** Split the style back into database columns + jsonb config. */
 export function styleToRow(style: LayerStyle) {
@@ -309,9 +451,94 @@ export function styleToRow(style: LayerStyle) {
       strokeOpacity: style.strokeOpacity,
       categories: style.categories,
       graduated: style.graduated,
+      labels: style.labels,
+      popup: style.popup,
     },
   };
 }
+
+/** Labels only render when switched on with a field chosen. */
+export function activeLabels(style: LayerStyle): LabelSpec | null {
+  const spec = style.labels;
+  if (!spec?.enabled || !spec.field) return null;
+  return spec;
+}
+
+/** MapLibre text-field expression for a label spec. */
+export function labelTextExpression(spec: LabelSpec): unknown[] {
+  const value: unknown[] = ["to-string", ["get", spec.field]];
+  return spec.uppercase ? ["upcase", value] : value;
+}
+
+/** text-anchor + text-offset (in ems) for the chosen placement. */
+export function labelAnchorOffset(spec: LabelSpec): {
+  anchor: string;
+  offset: [number, number];
+} {
+  const d = spec.offset;
+  switch (spec.placement) {
+    case "above":
+      return { anchor: "bottom", offset: [0, -d] };
+    case "below":
+      return { anchor: "top", offset: [0, d] };
+    case "left":
+      return { anchor: "right", offset: [-d, 0] };
+    case "right":
+      return { anchor: "left", offset: [d, 0] };
+    default:
+      return { anchor: "center", offset: [0, 0] };
+  }
+}
+
+/** Popup rows for a feature, resolving the "all fields" default. */
+export function popupRows(
+  spec: PopupSpec,
+  properties: Record<string, unknown>,
+): { label: string; value: unknown; format: PopupFieldFormat }[] {
+  const configured = spec.fields.filter((field) => field.visible);
+  const list: { label: string; value: unknown; format: PopupFieldFormat }[] = configured.length
+    ? configured.map((field) => ({
+        label: field.alias || field.name,
+        value: properties[field.name],
+        format: field.format,
+      }))
+    : Object.entries(properties).map(([name, value]) => ({
+        label: name,
+        value,
+        format: "text" as PopupFieldFormat,
+      }));
+  if (!spec.hideEmpty) return list;
+  return list.filter((row) => row.value !== null && row.value !== undefined && row.value !== "");
+}
+
+/** Popup heading for a feature. */
+export function popupTitle(
+  spec: PopupSpec,
+  properties: Record<string, unknown>,
+  fallback: string,
+): string {
+  if (spec.titleText.trim()) return spec.titleText.trim();
+  if (spec.titleField) {
+    const raw = properties[spec.titleField];
+    if (raw !== null && raw !== undefined && String(raw) !== "") return String(raw);
+  }
+  return fallback;
+}
+
+/** Format one popup value for display. */
+export function formatPopupValue(value: unknown, format: PopupFieldFormat): string {
+  if (value === null || value === undefined || value === "") return "—";
+  if (format === "number") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toLocaleString() : String(value);
+  }
+  if (format === "date") {
+    const d = new Date(String(value));
+    return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleDateString();
+  }
+  return String(value);
+}
+
 
 /** Categorized styling is only live when a field and at least one value exist. */
 export function activeCategories(style: LayerStyle): CategorySpec | null {

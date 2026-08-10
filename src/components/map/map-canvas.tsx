@@ -15,18 +15,26 @@ import {
   radiusPaint,
   strokeColorPaint,
   categoryDrives,
+  activeLabels,
+  labelTextExpression,
+  labelAnchorOffset,
+  popupRows,
+  popupTitle,
+  formatPopupValue,
   type LayerStyle,
 } from "@/lib/layer-style";
 
 
 export type RenderLayer = {
   id: string;
+  name: string;
   visible: boolean;
   opacity: number;
   geometryType: SimpleGeometryType;
   data: FeatureCollection | null;
   style: LayerStyle;
 };
+
 
 export type MapHandle = {
   fitBbox: (bbox: Bbox, padding?: number) => void;
@@ -55,7 +63,6 @@ type Props = {
   layers: RenderLayer[];
   initialView: { center: [number, number]; zoom: number; pitch: number; bearing: number };
   onMoveEnd?: (view: { center: [number, number]; zoom: number; pitch: number; bearing: number }) => void;
-  onFeatureClick?: (layerId: string, properties: Record<string, unknown>) => void;
   handleRef?: Ref<MapHandle>;
   /** When provided, style picks are reported upward (editor persists the default). */
   onBasemapChange?: (id: string) => void;
@@ -72,7 +79,6 @@ export default function MapCanvas({
   layers,
   initialView,
   onMoveEnd,
-  onFeatureClick,
   handleRef,
   onBasemapChange,
   scaleUnits = "imperial",
@@ -82,6 +88,8 @@ export default function MapCanvas({
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
   const scaleRef = useRef<maplibregl.ScaleControl | null>(null);
+  const popupRef = useRef<maplibregl.Popup | null>(null);
+  const hoverPopupRef = useRef<maplibregl.Popup | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
   const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
@@ -238,26 +246,79 @@ export default function MapCanvas({
     syncLayers(map, layers);
   }, [layers]);
 
-  // Feature click handling.
+  // Feature popups (click or hover), driven by each layer's popup settings.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !onFeatureClick) return;
-    const handler = (event: maplibregl.MapMouseEvent) => {
-      const ids = layersRef.current
-        .filter((l) => l.visible && l.data)
-        .flatMap((l) => ["fill", "line", "circle", "symbol"].map((k) => LYR(l.id, k)))
-        .filter((id) => map.getLayer(id));
-      if (!ids.length) return;
-      const [hit] = map.queryRenderedFeatures(event.point, { layers: ids });
-      if (!hit) return;
-      const layerId = String(hit.layer.id).replace(/^of-(fill|line|circle|symbol)-/, "");
-      onFeatureClick(layerId, (hit.properties ?? {}) as Record<string, unknown>);
+    if (!map) return;
+
+    const hitFor = (point: maplibregl.Point) => {
+      const candidates = layersRef.current.filter((l) => l.visible && l.data && l.style.popup.enabled);
+      if (!candidates.length) return null;
+      const owner = new Map<string, RenderLayer>();
+      for (const layer of candidates) {
+        for (const kind of ["fill", "line", "circle", "symbol"]) {
+          const id = LYR(layer.id, kind);
+          if (map.getLayer(id)) owner.set(id, layer);
+        }
+      }
+      if (!owner.size) return null;
+      const [feature] = map.queryRenderedFeatures(point, { layers: [...owner.keys()] });
+      if (!feature) return null;
+      const layer = owner.get(String(feature.layer.id));
+      if (!layer) return null;
+      return { layer, properties: (feature.properties ?? {}) as Record<string, unknown> };
     };
-    map.on("click", handler);
+
+    const show = (event: maplibregl.MapMouseEvent, trigger: "click" | "hover") => {
+      const hit = hitFor(event.point);
+      if (!hit || hit.layer.style.popup.trigger !== trigger) {
+        if (trigger === "click") popupRef.current?.remove();
+        else if (hoverPopupRef.current) hoverPopupRef.current.remove();
+        return;
+      }
+      const spec = hit.layer.style.popup;
+      const popup = trigger === "hover" ? ensureHoverPopup() : ensurePopup();
+      popup
+        .setMaxWidth(`${spec.maxWidth}px`)
+        .setLngLat(event.lngLat)
+        .setDOMContent(popupContent(hit.layer.name, spec, hit.properties))
+        .addTo(map);
+    };
+
+    const ensurePopup = () => {
+      if (!popupRef.current) {
+        popupRef.current = new maplibregl.Popup({ closeButton: true, closeOnClick: true });
+      }
+      return popupRef.current;
+    };
+    const ensureHoverPopup = () => {
+      if (!hoverPopupRef.current) {
+        hoverPopupRef.current = new maplibregl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          
+        });
+      }
+      return hoverPopupRef.current;
+    };
+
+    const onClick = (event: maplibregl.MapMouseEvent) => show(event, "click");
+    const onMove = (event: maplibregl.MapMouseEvent) => {
+      const hit = hitFor(event.point);
+      map.getCanvas().style.cursor = hit ? "pointer" : "";
+      show(event, "hover");
+    };
+
+    map.on("click", onClick);
+    map.on("mousemove", onMove);
     return () => {
-      map.off("click", handler);
+      map.off("click", onClick);
+      map.off("mousemove", onMove);
+      popupRef.current?.remove();
+      hoverPopupRef.current?.remove();
     };
-  }, [onFeatureClick]);
+  }, []);
+
 
   return (
     <div className="relative h-full w-full">
@@ -340,7 +401,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   // Drop anything we own that no longer belongs.
   for (const layer of map.getStyle().layers ?? []) {
-    const match = /^of-(fill|line|circle|outline|symbol)-(.+)$/.exec(layer.id);
+    const match = /^of-(fill|line|circle|outline|symbol|label)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
@@ -500,7 +561,93 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     }
 
   }
+
+  // Labels sit above every data layer, added last in reverse draw order.
+  for (const layer of [...layers].reverse()) {
+    const labelId = LYR(layer.id, "label");
+    const spec = layer.data ? activeLabels(layer.style) : null;
+    if (!spec) {
+      removeLayerIfPresent(map, labelId);
+      continue;
+    }
+    const sourceId = SRC(layer.id);
+    const { anchor, offset } = labelAnchorOffset(spec);
+    const alongLine = layer.geometryType === "line" && spec.linePlacement === "line";
+    if (!map.getLayer(labelId)) {
+      map.addLayer({ id: labelId, type: "symbol", source: sourceId });
+    } else {
+      map.moveLayer(labelId);
+    }
+    const hideFilter = categoryFilter(layer.style);
+    map.setFilter(labelId, (hideFilter ?? null) as maplibregl.FilterSpecification | null);
+    map.setLayoutProperty(labelId, "visibility", layer.visible ? "visible" : "none");
+    map.setLayoutProperty(labelId, "text-field", labelTextExpression(spec) as never);
+    map.setLayoutProperty(labelId, "text-font", [
+      spec.bold ? "Noto Sans Bold" : "Noto Sans Regular",
+    ]);
+    map.setLayoutProperty(labelId, "text-size", spec.size);
+    map.setLayoutProperty(labelId, "text-anchor", alongLine ? "center" : anchor);
+    map.setLayoutProperty(labelId, "text-offset", alongLine ? [0, 0] : offset);
+    map.setLayoutProperty(labelId, "text-max-width", spec.maxWidth);
+    map.setLayoutProperty(labelId, "text-allow-overlap", spec.allowOverlap);
+    map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
+    map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
+    map.setPaintProperty(labelId, "text-color", paintColor(spec.color));
+    map.setPaintProperty(labelId, "text-halo-color", paintColor(spec.haloColor));
+    map.setPaintProperty(labelId, "text-halo-width", spec.haloWidth);
+    map.setLayerZoomRange(labelId, spec.minZoom, Math.max(spec.minZoom + 0.1, spec.maxZoom));
+  }
 }
+
+/** Build popup markup as DOM nodes — values are never injected as HTML. */
+function popupContent(
+  layerName: string,
+  spec: import("@/lib/layer-style").PopupSpec,
+  properties: Record<string, unknown>,
+): HTMLElement {
+  const root = document.createElement("div");
+  root.className = spec.density === "roomy" ? "space-y-2.5 py-0.5" : "space-y-1.5 py-0.5";
+
+  const heading = document.createElement("h3");
+  heading.className = "text-sm font-semibold text-neutral-900";
+  heading.textContent = popupTitle(spec, properties, layerName);
+  root.append(heading);
+
+  const list = document.createElement("dl");
+  list.className = spec.density === "roomy" ? "space-y-2" : "space-y-1";
+  for (const row of popupRows(spec, properties)) {
+    const wrap = document.createElement("div");
+    const dt = document.createElement("dt");
+    dt.className = "text-[10px] uppercase tracking-wide text-neutral-500";
+    dt.textContent = row.label;
+    const dd = document.createElement("dd");
+    dd.className = "text-[13px] break-words text-neutral-900";
+    const raw = row.value === null || row.value === undefined ? "" : String(row.value);
+    if (row.format === "link" && raw) {
+      const link = document.createElement("a");
+      link.href = raw;
+      link.target = "_blank";
+      link.rel = "noreferrer noopener";
+      link.className = "text-[13px] text-blue-700 underline";
+      link.textContent = raw;
+      dd.append(link);
+    } else if (row.format === "image" && raw) {
+      const img = document.createElement("img");
+      img.src = raw;
+      img.alt = row.label;
+      img.loading = "lazy";
+      img.className = "mt-1 max-h-32 w-full rounded object-cover";
+      dd.append(img);
+    } else {
+      dd.textContent = formatPopupValue(row.value, row.format);
+    }
+    wrap.append(dt, dd);
+    list.append(wrap);
+  }
+  root.append(list);
+  return root;
+}
+
 
 /** Rasterise square / triangle markers so MapLibre can draw them as icons. */
 function markerImage(style: LayerStyle): ImageData | null {
