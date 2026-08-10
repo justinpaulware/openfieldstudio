@@ -77,7 +77,13 @@ export function CommentComposer({
   };
 
   return (
-    <div className="w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]">
+    <div
+      className={
+        inline
+          ? "text-map-overlay-foreground"
+          : "w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]"
+      }
+    >
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-semibold">{done ? "Thank you" : "Leave feedback"}</h3>
         <button
@@ -93,7 +99,7 @@ export function CommentComposer({
       {done ? (
         <div className="mt-3 flex items-start gap-2 font-secondary text-xs">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>Your comment was submitted and will appear once the map owner reviews it.</p>
+          <p>Thanks — your comment is on the map.</p>
         </div>
       ) : (
         <div className="mt-3 space-y-3">
