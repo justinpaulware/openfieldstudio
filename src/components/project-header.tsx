@@ -11,6 +11,7 @@ export function ProjectHeaderActions({ children }: { children: ReactNode }) {
     setNode(document.getElementById(PROJECT_ACTIONS_ID));
   });
 
+  console.log("PHA render", !!node, !!document.getElementById(PROJECT_ACTIONS_ID));
   if (!node) return null;
   return createPortal(children, node);
 }
