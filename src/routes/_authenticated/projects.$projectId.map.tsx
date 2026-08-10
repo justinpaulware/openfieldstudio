@@ -281,7 +281,11 @@ function MapEditor() {
       }
 
       if (pendingStyles.current[layerId] === style) delete pendingStyles.current[layerId];
-      setStyleDrafts((drafts) => ({ ...drafts, [layerId]: style }));
+      setStyleDrafts((drafts) =>
+        pendingStyles.current[layerId]
+          ? drafts
+          : { ...drafts, [layerId]: style },
+      );
       setSaveState((prev) =>
         pendingStyles.current[layerId] ? { ...prev, [layerId]: "dirty" } : { ...prev, [layerId]: "saved" },
       );

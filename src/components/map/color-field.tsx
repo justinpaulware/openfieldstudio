@@ -206,10 +206,10 @@ export function ColorField({
             </div>
             <div className="grid grid-cols-3 gap-2">
               {([
-                ["R", red, green, blue],
-                ["G", green, red, blue],
-                ["B", blue, red, green],
-              ] as const).map(([channel, channelValue]) => (
+                { channel: "R", value: red },
+                { channel: "G", value: green },
+                { channel: "B", value: blue },
+              ] as const).map(({ channel, value: channelValue }) => (
                 <div key={channel} className="space-y-1">
                   <Label htmlFor={`${label}-${channel}`} className="text-[11px] text-muted-foreground">
                     {channel}
