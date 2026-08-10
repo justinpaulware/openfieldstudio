@@ -1,6 +1,7 @@
 /** Server-only helpers backing the public map viewer. */
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
+import { parseLayerFields, toFeatureCollection } from "@/lib/geo";
 
 /** Publishable-key client: RLS applies as `anon`, so only published projects resolve. */
 export function publicClient() {
@@ -86,10 +87,10 @@ export async function loadPublishedLayerData(slug: string, layerId: string) {
       .from("datasets")
       .download(layer.storage_path);
     if (error) throw error;
-    return JSON.parse(await data.text());
+    return toFeatureCollection(JSON.parse(await data.text()));
   }
 
-  const fields = (layer.fields ?? {}) as { latField?: string; lonField?: string };
+  const fields = parseLayerFields(layer.fields);
   if (layer.source_type === "csv_url") {
     if (!layer.source_url || !fields.latField || !fields.lonField) return null;
     const { loadCsvGeoJSON } = await import("./datasets.server");
