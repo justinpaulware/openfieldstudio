@@ -30,9 +30,14 @@ row 1  red  orange  amber/yellow  green  teal  blue  indigo  violet  magenta
 row 2  white  #eee  #ccc  #999  #666  #444  #222  black  no-color
 ```
 
-Row 1 stays in rainbow order and gains two hues to fill the band; row 2 holds white, the gray ramp, black, and the "no color" box last.
+
+## 7. Legend folder subheaders
+
+The legend groups its entries the same way the Layers sidebar does: each folder becomes a small uppercase subheader with its layers listed beneath, in sidebar order. Layers outside any folder stay ungrouped at the top. Empty folders and folders whose layers are all hidden are skipped, and nesting shows as slight indentation.
 
 ## Technical notes
+
+
 
 - `src/lib/layer-style.ts`: split `STYLE_PALETTE` into `PALETTE_HUES` and `PALETTE_NEUTRALS` (neutrals ending in `TRANSPARENT`).
 - `src/components/map/color-field.tsx`: render two rows; new `NoColorSwatch` SVG replaces the `CHECKER` background.
@@ -41,3 +46,5 @@ Row 1 stays in rainbow order and gains two hues to fill the band; row 2 holds wh
 - `src/routes/_authenticated/projects.$projectId.map.tsx`: pass the existing `styleFor` into `LayerPanel`.
 - `src/components/map/style-panel.tsx`: `step={0.25}` on width sliders.
 - `src/lib/datasets.server.ts`: paged `loadArcgisGeoJSON`, per-page byte cap, feature cap, updated limit copy.
+- `src/components/map/map-legend.tsx`: legend takes grouped entries (folder name + entries); the map route builds them from the same flattened folder/layer order the sidebar uses.
+
