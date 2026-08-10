@@ -572,7 +572,7 @@ function MapEditor() {
                   }
                 }}
               >
-                <Brush className="h-4 w-4" />
+                <Palette className="h-4 w-4" />
               </Button>
               <Button
                 variant="ghost"
@@ -730,12 +730,15 @@ function MapEditor() {
             kind={geometryKind(styleLayer.geometry_type)}
             style={styleFor(styleLayer)}
             saveState={saveState[styleLayer.id] ?? "idle"}
+            fields={attributeFields(byId[styleLayer.id])}
+            valuesFor={(field) => fieldValues(byId[styleLayer.id], field)}
             onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
             onSave={() => flushStyle(styleLayer.id)}
             onReset={() => applyStyle(styleLayer.id, DEFAULT_LAYER_STYLE, {})}
             onClose={() => setStyleLayerId(null)}
           />
         )}
+
       </div>
 
 
