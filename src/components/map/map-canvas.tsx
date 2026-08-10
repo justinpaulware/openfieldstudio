@@ -41,6 +41,8 @@ export type MapHandle = {
   fitBbox: (bbox: Bbox, padding?: number) => void;
   flyTo: (lng: number, lat: number) => void;
   getView: () => { center: [number, number]; zoom: number; pitch: number; bearing: number } | null;
+  /** JPEG snapshot of the current map canvas, downscaled for use as a thumbnail. */
+  captureThumbnail: (width?: number, height?: number) => Promise<Blob | null>;
 };
 
 export const BASEMAPS = [
