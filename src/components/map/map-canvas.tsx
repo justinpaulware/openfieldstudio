@@ -118,6 +118,7 @@ export default function MapCanvas({
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
   const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
   const activeBasemap = localBasemap ?? basemap;
   const activeScaleUnits = localScaleUnits ?? scaleUnits;
   const toggleScaleUnits = () => {
