@@ -1,6 +1,7 @@
 import type { Tables } from "@/integrations/supabase/types";
 
 export type StyleRow = Tables<"layer_styles">;
+export type StyleRelation = StyleRow | StyleRow[] | null | undefined;
 
 export type MarkerShape = "circle" | "ring" | "square" | "triangle";
 export type DashPattern = "solid" | "dashed" | "dotted";
@@ -29,6 +30,12 @@ export function isTransparent(color: string): boolean {
 /** Safe hex for canvas/svg/maplibre when a color may be the transparent sentinel. */
 export function paintColor(color: string): string {
   return isTransparent(color) ? "#000000" : color;
+}
+
+/** Normalize the one-to-one joined relation across PostgREST response shapes. */
+export function styleRowFromRelation(relation: StyleRelation): StyleRow | null {
+  if (Array.isArray(relation)) return relation[0] ?? null;
+  return relation ?? null;
 }
 
 export const DEFAULT_LAYER_STYLE: LayerStyle = {

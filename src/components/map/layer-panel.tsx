@@ -28,7 +28,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { geometryKind, resolveLayerStyle, type LayerStyle } from "@/lib/layer-style";
+import {
+  geometryKind,
+  resolveLayerStyle,
+  styleRowFromRelation,
+  type LayerStyle,
+  type StyleRelation,
+} from "@/lib/layer-style";
 import { LegendSwatch } from "./map-legend";
 import type { Tables } from "@/integrations/supabase/types";
 import type { LayerRow } from "./use-layer-data";
@@ -66,8 +72,7 @@ const SOURCE_LABEL: Record<string, string> = {
   arcgis_rest: "ArcGIS",
 };
 
-type StyleRow = Tables<"layer_styles">;
-export type PanelLayer = LayerRow & { layer_styles?: StyleRow[] | null };
+export type PanelLayer = LayerRow & { layer_styles?: StyleRelation };
 
 /** Legend swatch mirroring how the layer draws on the map. */
 function LayerSymbol({ layer, style }: { layer: PanelLayer; style?: LayerStyle | undefined }) {
@@ -78,7 +83,7 @@ function LayerSymbol({ layer, style }: { layer: PanelLayer; style?: LayerStyle |
     >
       <LegendSwatch
         kind={geometryKind(layer.geometry_type)}
-        style={style ?? resolveLayerStyle(layer.layer_styles?.[0])}
+        style={style ?? resolveLayerStyle(styleRowFromRelation(layer.layer_styles))}
       />
     </span>
   );

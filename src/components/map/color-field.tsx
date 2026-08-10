@@ -108,6 +108,10 @@ export function ColorField({
   onChange: (color: string) => void;
 }) {
   const clear = isTransparent(value);
+  const [red, green, blue] = useMemo(() => {
+    const hex = /^#[0-9a-f]{3,8}$/i.test(value) ? value : "#000000";
+    return hexToRgb(hex);
+  }, [value]);
   const [h, s, v] = useMemo(() => {
     const hex = /^#[0-9a-f]{3,8}$/i.test(value) ? value : "#000000";
     return rgbToHsv(...hexToRgb(hex));
@@ -142,8 +146,8 @@ export function ColorField({
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <div className="space-y-1">
-        <div className="flex justify-between gap-1">{PALETTE_HUES.map(renderSwatch)}</div>
-        <div className="flex justify-between gap-1">{neutrals.map(renderSwatch)}</div>
+        <div className="grid w-fit grid-cols-9 gap-1">{PALETTE_HUES.map(renderSwatch)}</div>
+        <div className="grid w-fit grid-cols-9 gap-1">{neutrals.map(renderSwatch)}</div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -199,6 +203,36 @@ export function ColorField({
                 step={1}
                 onValueChange={([next]) => onChange(hsvToHex(next ?? h, s || 1, v || 1))}
               />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { channel: "R", value: red },
+                { channel: "G", value: green },
+                { channel: "B", value: blue },
+              ] as const).map(({ channel, value: channelValue }) => (
+                <div key={channel} className="space-y-1">
+                  <Label htmlFor={`${label}-${channel}`} className="text-[11px] text-muted-foreground">
+                    {channel}
+                  </Label>
+                  <Input
+                    id={`${label}-${channel}`}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={255}
+                    value={channelValue}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      if (!Number.isFinite(next)) return;
+                      if (channel === "R") onChange(rgbToHex(next, green, blue));
+                      else if (channel === "G") onChange(rgbToHex(red, next, blue));
+                      else onChange(rgbToHex(red, green, next));
+                    }}
+                    className="h-7 px-2 font-secondary text-xs"
+                    aria-label={`${channel} channel`}
+                  />
+                </div>
+              ))}
             </div>
             {allowTransparent && (
               <button
