@@ -26,8 +26,10 @@ import {
   DEFAULT_LAYER_STYLE,
   geometryKind,
   resolveLayerStyle,
+  styleRowFromRelation,
   styleToRow,
   type LayerStyle,
+  type StyleRelation,
 } from "@/lib/layer-style";
 import type { Bbox, PropertyValue } from "@/lib/geo";
 import type { Tables } from "@/integrations/supabase/types";
@@ -53,7 +55,7 @@ export const Route = createFileRoute("/_authenticated/projects/$projectId/map")(
   component: MapEditor,
 });
 
-type LayerWithStyle = LayerRow & { layer_styles: Tables<"layer_styles">[] | null };
+type LayerWithStyle = LayerRow & { layer_styles: StyleRelation };
 
 
 function MapEditor() {
@@ -262,31 +264,32 @@ function MapEditor() {
 
   const styleFor = useCallback(
     (layer: LayerWithStyle): LayerStyle =>
-      styleDrafts[layer.id] ?? resolveLayerStyle(layer.layer_styles?.[0]),
+      styleDrafts[layer.id] ?? resolveLayerStyle(styleRowFromRelation(layer.layer_styles)),
     [styleDrafts],
   );
 
   const writeStyle = useCallback(
-    (layerId: string, style: LayerStyle) => {
-      delete pendingStyles.current[layerId];
+    async (layerId: string, style: LayerStyle) => {
       setSaveState((prev) => ({ ...prev, [layerId]: "saving" }));
-      void supabase
+      const { error } = await supabase
         .from("layer_styles")
-        .upsert({ layer_id: layerId, ...styleToRow(style) }, { onConflict: "layer_id" })
-        .then(({ error }) => {
-          if (error) {
-            toast.error(error.message);
-            setSaveState((prev) => ({ ...prev, [layerId]: "dirty" }));
-            return;
-          }
-          setSaveState((prev) =>
-            pendingStyles.current[layerId] ? prev : { ...prev, [layerId]: "saved" },
-          );
-          void invalidateLayers();
-        });
+        .upsert({ layer_id: layerId, ...styleToRow(style) }, { onConflict: "layer_id" });
+      if (error) {
+        pendingStyles.current[layerId] = pendingStyles.current[layerId] ?? style;
+        toast.error(`Style was not saved: ${error.message}`);
+        setSaveState((prev) => ({ ...prev, [layerId]: "dirty" }));
+        return false;
+      }
+
+      if (pendingStyles.current[layerId] === style) delete pendingStyles.current[layerId];
+      setStyleDrafts((drafts) => ({ ...drafts, [layerId]: style }));
+      setSaveState((prev) =>
+        pendingStyles.current[layerId] ? { ...prev, [layerId]: "dirty" } : { ...prev, [layerId]: "saved" },
+      );
+      await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+      return true;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [projectId, queryClient],
   );
 
   /** Write a queued style right away, cancelling its debounce. */
@@ -298,7 +301,7 @@ function MapEditor() {
         delete styleTimers.current[layerId];
       }
       const pending = pendingStyles.current[layerId];
-      if (pending) writeStyle(layerId, pending);
+      if (pending) void writeStyle(layerId, pending);
     },
     [writeStyle],
   );
