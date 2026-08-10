@@ -15,18 +15,26 @@ import {
   radiusPaint,
   strokeColorPaint,
   categoryDrives,
+  activeLabels,
+  labelTextExpression,
+  labelAnchorOffset,
+  popupRows,
+  popupTitle,
+  formatPopupValue,
   type LayerStyle,
 } from "@/lib/layer-style";
 
 
 export type RenderLayer = {
   id: string;
+  name: string;
   visible: boolean;
   opacity: number;
   geometryType: SimpleGeometryType;
   data: FeatureCollection | null;
   style: LayerStyle;
 };
+
 
 export type MapHandle = {
   fitBbox: (bbox: Bbox, padding?: number) => void;
