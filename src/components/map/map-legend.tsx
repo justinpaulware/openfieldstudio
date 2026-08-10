@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import type { LayerStyle, SimpleKind } from "@/lib/layer-style";
 import {
   activeCategories,
+  activeGraduated,
+  classLabel,
   categoryDrives,
   dashArray,
   isTransparent,
@@ -29,12 +31,22 @@ export type LegendGroup = {
 /** Category rows for a categorized layer: value label + color. */
 export function categoryRows(style: LayerStyle): { label: string; color: string }[] {
   const spec = activeCategories(style);
-  if (!spec) return [];
-  const rows = spec.entries
-    .filter((entry) => entry.visible)
-    .map((entry) => ({ label: entry.value === "" ? "(blank)" : entry.value, color: entry.color }));
-  if (spec.otherVisible) rows.push({ label: "Other", color: spec.otherColor });
-  return rows;
+  if (spec) {
+    const rows = spec.entries
+      .filter((entry) => entry.visible)
+      .map((entry) => ({ label: entry.value === "" ? "(blank)" : entry.value, color: entry.color }));
+    if (spec.otherVisible) rows.push({ label: "Other", color: spec.otherColor });
+    return rows;
+  }
+  const grad = activeGraduated(style);
+  if (grad) {
+    const rows = grad.classes
+      .filter((cls) => cls.visible)
+      .map((cls) => ({ label: classLabel(cls), color: cls.color }));
+    if (grad.otherVisible) rows.push({ label: "No value", color: grad.otherColor });
+    return rows;
+  }
+  return [];
 }
 
 /** Small multi-color chip standing in for a categorized layer. */
@@ -187,7 +199,7 @@ export function MapLegend({
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
       {open && (
-        <div className="max-h-56 space-y-2 overflow-y-auto border-t border-map-overlay-border px-3 py-2">
+        <div className="max-h-[60vh] space-y-2 overflow-y-auto border-t border-map-overlay-border px-3 py-2">
           {visible.map((group) => (
             <div key={group.id} style={{ marginLeft: group.depth * 8 }}>
               {group.name && (
@@ -203,8 +215,8 @@ export function MapLegend({
                       <li key={entry.id} className="space-y-1">
                         <span className="block truncate text-xs font-medium">{entry.name}</span>
                         <ul className="space-y-1 pl-1">
-                          {rows.map((row) => (
-                            <li key={row.label} className="flex items-center gap-2">
+                          {rows.map((row, rowIndex) => (
+                            <li key={`${row.label}-${rowIndex}`} className="flex items-center gap-2">
                               <span className="flex">
                                 <LegendSwatch
                                   kind={entry.kind}
