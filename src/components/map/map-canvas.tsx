@@ -247,14 +247,14 @@ export default function MapCanvas({
     });
     mapRef.current = map;
 
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+    map.addControl(
+      new maplibregl.GeolocateControl({ trackUserLocation: true, showAccuracyCircle: true }),
+      "bottom-right",
+    );
+    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
     const scale = new maplibregl.ScaleControl({ maxWidth: 120, unit: activeScaleUnits });
     scaleRef.current = scale;
     map.addControl(scale, "bottom-left");
-    map.addControl(
-      new maplibregl.GeolocateControl({ trackUserLocation: true, showAccuracyCircle: true }),
-      "top-right",
-    );
 
     // Clicking the scale bar flips imperial <-> metric (delegated: the element
     // is re-rendered by MapLibre whenever the unit or zoom changes).
