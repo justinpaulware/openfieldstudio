@@ -5,8 +5,10 @@ import { cn } from "@/lib/utils";
 import {
   CATEGORY_PALETTES,
   buildCategories,
+  categoryDrives,
   recolorCategories,
   type CategorySpec,
+  type CategoryTarget,
   type DashPattern,
   type LayerStyle,
   type LineCapStyle,
@@ -109,7 +111,8 @@ function GeometryControls({
   style,
   onChange,
   showPrimaryColor,
-}: Props & { showPrimaryColor: boolean }) {
+  showStrokeColor,
+}: Props & { showPrimaryColor: boolean; showStrokeColor: boolean }) {
   const pct = (n: number) => Math.round(n * 100);
 
   if (kind === "point") {
@@ -154,11 +157,15 @@ function GeometryControls({
           suffix="px"
           onChange={(circleRadius) => onChange({ circleRadius })}
         />
-        <ColorField
-          label="Stroke color"
-          value={style.strokeColor}
-          onChange={(strokeColor) => onChange({ strokeColor })}
-        />
+        {showStrokeColor ? (
+          <ColorField
+            label="Stroke color"
+            value={style.strokeColor}
+            onChange={(strokeColor) => onChange({ strokeColor })}
+          />
+        ) : (
+          <CategoryColorNote label="Stroke color" />
+        )}
         <SliderField
           label="Stroke width"
           value={style.strokeWidth}
@@ -251,11 +258,15 @@ function GeometryControls({
         suffix="%"
         onChange={(value) => onChange({ fillOpacity: value / 100 })}
       />
-      <ColorField
-        label="Outline color"
-        value={style.strokeColor}
-        onChange={(strokeColor) => onChange({ strokeColor })}
-      />
+      {showStrokeColor ? (
+        <ColorField
+          label="Outline color"
+          value={style.strokeColor}
+          onChange={(strokeColor) => onChange({ strokeColor })}
+        />
+      ) : (
+        <CategoryColorNote label="Outline color" />
+      )}
       <SliderField
         label="Outline width"
         value={style.strokeWidth}
@@ -285,6 +296,15 @@ function GeometryControls({
         ]}
       />
     </>
+  );
+}
+
+function CategoryColorNote({ label }: { label: string }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-xs text-muted-foreground">{label}</Label>
+      <p className="font-secondary text-[11px] text-muted-foreground">Set by the categories above.</p>
+    </div>
   );
 }
 
@@ -334,9 +354,20 @@ function CategoryEditor({
         </p>
       ) : (
         <>
+          <OptionRow<CategoryTarget>
+            label="Apply colors to"
+            value={spec.target}
+            onChange={(target) => setSpec({ ...spec, target })}
+            options={[
+              { value: "fill", label: "Fill" },
+              { value: "stroke", label: "Stroke" },
+              { value: "both", label: "Fill + stroke" },
+            ]}
+          />
+
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Palette</Label>
-            <div className="flex gap-1">
+            <div className="grid grid-cols-4 gap-1">
               {CATEGORY_PALETTES.map((palette) => (
                 <button
                   key={palette.id}
@@ -344,7 +375,7 @@ function CategoryEditor({
                   title={palette.label}
                   onClick={() => setSpec(recolorCategories(spec, palette.id))}
                   className={cn(
-                    "flex flex-1 overflow-hidden rounded border border-border",
+                    "flex overflow-hidden rounded border border-border",
                     palette.id === spec.palette && "ring-2 ring-ring ring-offset-1 ring-offset-card",
                   )}
                 >
@@ -488,7 +519,11 @@ export function StyleSymbology(props: Props) {
       )}
 
       <div className="space-y-4 border-t border-border pt-4">
-        <GeometryControls {...props} showPrimaryColor={style.mode !== "categorized"} />
+        <GeometryControls
+          {...props}
+          showPrimaryColor={!categoryDrives(style, "fill")}
+          showStrokeColor={!categoryDrives(style, "stroke")}
+        />
       </div>
     </div>
   );
