@@ -196,7 +196,7 @@ function ProjectPublish() {
   const publicUrl = `${origin}/maps/${project?.slug ?? ""}`;
   const embedUrl = useMemo(() => {
     const params = new URLSearchParams();
-    if (!embed.sidebar) params.set("sidebar", "0");
+
     if (!embed.legend) params.set("legend", "0");
     if (!embed.title) params.set("title", "0");
     const query = params.toString();
@@ -318,13 +318,13 @@ function ProjectPublish() {
       </Section>
 
       <Section title="Embed" description="Drop this snippet into any website or CMS.">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {(
             [
-              ["sidebar", "Sidebar"],
               ["legend", "Legend"],
               ["title", "Title card"],
             ] as const
+
           ).map(([key, label]) => (
             <div key={key} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
               <Label htmlFor={`embed-${key}`} className="font-secondary text-xs">

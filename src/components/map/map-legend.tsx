@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, List } from "lucide-react";
+import { ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BrandMark } from "@/components/brand-mark";
+
+
 import type { LayerStyle, SimpleKind } from "@/lib/layer-style";
 import {
   activeCategories,
@@ -172,13 +175,30 @@ export function LegendSwatch({
 export function MapLegend({
   groups,
   className,
+  hidden,
+  onToggle,
 }: {
   groups: LegendGroup[];
   className?: string;
+  /** When provided, each entry gets an eye toggle on the right. */
+  hidden?: Record<string, boolean>;
+  onToggle?: (id: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const visible = groups.filter((group) => group.entries.length > 0);
   if (!visible.length) return null;
+
+  const EyeToggle = ({ id, name }: { id: string; name: string }) =>
+    onToggle ? (
+      <button
+        type="button"
+        onClick={() => onToggle(id)}
+        aria-label={hidden?.[id] ? `Show ${name}` : `Hide ${name}`}
+        className="ml-auto shrink-0 rounded p-0.5 opacity-70 hover:bg-black/5 hover:opacity-100"
+      >
+        {hidden?.[id] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+      </button>
+    ) : null;
 
   return (
     <div
@@ -210,11 +230,20 @@ export function MapLegend({
               <ul className="space-y-1.5">
                 {group.entries.map((entry) => {
                   const rows = categoryRows(entry.style);
+                  const dim = hidden?.[entry.id] ? "opacity-45" : "";
                   if (rows.length) {
                     return (
                       <li key={entry.id} className="space-y-1">
-                        <span className="block truncate text-xs font-medium">{entry.name}</span>
-                        <ul className="space-y-1 pl-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn("min-w-0 flex-1 truncate text-xs font-medium", dim)}
+                          >
+                            {entry.name}
+                          </span>
+                          <EyeToggle id={entry.id} name={entry.name} />
+                        </div>
+
+                        <ul className={cn("space-y-1 pl-1", dim)}>
                           {rows.map((row, rowIndex) => (
                             <li key={`${row.label}-${rowIndex}`} className="flex items-center gap-2">
                               <span className="flex">
@@ -238,10 +267,11 @@ export function MapLegend({
                   }
                   return (
                     <li key={entry.id} className="flex items-center gap-2">
-                      <span className="flex">
+                      <span className={cn("flex min-w-0 flex-1 items-center gap-2", dim)}>
                         <LegendSwatch kind={entry.kind} style={entry.style} />
+                        <span className="truncate text-xs">{entry.name}</span>
                       </span>
-                      <span className="truncate text-xs">{entry.name}</span>
+                      <EyeToggle id={entry.id} name={entry.name} />
                     </li>
                   );
                 })}
@@ -261,11 +291,13 @@ export function MapTitleCard({ title, className }: { title: string; className?: 
   return (
     <div
       className={cn(
-        "w-56 rounded-lg border border-map-overlay-border bg-map-overlay px-3 py-2 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "flex w-64 items-center gap-2.5 rounded-lg border border-map-overlay-border bg-map-overlay px-3.5 py-2.5 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
         className,
       )}
     >
-      <h2 className="truncate text-sm font-semibold leading-tight">{title}</h2>
+      <BrandMark className="h-5 w-5 text-primary" />
+      <h2 className="truncate text-base font-semibold leading-tight">{title}</h2>
     </div>
   );
 }
+
