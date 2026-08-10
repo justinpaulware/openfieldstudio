@@ -43,3 +43,5 @@ Legend and the sidebar layer symbol show graduated classes the same way they sho
 - `src/components/map/style-symbology.tsx`: `PaletteHeader` with the flip button shared by both editors; new `GraduatedEditor`; enable the Graduated mode button.
 - `src/routes/_authenticated/projects.$projectId.map.tsx`: add a `numericFieldValues(field)` helper (raw numeric array from the loaded features) passed to the style panel for break computation and class counts.
 - `src/components/map/map-canvas.tsx`: already reads `primaryColorPaint` / `strokeColorPaint`; add the graduated radius expression for circle layers.
+- Duplicate: new `onDuplicate` entry in `layer-panel.tsx`'s layer menu; handler in the map route inserts a `layers` row copying every source/metadata column (source type, storage path or URL, geometry type, feature count, folder, bbox) with `sort_order` just after the original, then inserts a matching `layer_styles` row from the original's columns + `style_config`, and invalidates the layers query. No schema change.
+
