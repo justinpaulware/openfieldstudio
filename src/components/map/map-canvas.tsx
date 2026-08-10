@@ -356,9 +356,11 @@ export default function MapCanvas({
             ))}
           </div>
         )}
-        {popupHit && (
+      </div>
+
+      {popupHit && (
           <div
-            className="min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
+            className="absolute right-[43px] top-[146px] z-10 max-h-[calc(100%-160px)] min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
             style={{ width: Math.min(popupHit.spec.maxWidth, 420) }}
           >
             <div className="mb-1.5 flex items-start justify-between gap-2">
@@ -412,7 +414,6 @@ export default function MapCanvas({
             </dl>
           </div>
         )}
-      </div>
 
 
       {mapError ? (
