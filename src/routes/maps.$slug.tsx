@@ -31,16 +31,16 @@ const SITE = "https://openfieldstudio.lovable.app";
 type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
 
-type ViewerSearch = { sidebar?: boolean; legend?: boolean; title?: boolean };
+type ViewerSearch = { sidebar?: false; legend?: false; title?: false };
 
-const flag = (value: unknown, fallback: boolean) =>
-  value === undefined ? fallback : !(value === false || value === "0" || value === "false");
+/** Only "off" flags are kept, so canonical URLs stay clean. */
+const off = (value: unknown) => value === false || value === "0" || value === "false";
 
 export const Route = createFileRoute("/maps/$slug")({
   validateSearch: (search: Record<string, unknown>): ViewerSearch => ({
-    sidebar: flag(search["sidebar"], true),
-    legend: flag(search["legend"], true),
-    title: flag(search["title"], true),
+    ...(off(search["sidebar"]) ? { sidebar: false as const } : {}),
+    ...(off(search["legend"]) ? { legend: false as const } : {}),
+    ...(off(search["title"]) ? { title: false as const } : {}),
   }),
   loader: async ({ params }) => {
     const data = await getPublishedMap({ data: { slug: params.slug } });
