@@ -286,6 +286,7 @@ export default function MapCanvas({
     let watchdog: ReturnType<typeof setTimeout> | undefined;
     map.on("load", () => {
       readyRef.current = true;
+      setMapLoaded(true);
       setMapError(null);
       // Start the attribution collapsed behind the "i" button.
       scaleContainerEl
