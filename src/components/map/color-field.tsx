@@ -84,9 +84,11 @@ export function Swatch({
   const clear = isTransparent(color);
   return (
     <span
-      className={cn("block rounded border border-border/80", className)}
-      style={clear ? { background: CHECKER } : { backgroundColor: color }}
-    />
+      className={cn("relative block overflow-hidden rounded border border-border/80", className)}
+      style={clear ? { backgroundColor: "#ffffff" } : { backgroundColor: color }}
+    >
+      {clear && <NoColorMark className="h-full w-full" />}
+    </span>
   );
 }
 
@@ -111,30 +113,39 @@ export function ColorField({
     return rgbToHsv(...hexToRgb(hex));
   }, [value]);
 
-  const palette = allowTransparent
-    ? STYLE_PALETTE
-    : STYLE_PALETTE.filter((hex) => !isTransparent(hex));
+  const neutrals = allowTransparent
+    ? PALETTE_NEUTRALS
+    : PALETTE_NEUTRALS.filter((hex) => !isTransparent(hex));
+
+  const renderSwatch = (hex: string) => {
+    const isClear = isTransparent(hex);
+    return (
+      <button
+        key={hex}
+        type="button"
+        aria-label={isClear ? "No color" : hex}
+        title={isClear ? "No color" : hex}
+        onClick={() => onChange(hex)}
+        className={cn(
+          "relative h-5 w-5 shrink-0 overflow-hidden rounded border border-border/80",
+          value.toLowerCase() === hex.toLowerCase() &&
+            "ring-2 ring-ring ring-offset-1 ring-offset-card",
+        )}
+        style={isClear ? { backgroundColor: "#ffffff" } : { backgroundColor: hex }}
+      >
+        {isClear && <NoColorMark className="h-full w-full" />}
+      </button>
+    );
+  };
 
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="flex flex-wrap gap-1">
-        {palette.map((hex) => (
-          <button
-            key={hex}
-            type="button"
-            aria-label={isTransparent(hex) ? "No color" : hex}
-            title={isTransparent(hex) ? "No color" : hex}
-            onClick={() => onChange(hex)}
-            className={cn(
-              "h-5 w-5 rounded border border-border/80",
-              value.toLowerCase() === hex.toLowerCase() &&
-                "ring-2 ring-ring ring-offset-1 ring-offset-card",
-            )}
-            style={isTransparent(hex) ? { background: CHECKER } : { backgroundColor: hex }}
-          />
-        ))}
+      <div className="space-y-1">
+        <div className="flex justify-between gap-1">{PALETTE_HUES.map(renderSwatch)}</div>
+        <div className="flex justify-between gap-1">{neutrals.map(renderSwatch)}</div>
       </div>
+
       <div className="flex items-center gap-2">
         <Popover>
           <PopoverTrigger asChild>
