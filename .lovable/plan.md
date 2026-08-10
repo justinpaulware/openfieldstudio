@@ -1,4 +1,4 @@
-# Taller legend, reversible palettes, and graduated styling
+# Taller legend, reversible palettes, duplicate layer, and graduated styling
 
 ## 1. Legend can grow
 
