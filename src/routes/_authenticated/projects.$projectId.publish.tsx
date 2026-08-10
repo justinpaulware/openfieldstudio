@@ -196,7 +196,7 @@ function ProjectPublish() {
   const publicUrl = `${origin}/maps/${project?.slug ?? ""}`;
   const embedUrl = useMemo(() => {
     const params = new URLSearchParams();
-    if (!embed.sidebar) params.set("sidebar", "0");
+
     if (!embed.legend) params.set("legend", "0");
     if (!embed.title) params.set("title", "0");
     const query = params.toString();
