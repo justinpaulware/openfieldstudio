@@ -130,6 +130,7 @@ function ProjectPublish() {
     setDataSources(project.data_sources ?? "");
     setEmbed(parseEmbed(project.embed_config));
     setCommentsEnabled(project.comments_enabled);
+    setRequireApproval(project.comments_require_approval ?? false);
     setCategories((project.comment_categories ?? []).join(", "));
   }, [project]);
 
