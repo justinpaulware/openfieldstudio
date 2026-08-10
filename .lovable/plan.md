@@ -53,3 +53,7 @@ Everything previews live on the map; saving keeps the current autosave + Save bu
 ## Not in this step
 
 Graduated styling (classification methods, color ramps, graduated point size), Labels, Popups, presets, publishing. Graduated is the immediate next step and slots into the same Style Type switcher.
+
+## Small UI fix included
+
+The style editor button in the Layers panel header uses the same palette icon as "Edit style" in each layer's `...` menu, replacing the current paintbrush.
