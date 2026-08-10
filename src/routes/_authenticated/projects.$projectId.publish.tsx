@@ -156,6 +156,7 @@ function ProjectPublish() {
           data_sources: dataSources.trim() || null,
           embed_config: embed,
           comments_enabled: commentsEnabled,
+          comments_require_approval: requireApproval,
           comment_categories: categories
             .split(",")
             .map((c) => c.trim())
