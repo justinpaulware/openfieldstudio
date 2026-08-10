@@ -234,15 +234,15 @@ export function MapLegend({
                   if (rows.length) {
                     return (
                       <li key={entry.id} className="space-y-1">
-                        <span className={cn("flex items-center gap-2", dim)}>
-                          <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn("min-w-0 flex-1 truncate text-xs font-medium", dim)}
+                          >
                             {entry.name}
                           </span>
-                        </span>
-                        <span className="sr-only" />
-                        <div className={cn("-mt-6 flex justify-end", !onToggle && "hidden")}>
                           <EyeToggle id={entry.id} name={entry.name} />
                         </div>
+
                         <ul className={cn("space-y-1 pl-1", dim)}>
                           {rows.map((row, rowIndex) => (
                             <li key={`${row.label}-${rowIndex}`} className="flex items-center gap-2">
