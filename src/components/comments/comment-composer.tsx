@@ -164,8 +164,9 @@ export function CommentComposer({
           </div>
 
           <p className="font-secondary text-[11px] opacity-70">
-            Your email is only visible to the map owner. Comments appear after review.
+            Your email is only visible to the map owner and never shown publicly.
           </p>
+
 
           {error && <p className="text-xs text-destructive">{error}</p>}
 
