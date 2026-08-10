@@ -292,6 +292,36 @@ function ProjectPublish() {
         )}
       </Section>
 
+      <Section
+        title="Comments"
+        description="Let visitors drop pinned feedback on the published map. Every submission waits for your review before it appears."
+      >
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="comments-enabled" className="font-secondary text-xs">
+            Allow public comments
+          </Label>
+          <Switch
+            id="comments-enabled"
+            checked={commentsEnabled}
+            onCheckedChange={setCommentsEnabled}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="comment-categories">Categories</Label>
+          <Input
+            id="comment-categories"
+            value={categories}
+            onChange={(e) => setCategories(e.target.value)}
+            placeholder="General feedback, Question, Issue"
+          />
+          <p className="font-secondary text-xs text-muted-foreground">
+            Comma separated. Leave empty to hide the category picker.
+          </p>
+        </div>
+      </Section>
+
+
+
 
       <Section title="Attribution" description="Credit yourself and the data behind the map.">
         <div className="space-y-2">
