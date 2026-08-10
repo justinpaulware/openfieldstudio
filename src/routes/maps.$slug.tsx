@@ -266,7 +266,7 @@ function PublicMap() {
         </div>
 
         {commentsEnabled && (
-          <div className="absolute bottom-4 left-4 z-10 flex flex-col items-start gap-2">
+          <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
             {pin ? (
               <CommentComposer
                 slug={slug}
