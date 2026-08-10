@@ -16,7 +16,12 @@ export type RemoteSummary = {
   fields: FieldDef[];
 };
 
-const MAX_BYTES = 25 * 1024 * 1024;
+/** Byte cap for any single remote response (a page, not the whole dataset). */
+const MAX_BYTES = 50 * 1024 * 1024;
+/** Overall feature cap for paged ArcGIS imports. */
+const MAX_ARCGIS_FEATURES = 100_000;
+const ARCGIS_PAGE_SIZE = 1000;
+
 
 export function assertPublicHttpUrl(raw: string): URL {
   let url: URL;
@@ -52,9 +57,10 @@ async function fetchText(url: URL): Promise<string> {
     throw new Error(`The source responded with ${response.status} ${response.statusText}.`);
   }
   const length = Number(response.headers.get("content-length") ?? 0);
-  if (length > MAX_BYTES) throw new Error("That file is larger than the 25 MB limit.");
+  if (length > MAX_BYTES) throw new Error("That response is larger than the 50 MB limit.");
   const text = await response.text();
-  if (text.length > MAX_BYTES) throw new Error("That file is larger than the 25 MB limit.");
+  if (text.length > MAX_BYTES) throw new Error("That response is larger than the 50 MB limit.");
+
   return text;
 }
 
@@ -171,25 +177,65 @@ export async function loadArcgisGeoJSON(rawUrl: string) {
   const meta = JSON.parse(metaText) as { name?: string; error?: { message?: string } };
   if (meta.error) throw new Error(meta.error.message ?? "The ArcGIS service returned an error.");
 
-  const queryUrl = new URL(`${base.toString()}/query`);
-  queryUrl.searchParams.set("where", "1=1");
-  queryUrl.searchParams.set("outFields", "*");
-  queryUrl.searchParams.set("outSR", "4326");
-  queryUrl.searchParams.set("f", "geojson");
-  queryUrl.searchParams.set("resultRecordCount", "5000");
+  const fetchPage = async (offset: number) => {
+    const queryUrl = new URL(`${base.toString()}/query`);
+    queryUrl.searchParams.set("where", "1=1");
+    queryUrl.searchParams.set("outFields", "*");
+    queryUrl.searchParams.set("outSR", "4326");
+    queryUrl.searchParams.set("f", "geojson");
+    queryUrl.searchParams.set("resultRecordCount", String(ARCGIS_PAGE_SIZE));
+    if (offset > 0) queryUrl.searchParams.set("resultOffset", String(offset));
 
-  const dataText = await fetchText(queryUrl);
-  const parsed = JSON.parse(dataText) as unknown;
-  if ((parsed as { error?: { message?: string } })?.error) {
-    throw new Error(
-      (parsed as { error?: { message?: string } }).error?.message ??
-        "The ArcGIS service returned an error.",
-    );
+    const parsed = JSON.parse(await fetchText(queryUrl)) as {
+      error?: { message?: string };
+      exceededTransferLimit?: boolean;
+      properties?: { exceededTransferLimit?: boolean };
+    };
+    if (parsed?.error) {
+      throw new Error(parsed.error.message ?? "The ArcGIS service returned an error.");
+    }
+    const fc = toFeatureCollection(parsed);
+    if (!fc) throw new Error("That service didn't return GeoJSON features.");
+    const exceeded = Boolean(parsed.exceededTransferLimit ?? parsed.properties?.exceededTransferLimit);
+    return { fc, exceeded };
+  };
+
+  const features: FeatureCollection["features"] = [];
+  let offset = 0;
+  let truncated = false;
+  let previousFirst: string | null = null;
+
+  for (;;) {
+    const { fc, exceeded } = await fetchPage(offset);
+    const page = fc.features ?? [];
+    if (!page.length) break;
+
+    // A service that ignores resultOffset keeps replaying the same first page.
+    const firstKey = JSON.stringify(page[0]);
+    if (previousFirst !== null && firstKey === previousFirst) break;
+    previousFirst = firstKey;
+
+    features.push(...page);
+
+    if (features.length >= MAX_ARCGIS_FEATURES) {
+      truncated = true;
+      features.length = MAX_ARCGIS_FEATURES;
+      break;
+    }
+    if (page.length < ARCGIS_PAGE_SIZE && !exceeded) break;
+    offset += page.length;
   }
-  const fc = toFeatureCollection(parsed);
-  if (!fc) throw new Error("That service didn't return GeoJSON features.");
-  return { name: meta.name ?? "ArcGIS layer", featureCollection: fc };
+
+
+  if (!features.length) throw new Error("That service didn't return GeoJSON features.");
+
+  return {
+    name: meta.name ?? "ArcGIS layer",
+    featureCollection: { type: "FeatureCollection", features } as unknown as FeatureCollection,
+    truncated,
+  };
 }
+
 
 export function summarize(name: string, fc: FeatureCollection): RemoteSummary {
   return {

@@ -12,7 +12,13 @@ import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
 import { StylePanel, type StyleSaveState } from "@/components/map/style-panel";
-import { MapLegend, MapTitleCard, type LegendEntry } from "@/components/map/map-legend";
+import {
+  MapLegend,
+  MapTitleCard,
+  type LegendEntry,
+  type LegendGroup,
+} from "@/components/map/map-legend";
+
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
@@ -351,19 +357,35 @@ function MapEditor() {
     [orderedLayers, byId, styleFor],
   );
 
-  const legendEntries: LegendEntry[] = useMemo(
-    () =>
-      orderedLayers
-        .filter((layer) => layer.visible)
-        .map((layer) => ({
-          id: layer.id,
-          name: layer.name,
-          kind: geometryKind(layer.geometry_type),
-          opacity: layer.opacity,
-          style: styleFor(layer),
-        })),
-    [orderedLayers, styleFor],
-  );
+  const legendGroups: LegendGroup[] = useMemo(() => {
+    const toEntry = (layer: LayerWithStyle): LegendEntry => ({
+      id: layer.id,
+      name: layer.name,
+      kind: geometryKind(layer.geometry_type),
+      opacity: layer.opacity,
+      style: styleFor(layer),
+    });
+    const visibleIn = (folderId: string | null) =>
+      orderedLayers.filter((layer) => layer.visible && layer.folder_id === folderId).map(toEntry);
+
+    const groups: LegendGroup[] = [];
+    const ungrouped = visibleIn(null);
+    if (ungrouped.length) groups.push({ id: "ungrouped", name: null, depth: 0, entries: ungrouped });
+
+    const walk = (parentId: string | null, depth: number) => {
+      folders
+        .filter((folder) => folder.parent_id === parentId)
+        .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+        .forEach((folder) => {
+          const entries = visibleIn(folder.id);
+          if (entries.length) groups.push({ id: folder.id, name: folder.name, depth, entries });
+          walk(folder.id, depth + 1);
+        });
+    };
+    walk(null, 0);
+    return groups;
+  }, [orderedLayers, folders, styleFor]);
+
 
 
   const handleMoveEnd = useCallback(
@@ -553,6 +575,8 @@ function MapEditor() {
               <LayerPanel
                 layers={layers}
                 folders={folders}
+                styleFor={(layer) => styleFor(layer as LayerWithStyle)}
+
                 loading={loading}
                 errors={errors}
                 refreshingId={refreshLayer.isPending ? (refreshLayer.variables?.layer.id ?? null) : null}
@@ -631,7 +655,7 @@ function MapEditor() {
           {/* Printed-map overlay stack: title above the legend, top-left of the map. */}
           <div className="pointer-events-auto absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
             <MapTitleCard title={project?.title ?? ""} />
-            {showLegend && <MapLegend entries={legendEntries} />}
+            {showLegend && <MapLegend groups={legendGroups} />}
           </div>
 
 

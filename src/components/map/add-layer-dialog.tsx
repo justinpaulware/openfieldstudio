@@ -194,7 +194,7 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
   const handleArcgisAdd = async () => {
     setBusy(true);
     try {
-      const { summary } = await loadArcgisLayer({ data: { url: arcgisUrl } });
+      const { summary, truncated } = await loadArcgisLayer({ data: { url: arcgisUrl } });
       await insertLayer({
         name: arcgisName.trim() || summary.name,
         sourceType: "arcgis_rest",
@@ -204,7 +204,14 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
         bbox: summary.bbox,
         fields: summary.fields,
       });
-      toast.success("Service connected.");
+      if (truncated) {
+        toast.warning(
+          `Service connected, but only the first ${summary.featureCount.toLocaleString()} features were imported. Filter at the source for the rest.`,
+        );
+      } else {
+        toast.success("Service connected.");
+      }
+
       reset();
       onOpenChange(false);
       onCreated(summary.bbox);
@@ -255,7 +262,7 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
               )}
               <p className="mt-3 text-sm font-medium">Drop a .geojson file here</p>
               <p className="mt-1 font-secondary text-xs text-muted-foreground">
-                or click to browse — up to 25 MB, WGS84 coordinates
+                or click to browse — up to 50 MB, WGS84 coordinates
               </p>
               <input
                 type="file"

@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { geometryKind, resolveLayerStyle } from "@/lib/layer-style";
+import { geometryKind, resolveLayerStyle, type LayerStyle } from "@/lib/layer-style";
 import { LegendSwatch } from "./map-legend";
 import type { Tables } from "@/integrations/supabase/types";
 import type { LayerRow } from "./use-layer-data";
@@ -70,7 +70,7 @@ type StyleRow = Tables<"layer_styles">;
 export type PanelLayer = LayerRow & { layer_styles?: StyleRow[] | null };
 
 /** Legend swatch mirroring how the layer draws on the map. */
-function LayerSymbol({ layer }: { layer: PanelLayer }) {
+function LayerSymbol({ layer, style }: { layer: PanelLayer; style?: LayerStyle | undefined }) {
   return (
     <span
       className="flex h-4 w-4 shrink-0 items-center justify-center"
@@ -78,11 +78,12 @@ function LayerSymbol({ layer }: { layer: PanelLayer }) {
     >
       <LegendSwatch
         kind={geometryKind(layer.geometry_type)}
-        style={resolveLayerStyle(layer.layer_styles?.[0])}
+        style={style ?? resolveLayerStyle(layer.layer_styles?.[0])}
       />
     </span>
   );
 }
+
 
 function relativeTime(iso: string | null): string | null {
   if (!iso) return null;
@@ -203,7 +204,10 @@ function NameEditor({
 type Props = {
   layers: PanelLayer[];
   folders: FolderRow[];
+  /** Live style (including unsaved drafts) so the swatch matches the map. */
+  styleFor?: (layer: PanelLayer) => LayerStyle;
   loading: Record<string, boolean>;
+
   errors: Record<string, string | null>;
   refreshingId: string | null;
   selectedId: string | null;
@@ -229,7 +233,9 @@ type Props = {
 export function LayerPanel({
   layers,
   folders,
+  styleFor,
   loading,
+
   errors,
   refreshingId,
   selectedId,
@@ -446,7 +452,7 @@ export function LayerPanel({
           ) : error ? (
             <TriangleAlert className="h-4 w-4 shrink-0 text-destructive" />
           ) : (
-            <LayerSymbol layer={layer} />
+            <LayerSymbol layer={layer} style={styleFor?.(layer)} />
           )}
 
           <div className="min-w-0 flex-1">
