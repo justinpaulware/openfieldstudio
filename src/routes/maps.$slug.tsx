@@ -1,11 +1,16 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, ClientOnly, Link, notFound } from "@tanstack/react-router";
-import { useQueries } from "@tanstack/react-query";
-import { Loader2, MessageSquarePlus } from "lucide-react";
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
-import { getPublishedLayerData, getPublishedMap } from "@/lib/publish.functions";
+import type { PendingPin } from "@/components/comments/comment-composer";
+import { CommentPanel, type PublicComment } from "@/components/comments/comment-panel";
+import {
+  getPublishedLayerData,
+  getPublishedMap,
+  listApprovedComments,
+} from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import {
   MapLegend,
