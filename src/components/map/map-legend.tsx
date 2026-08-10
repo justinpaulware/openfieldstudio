@@ -109,14 +109,15 @@ export function LegendSwatch({ kind, style }: { kind: SimpleKind; style: LayerSt
 }
 
 export function MapLegend({
-  entries,
+  groups,
   className,
 }: {
-  entries: LegendEntry[];
+  groups: LegendGroup[];
   className?: string;
 }) {
   const [open, setOpen] = useState(true);
-  if (!entries.length) return null;
+  const visible = groups.filter((group) => group.entries.length > 0);
+  if (!visible.length) return null;
 
   return (
     <div
@@ -137,17 +138,29 @@ export function MapLegend({
         {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
       </button>
       {open && (
-        <ul className="max-h-56 space-y-1.5 overflow-y-auto border-t border-map-overlay-border px-3 py-2">
-          {entries.map((entry) => (
-            <li key={entry.id} className="flex items-center gap-2">
-              <span className="flex">
-                <LegendSwatch kind={entry.kind} style={entry.style} />
-              </span>
-              <span className="truncate text-xs">{entry.name}</span>
-            </li>
+        <div className="max-h-56 space-y-2 overflow-y-auto border-t border-map-overlay-border px-3 py-2">
+          {visible.map((group) => (
+            <div key={group.id} style={{ marginLeft: group.depth * 8 }}>
+              {group.name && (
+                <p className="mb-1 font-secondary text-[10px] font-semibold uppercase tracking-wide opacity-60">
+                  {group.name}
+                </p>
+              )}
+              <ul className="space-y-1.5">
+                {group.entries.map((entry) => (
+                  <li key={entry.id} className="flex items-center gap-2">
+                    <span className="flex">
+                      <LegendSwatch kind={entry.kind} style={entry.style} />
+                    </span>
+                    <span className="truncate text-xs">{entry.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
+
     </div>
   );
 }
