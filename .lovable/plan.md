@@ -46,3 +46,5 @@ The legend groups its entries the same way the Layers sidebar does: each folder 
 - `src/routes/_authenticated/projects.$projectId.map.tsx`: pass the existing `styleFor` into `LayerPanel`.
 - `src/components/map/style-panel.tsx`: `step={0.25}` on width sliders.
 - `src/lib/datasets.server.ts`: paged `loadArcgisGeoJSON`, per-page byte cap, feature cap, updated limit copy.
+- `src/components/map/map-legend.tsx`: legend takes grouped entries (folder name + entries); the map route builds them from the same flattened folder/layer order the sidebar uses.
+
