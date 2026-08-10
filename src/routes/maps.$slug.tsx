@@ -1,7 +1,7 @@
 import { lazy, Suspense, useMemo, useState } from "react";
 import { createFileRoute, ClientOnly, Link, notFound } from "@tanstack/react-router";
 import { useQueries } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { flattenLayerOrder } from "@/components/map/layer-panel";
 import {
   MapLegend,
   MapTitleCard,
-  LegendSwatch,
   type LegendEntry,
   type LegendGroup,
 } from "@/components/map/map-legend";
