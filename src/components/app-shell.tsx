@@ -19,14 +19,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 
-const items = [
+const navItems = [
   { title: "Projects", url: "/projects", icon: FolderKanban },
   { title: "Published maps", url: "/published", icon: Globe2 },
   { title: "Comments", url: "/comments", icon: MessageSquare },
-  { title: "Settings", url: "/settings", icon: Settings },
 ] as const;
 
 const HeaderSlotContext = createContext<HTMLElement | null>(null);
@@ -56,6 +55,36 @@ function useProfile() {
 
 function BrandMenu() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger className="-ml-1.5 flex items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <Layers className="h-4 w-4" />
+        </span>
+        <span className="font-display text-sm font-semibold">Open Field</span>
+        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={9} className="w-60">
+        {navItems.map((item) => (
+          <DropdownMenuItem key={item.title} asChild>
+            <Link
+              to={item.url}
+              className={
+                pathname.startsWith(item.url) ? "font-semibold text-foreground" : undefined
+              }
+            >
+              <item.icon className="mr-2 h-4 w-4" />
+              {item.title}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+function AccountMenu() {
   const { data: profile } = useProfile();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -71,30 +100,19 @@ function BrandMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Layers className="h-4 w-4" />
-        </span>
-        <span className="font-display text-sm font-semibold">Open Field</span>
-        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+      <DropdownMenuTrigger
+        aria-label="Account menu"
+        className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Avatar className="h-7 w-7">
+          {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
+          <AvatarFallback className="text-xs">{initials}</AvatarFallback>
+        </Avatar>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-60">
-        {items.map((item) => (
-          <DropdownMenuItem key={item.title} asChild>
-            <Link
-              to={item.url}
-              className={
-                pathname.startsWith(item.url) ? "font-semibold text-foreground" : undefined
-              }
-            >
-              <item.icon className="mr-2 h-4 w-4" />
-              {item.title}
-            </Link>
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
+      <DropdownMenuContent align="end" sideOffset={9} className="w-60">
         <DropdownMenuLabel className="flex items-center gap-2 font-normal">
           <Avatar className="h-7 w-7 shrink-0">
+            {profile?.avatar_url ? <AvatarImage src={profile.avatar_url} alt="" /> : null}
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
           <span className="min-w-0">
@@ -104,6 +122,13 @@ function BrandMenu() {
             <span className="block truncate text-xs text-muted-foreground">{profile?.email}</span>
           </span>
         </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => void signOut()}>
           <LogOut className="mr-2 h-4 w-4" />
           Sign out
@@ -119,9 +144,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <HeaderSlotContext.Provider value={slot}>
       <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
-        <header className="flex min-h-12 flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-border px-3 py-1">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-x-6 border-b border-border px-4">
           <BrandMenu />
-          <div ref={setSlot} className="flex items-center gap-1" />
+          <div className="flex items-center gap-3">
+            <div ref={setSlot} className="flex items-center gap-1" />
+            <AccountMenu />
+          </div>
         </header>
         <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
       </div>

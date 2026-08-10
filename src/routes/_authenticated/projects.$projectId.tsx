@@ -76,7 +76,7 @@ function ProjectLayout() {
           </nav>
         </AppHeaderSlot>
 
-        <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b border-border px-4 py-1.5">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-x-6 border-b border-border px-4">
           <div className="flex min-w-0 items-center gap-3">
             <Link
               to="/projects"
