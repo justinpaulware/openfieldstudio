@@ -756,7 +756,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       );
     }
 
-    if (layer.geometryType === "point" || layer.geometryType === "mixed") {
+    if (!mask && (layer.geometryType === "point" || layer.geometryType === "mixed")) {
       const pointFilter = withCategories(pointBase);
       // Square / triangle markers are rasterised icons, so a per-feature color
       // expression cannot apply — categorized layers fall back to circles.
