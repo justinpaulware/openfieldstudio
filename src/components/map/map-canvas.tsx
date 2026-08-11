@@ -23,7 +23,9 @@ import {
   formatPopupValue,
   type LayerStyle,
   type PopupSpec,
+  activeMask,
 } from "@/lib/layer-style";
+import { buildMaskGeometry } from "@/lib/mask-geometry";
 
 
 export type RenderLayer = {
