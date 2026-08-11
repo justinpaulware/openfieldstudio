@@ -198,6 +198,7 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   mode: "single",
   categories: null,
   graduated: null,
+  mask: DEFAULT_MASK,
   labels: DEFAULT_LABELS,
   popup: DEFAULT_POPUP,
 };
