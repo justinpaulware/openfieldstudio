@@ -82,6 +82,32 @@ export function LegendSwatch({
   colorOverride?: string;
   strokeOverride?: string;
 }) {
+  const mask = activeMask(style);
+  if (mask) {
+    const maskFill = isTransparent(mask.color) ? "none" : paintColor(mask.color);
+    const boundary = isTransparent(mask.boundaryColor) ? "none" : paintColor(mask.boundaryColor);
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
+        {/* Mask surrounding a clear "window" — the visible study area. */}
+        <path
+          d="M1.5 2.5 H16.5 V15.5 H1.5 Z M5.5 6 H12.5 V12 H5.5 Z"
+          fill={maskFill}
+          fillOpacity={mask.opacity}
+          fillRule="evenodd"
+        />
+        <rect
+          x="5.5"
+          y="6"
+          width="7"
+          height="6"
+          fill="none"
+          stroke={boundary}
+          strokeWidth={Math.max(1, Math.min(mask.boundaryWidth, 2))}
+        />
+      </svg>
+    );
+  }
+
   const dash = dashArray(style.dashPattern);
   const dashProp = dash
     ? dash.map((n) => n * Math.max(1, style.strokeWidth)).join(" ")
