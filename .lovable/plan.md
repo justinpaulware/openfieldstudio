@@ -2,14 +2,20 @@
 
 Roadmap acknowledged: Single Symbol, Categories, Graduated ship today; Proportional Symbols, Heatmap and Mask Layer come next, in that priority order. This step builds **Mask Layer** and lays out the six-slot Style Type grid so the remaining two drop in without a redesign.
 
-## Style type grid
+## Style type dropdown
 
-The Style type row becomes a 3x2 grid so it stays readable as types are added:
+The Style type buttons become a single dropdown, so the list stays compact as types are added:
 
 ```text
-Single symbol   Categories      Graduated
-Proportional    Heatmap         Mask layer
+Style type  [ Single symbol        v ]
+              Single symbol
+              Categories
+              Graduated
+              Proportional
+              Heatmap
+              Mask layer
 ```
+
 
 - Proportional and Heatmap render as visible but disabled with a "Coming next" tooltip this step.
 - Mask layer only enables for polygon (or mixed) layers; on point/line layers it is disabled with a short explanation.
