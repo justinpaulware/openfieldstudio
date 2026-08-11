@@ -820,6 +820,17 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   }
 
+  // "Basemap only" masks slide beneath every Open Field data layer.
+  if (basemapMasks.length) {
+    const ordered = (map.getStyle().layers ?? []).map((l) => l.id);
+    const firstData = ordered.find((id) => id.startsWith("of-") && !basemapMasks.includes(id));
+    for (const id of basemapMasks) {
+      if (map.getLayer(id)) map.moveLayer(id, firstData);
+    }
+  }
+
+
+
   // Labels sit above every data layer, added last in reverse draw order.
   for (const layer of [...layers].reverse()) {
     const labelId = LYR(layer.id, "label");
