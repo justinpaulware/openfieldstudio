@@ -130,6 +130,7 @@ export type LayerStyle = {
   mode: StyleMode;
   categories: CategorySpec | null;
   graduated: GraduatedSpec | null;
+  mask: MaskSpec;
   labels: LabelSpec;
   popup: PopupSpec;
 };
