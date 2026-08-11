@@ -12,7 +12,25 @@ export type StyleRelation = StyleRow | StyleRow[] | null | undefined;
 export type MarkerShape = "circle" | "ring" | "square" | "triangle";
 export type DashPattern = "solid" | "dashed" | "dotted";
 export type LineCapStyle = "butt" | "round" | "square";
-export type StyleMode = "single" | "categorized" | "graduated";
+export type StyleMode =
+  | "single"
+  | "categorized"
+  | "graduated"
+  | "proportional"
+  | "heatmap"
+  | "mask";
+
+/** Mask (inverted polygon): everything outside the polygons is covered. */
+export type MaskScope = "all" | "basemap";
+
+export type MaskSpec = {
+  color: string;
+  opacity: number;
+  scope: MaskScope;
+  boundaryColor: string;
+  boundaryWidth: number;
+  boundaryDash: DashPattern;
+};
 
 export type CategoryEntry = {
   /** Stringified attribute value. */
