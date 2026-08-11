@@ -185,6 +185,15 @@ export const DEFAULT_POPUP: PopupSpec = {
   maxWidth: 280,
 };
 
+export const DEFAULT_MASK: MaskSpec = {
+  color: "#1b1d22",
+  opacity: 0.6,
+  scope: "all",
+  boundaryColor: "#f5c518",
+  boundaryWidth: 2,
+  boundaryDash: "solid",
+};
+
 export const DEFAULT_LAYER_STYLE: LayerStyle = {
   fillColor: "#f5c518",
   strokeColor: "#1b1d22",
