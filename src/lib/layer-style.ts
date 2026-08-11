@@ -295,7 +295,34 @@ export function paletteColors(id: string, reversed = false): string[] {
 const MARKER_SHAPES: MarkerShape[] = ["circle", "ring", "square", "triangle"];
 const DASH_PATTERNS: DashPattern[] = ["solid", "dashed", "dotted"];
 const LINE_CAPS: LineCapStyle[] = ["butt", "round", "square"];
-const STYLE_MODES: StyleMode[] = ["single", "categorized", "graduated"];
+const STYLE_MODES: StyleMode[] = [
+  "single",
+  "categorized",
+  "graduated",
+  "proportional",
+  "heatmap",
+  "mask",
+];
+const MASK_SCOPES: MaskScope[] = ["all", "basemap"];
+
+function parseMask(value: unknown): MaskSpec {
+  if (!value || typeof value !== "object") return DEFAULT_MASK;
+  const raw = value as Record<string, unknown>;
+  return {
+    color: typeof raw["color"] === "string" ? raw["color"] : DEFAULT_MASK.color,
+    opacity: num(raw["opacity"], DEFAULT_MASK.opacity),
+    scope: pick(raw["scope"], MASK_SCOPES, DEFAULT_MASK.scope),
+    boundaryColor:
+      typeof raw["boundaryColor"] === "string" ? raw["boundaryColor"] : DEFAULT_MASK.boundaryColor,
+    boundaryWidth: num(raw["boundaryWidth"], DEFAULT_MASK.boundaryWidth),
+    boundaryDash: pick(raw["boundaryDash"], DASH_PATTERNS, DEFAULT_MASK.boundaryDash),
+  };
+}
+
+/** Mask styling is only live in mask mode. */
+export function activeMask(style: LayerStyle): MaskSpec | null {
+  return style.mode === "mask" ? style.mask : null;
+}
 const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
 const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "above", "below", "left", "right"];
