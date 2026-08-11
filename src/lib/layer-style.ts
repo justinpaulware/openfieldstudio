@@ -510,6 +510,7 @@ export function styleToRow(style: LayerStyle) {
       strokeOpacity: style.strokeOpacity,
       categories: style.categories,
       graduated: style.graduated,
+      mask: style.mask,
       labels: style.labels,
       popup: style.popup,
     },
