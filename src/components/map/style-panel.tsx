@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Check, ChevronDown, Loader2, RotateCcw, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { activeCategories, activeGraduated, type LayerStyle, type SimpleKind } from "@/lib/layer-style";
+import { activeCategories, activeGraduated, activeMask, type LayerStyle, type SimpleKind } from "@/lib/layer-style";
 import { CategoryChip, LegendSwatch, categoryRows } from "./map-legend";
 import { StyleSymbology, type FieldValue } from "./style-symbology";
 import { StyleLabels } from "./style-labels";
