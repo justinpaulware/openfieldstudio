@@ -88,6 +88,7 @@ export function StylePanel({
   const rows = categoryRows(style);
   const categorized = !!activeCategories(style);
   const graduated = !!activeGraduated(style);
+  const masked = !!activeMask(style);
 
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-card/40 lg:flex">
