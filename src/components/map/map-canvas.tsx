@@ -735,7 +735,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       );
     }
 
-    if (layer.geometryType === "line" || layer.geometryType === "mixed") {
+    if (!mask && (layer.geometryType === "line" || layer.geometryType === "mixed")) {
       ensure(LYR(layer.id, "line"), {
         id: LYR(layer.id, "line"),
         type: "line",
