@@ -8,6 +8,7 @@ import type { LayerStyle, SimpleKind } from "@/lib/layer-style";
 import {
   activeCategories,
   activeGraduated,
+  activeMask,
   classLabel,
   categoryDrives,
   dashArray,
