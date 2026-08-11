@@ -101,7 +101,7 @@ export function StylePanel({
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">{layerName}</h2>
             <p className="font-secondary text-[11px] capitalize text-muted-foreground">
-              {kind} · {categorized ? "categories" : graduated ? "graduated" : "single symbol"}
+              {kind} · {categorized ? "categories" : graduated ? "graduated" : masked ? "mask layer" : "single symbol"}
             </p>
           </div>
         </div>
