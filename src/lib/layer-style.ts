@@ -471,7 +471,9 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
       ? "single"
       : saved === "graduated" && !graduated
         ? "single"
-        : saved;
+        : saved === "proportional" || saved === "heatmap"
+          ? "single"
+          : saved;
   return {
     fillColor: row?.fill_color ?? DEFAULT_LAYER_STYLE.fillColor,
     strokeColor: row?.stroke_color ?? DEFAULT_LAYER_STYLE.strokeColor,
@@ -485,6 +487,7 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
     mode,
     categories,
     graduated,
+    mask: parseMask(config["mask"]),
     labels: parseLabels(config["labels"]),
     popup: parsePopup(config["popup"]),
   };
