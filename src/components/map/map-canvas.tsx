@@ -651,7 +651,59 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     const lineBase = ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false];
     const pointBase = ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false];
 
-    if (layer.geometryType === "polygon" || layer.geometryType === "mixed") {
+    // Mask (inverted polygon): paint everything outside the study area.
+    const mask = activeMask(style);
+    const maskSourceId = `of-mask-src-${layer.id}`;
+    const maskLayerId = LYR(layer.id, "maskfill");
+    if (mask) {
+      const inverted = buildMaskGeometry(layer.data);
+      const maskSource = map.getSource(maskSourceId) as maplibregl.GeoJSONSource | undefined;
+      if (maskSource) maskSource.setData(inverted as never);
+      else map.addSource(maskSourceId, { type: "geojson", data: inverted as never });
+
+      ensure(maskLayerId, { id: maskLayerId, type: "fill", source: maskSourceId });
+      map.setLayoutProperty(maskLayerId, "visibility", visibility);
+      map.setPaintProperty(maskLayerId, "fill-color", paintColor(mask.color));
+      map.setPaintProperty(
+        maskLayerId,
+        "fill-opacity",
+        isTransparent(mask.color) ? 0 : mask.opacity,
+      );
+      if (mask.scope === "basemap") basemapMasks.push(maskLayerId);
+
+      // Boundary of the study area, drawn from the original geometry.
+      const boundaryId = LYR(layer.id, "outline");
+      ensure(boundaryId, {
+        id: boundaryId,
+        type: "line",
+        source: sourceId,
+        filter: polygonBase as maplibregl.FilterSpecification,
+      });
+      map.setFilter(boundaryId, polygonBase as maplibregl.FilterSpecification);
+      map.setLayoutProperty(boundaryId, "visibility", visibility);
+      map.setPaintProperty(boundaryId, "line-color", paintColor(mask.boundaryColor));
+      map.setPaintProperty(boundaryId, "line-width", mask.boundaryWidth);
+      map.setPaintProperty(
+        boundaryId,
+        "line-opacity",
+        isTransparent(mask.boundaryColor) ? 0 : 1,
+      );
+      map.setPaintProperty(
+        boundaryId,
+        "line-dasharray",
+        (dashArray(mask.boundaryDash) ?? undefined) as never,
+      );
+
+      removeLayerIfPresent(map, LYR(layer.id, "fill"));
+      removeLayerIfPresent(map, LYR(layer.id, "line"));
+      removeLayerIfPresent(map, LYR(layer.id, "circle"));
+      removeLayerIfPresent(map, LYR(layer.id, "symbol"));
+    } else {
+      removeLayerIfPresent(map, maskLayerId);
+      if (map.getSource(maskSourceId)) map.removeSource(maskSourceId);
+    }
+
+    if (!mask && (layer.geometryType === "polygon" || layer.geometryType === "mixed")) {
       ensure(LYR(layer.id, "fill"), {
         id: LYR(layer.id, "fill"),
         type: "fill",
