@@ -12,7 +12,25 @@ export type StyleRelation = StyleRow | StyleRow[] | null | undefined;
 export type MarkerShape = "circle" | "ring" | "square" | "triangle";
 export type DashPattern = "solid" | "dashed" | "dotted";
 export type LineCapStyle = "butt" | "round" | "square";
-export type StyleMode = "single" | "categorized" | "graduated";
+export type StyleMode =
+  | "single"
+  | "categorized"
+  | "graduated"
+  | "proportional"
+  | "heatmap"
+  | "mask";
+
+/** Mask (inverted polygon): everything outside the polygons is covered. */
+export type MaskScope = "all" | "basemap";
+
+export type MaskSpec = {
+  color: string;
+  opacity: number;
+  scope: MaskScope;
+  boundaryColor: string;
+  boundaryWidth: number;
+  boundaryDash: DashPattern;
+};
 
 export type CategoryEntry = {
   /** Stringified attribute value. */
@@ -112,6 +130,7 @@ export type LayerStyle = {
   mode: StyleMode;
   categories: CategorySpec | null;
   graduated: GraduatedSpec | null;
+  mask: MaskSpec;
   labels: LabelSpec;
   popup: PopupSpec;
 };
@@ -166,6 +185,15 @@ export const DEFAULT_POPUP: PopupSpec = {
   maxWidth: 280,
 };
 
+export const DEFAULT_MASK: MaskSpec = {
+  color: "#1b1d22",
+  opacity: 0.6,
+  scope: "all",
+  boundaryColor: "#f5c518",
+  boundaryWidth: 2,
+  boundaryDash: "solid",
+};
+
 export const DEFAULT_LAYER_STYLE: LayerStyle = {
   fillColor: "#f5c518",
   strokeColor: "#1b1d22",
@@ -179,6 +207,7 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   mode: "single",
   categories: null,
   graduated: null,
+  mask: DEFAULT_MASK,
   labels: DEFAULT_LABELS,
   popup: DEFAULT_POPUP,
 };
@@ -266,7 +295,34 @@ export function paletteColors(id: string, reversed = false): string[] {
 const MARKER_SHAPES: MarkerShape[] = ["circle", "ring", "square", "triangle"];
 const DASH_PATTERNS: DashPattern[] = ["solid", "dashed", "dotted"];
 const LINE_CAPS: LineCapStyle[] = ["butt", "round", "square"];
-const STYLE_MODES: StyleMode[] = ["single", "categorized", "graduated"];
+const STYLE_MODES: StyleMode[] = [
+  "single",
+  "categorized",
+  "graduated",
+  "proportional",
+  "heatmap",
+  "mask",
+];
+const MASK_SCOPES: MaskScope[] = ["all", "basemap"];
+
+function parseMask(value: unknown): MaskSpec {
+  if (!value || typeof value !== "object") return DEFAULT_MASK;
+  const raw = value as Record<string, unknown>;
+  return {
+    color: typeof raw["color"] === "string" ? raw["color"] : DEFAULT_MASK.color,
+    opacity: num(raw["opacity"], DEFAULT_MASK.opacity),
+    scope: pick(raw["scope"], MASK_SCOPES, DEFAULT_MASK.scope),
+    boundaryColor:
+      typeof raw["boundaryColor"] === "string" ? raw["boundaryColor"] : DEFAULT_MASK.boundaryColor,
+    boundaryWidth: num(raw["boundaryWidth"], DEFAULT_MASK.boundaryWidth),
+    boundaryDash: pick(raw["boundaryDash"], DASH_PATTERNS, DEFAULT_MASK.boundaryDash),
+  };
+}
+
+/** Mask styling is only live in mask mode. */
+export function activeMask(style: LayerStyle): MaskSpec | null {
+  return style.mode === "mask" ? style.mask : null;
+}
 const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
 const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "above", "below", "left", "right"];
@@ -415,7 +471,9 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
       ? "single"
       : saved === "graduated" && !graduated
         ? "single"
-        : saved;
+        : saved === "proportional" || saved === "heatmap"
+          ? "single"
+          : saved;
   return {
     fillColor: row?.fill_color ?? DEFAULT_LAYER_STYLE.fillColor,
     strokeColor: row?.stroke_color ?? DEFAULT_LAYER_STYLE.strokeColor,
@@ -429,6 +487,7 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
     mode,
     categories,
     graduated,
+    mask: parseMask(config["mask"]),
     labels: parseLabels(config["labels"]),
     popup: parsePopup(config["popup"]),
   };
@@ -451,6 +510,7 @@ export function styleToRow(style: LayerStyle) {
       strokeOpacity: style.strokeOpacity,
       categories: style.categories,
       graduated: style.graduated,
+      mask: style.mask,
       labels: style.labels,
       popup: style.popup,
     },

@@ -23,7 +23,9 @@ import {
   formatPopupValue,
   type LayerStyle,
   type PopupSpec,
+  activeMask,
 } from "@/lib/layer-style";
+import { buildMaskGeometry } from "@/lib/mask-geometry";
 
 
 export type RenderLayer = {
@@ -602,15 +604,18 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   // Drop anything we own that no longer belongs.
   for (const layer of map.getStyle().layers ?? []) {
-    const match = /^of-(fill|line|circle|outline|symbol|label)-(.+)$/.exec(layer.id);
+    const match = /^of-(fill|line|circle|outline|symbol|label|maskfill)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
-    const match = /^of-src-(.+)$/.exec(sourceId);
+    const match = /^of-(?:mask-)?src-(.+)$/.exec(sourceId);
     if (match && !keep.has(match[1] as string)) {
       if (map.getSource(sourceId)) map.removeSource(sourceId);
     }
   }
+
+  /** Masks scoped to "basemap only" get pushed under every data layer afterwards. */
+  const basemapMasks: string[] = [];
 
   // Add / update in draw order (first item on top => add in reverse).
   for (const layer of [...layers].reverse()) {
@@ -648,7 +653,59 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     const lineBase = ["match", ["geometry-type"], ["LineString", "MultiLineString"], true, false];
     const pointBase = ["match", ["geometry-type"], ["Point", "MultiPoint"], true, false];
 
-    if (layer.geometryType === "polygon" || layer.geometryType === "mixed") {
+    // Mask (inverted polygon): paint everything outside the study area.
+    const mask = activeMask(style);
+    const maskSourceId = `of-mask-src-${layer.id}`;
+    const maskLayerId = LYR(layer.id, "maskfill");
+    if (mask) {
+      const inverted = buildMaskGeometry(layer.data);
+      const maskSource = map.getSource(maskSourceId) as maplibregl.GeoJSONSource | undefined;
+      if (maskSource) maskSource.setData(inverted as never);
+      else map.addSource(maskSourceId, { type: "geojson", data: inverted as never });
+
+      ensure(maskLayerId, { id: maskLayerId, type: "fill", source: maskSourceId });
+      map.setLayoutProperty(maskLayerId, "visibility", visibility);
+      map.setPaintProperty(maskLayerId, "fill-color", paintColor(mask.color));
+      map.setPaintProperty(
+        maskLayerId,
+        "fill-opacity",
+        isTransparent(mask.color) ? 0 : mask.opacity,
+      );
+      if (mask.scope === "basemap") basemapMasks.push(maskLayerId);
+
+      // Boundary of the study area, drawn from the original geometry.
+      const boundaryId = LYR(layer.id, "outline");
+      ensure(boundaryId, {
+        id: boundaryId,
+        type: "line",
+        source: sourceId,
+        filter: polygonBase as maplibregl.FilterSpecification,
+      });
+      map.setFilter(boundaryId, polygonBase as maplibregl.FilterSpecification);
+      map.setLayoutProperty(boundaryId, "visibility", visibility);
+      map.setPaintProperty(boundaryId, "line-color", paintColor(mask.boundaryColor));
+      map.setPaintProperty(boundaryId, "line-width", mask.boundaryWidth);
+      map.setPaintProperty(
+        boundaryId,
+        "line-opacity",
+        isTransparent(mask.boundaryColor) ? 0 : 1,
+      );
+      map.setPaintProperty(
+        boundaryId,
+        "line-dasharray",
+        (dashArray(mask.boundaryDash) ?? undefined) as never,
+      );
+
+      removeLayerIfPresent(map, LYR(layer.id, "fill"));
+      removeLayerIfPresent(map, LYR(layer.id, "line"));
+      removeLayerIfPresent(map, LYR(layer.id, "circle"));
+      removeLayerIfPresent(map, LYR(layer.id, "symbol"));
+    } else {
+      removeLayerIfPresent(map, maskLayerId);
+      if (map.getSource(maskSourceId)) map.removeSource(maskSourceId);
+    }
+
+    if (!mask && (layer.geometryType === "polygon" || layer.geometryType === "mixed")) {
       ensure(LYR(layer.id, "fill"), {
         id: LYR(layer.id, "fill"),
         type: "fill",
@@ -678,7 +735,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       );
     }
 
-    if (layer.geometryType === "line" || layer.geometryType === "mixed") {
+    if (!mask && (layer.geometryType === "line" || layer.geometryType === "mixed")) {
       ensure(LYR(layer.id, "line"), {
         id: LYR(layer.id, "line"),
         type: "line",
@@ -699,7 +756,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       );
     }
 
-    if (layer.geometryType === "point" || layer.geometryType === "mixed") {
+    if (!mask && (layer.geometryType === "point" || layer.geometryType === "mixed")) {
       const pointFilter = withCategories(pointBase);
       // Square / triangle markers are rasterised icons, so a per-feature color
       // expression cannot apply — categorized layers fall back to circles.
@@ -762,6 +819,17 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     }
 
   }
+
+  // "Basemap only" masks slide beneath every Open Field data layer.
+  if (basemapMasks.length) {
+    const ordered = (map.getStyle().layers ?? []).map((l) => l.id);
+    const firstData = ordered.find((id) => id.startsWith("of-") && !basemapMasks.includes(id));
+    for (const id of basemapMasks) {
+      if (map.getLayer(id)) map.moveLayer(id, firstData);
+    }
+  }
+
+
 
   // Labels sit above every data layer, added last in reverse draw order.
   for (const layer of [...layers].reverse()) {

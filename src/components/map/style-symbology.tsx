@@ -2,6 +2,13 @@ import { ArrowLeftRight, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_PALETTES,
@@ -738,34 +745,115 @@ function GraduatedEditor({
   );
 }
 
+/** Mask (inverted polygon) controls. */
+function MaskEditor({
+  style,
+  onChange,
+}: {
+  style: LayerStyle;
+  onChange: (patch: Partial<LayerStyle>) => void;
+}) {
+  const spec = style.mask;
+  const set = (patch: Partial<typeof spec>) => onChange({ mask: { ...spec, ...patch } });
+
+  return (
+    <div className="space-y-4">
+      <p className="font-secondary text-[11px] leading-snug text-muted-foreground">
+        Everything inside the polygons stays visible; everything outside is covered.
+      </p>
+      <ColorField label="Mask color" value={spec.color} onChange={(color) => set({ color })} />
+      <SliderField
+        label="Mask opacity"
+        value={Math.round(spec.opacity * 100)}
+        min={0}
+        max={100}
+        step={5}
+        suffix="%"
+        onChange={(value) => set({ opacity: value / 100 })}
+      />
+      <ColorField
+        label="Boundary color"
+        value={spec.boundaryColor}
+        onChange={(boundaryColor) => set({ boundaryColor })}
+      />
+      <SliderField
+        label="Boundary width"
+        value={spec.boundaryWidth}
+        min={0}
+        max={8}
+        step={0.25}
+        suffix="px"
+        onChange={(boundaryWidth) => set({ boundaryWidth })}
+      />
+      <OptionRow<DashPattern>
+        label="Boundary pattern"
+        value={spec.boundaryDash}
+        onChange={(boundaryDash) => set({ boundaryDash })}
+        options={[
+          { value: "solid", label: "Solid" },
+          { value: "dashed", label: "Dashed" },
+          { value: "dotted", label: "Dotted" },
+        ]}
+      />
+      <OptionRow<"all" | "basemap">
+        label="Mask scope"
+        value={spec.scope}
+        onChange={(scope) => set({ scope })}
+        options={[
+          { value: "all", label: "Entire map" },
+          { value: "basemap", label: "Basemap only" },
+        ]}
+      />
+    </div>
+  );
+}
+
 export function StyleSymbology(props: Props) {
-  const { style, onChange } = props;
-  const modes: { value: StyleMode; label: string }[] = [
+  const { style, onChange, kind } = props;
+  const polygonal = kind === "polygon";
+  const modes: { value: StyleMode; label: string; disabled?: boolean; note?: string }[] = [
     { value: "single", label: "Single symbol" },
     { value: "categorized", label: "Categories" },
     { value: "graduated", label: "Graduated" },
+    { value: "proportional", label: "Proportional", disabled: true, note: "Coming next" },
+    { value: "heatmap", label: "Heatmap", disabled: true, note: "Coming next" },
+    {
+      value: "mask",
+      label: "Mask layer",
+      disabled: !polygonal,
+      ...(polygonal ? {} : { note: "Polygons only" }),
+    },
   ];
+  const masked = style.mode === "mask";
 
   return (
     <div className="space-y-4">
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Style type</Label>
-        <div className="flex gap-1">
-          {modes.map((mode) => (
-            <button
-              key={mode.value}
-              type="button"
-              title={mode.label}
-              onClick={() => onChange({ mode: mode.value })}
-              className={cn(
-                "flex-1 rounded-md border border-border px-2 py-1 text-[11px] transition-colors hover:bg-muted",
-                style.mode === mode.value && "border-primary/60 bg-primary/15 text-foreground",
-              )}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
+        <Select value={style.mode} onValueChange={(mode) => onChange({ mode: mode as StyleMode })}>
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {modes.map((mode) => (
+              <SelectItem
+                key={mode.value}
+                value={mode.value}
+                disabled={mode.disabled ?? false}
+                className="text-xs"
+              >
+                <span className="flex items-center gap-2">
+                  {mode.label}
+                  {mode.note && (
+                    <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {mode.note}
+                    </span>
+                  )}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {style.mode === "categorized" && (
@@ -789,14 +877,20 @@ export function StyleSymbology(props: Props) {
         />
       )}
 
-      <div className="space-y-4 border-t border-border pt-4">
-        <GeometryControls
-          {...props}
-          showPrimaryColor={!categoryDrives(style, "fill")}
-          showStrokeColor={!categoryDrives(style, "stroke")}
-        />
-      </div>
+      {masked ? (
+        <div className="space-y-4 border-t border-border pt-4">
+          <MaskEditor style={style} onChange={onChange} />
+        </div>
+      ) : (
+        <div className="space-y-4 border-t border-border pt-4">
+          <GeometryControls
+            {...props}
+            showPrimaryColor={!categoryDrives(style, "fill")}
+            showStrokeColor={!categoryDrives(style, "stroke")}
+          />
+        </div>
+      )}
     </div>
   );
-
 }
+

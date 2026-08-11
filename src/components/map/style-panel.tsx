@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Check, ChevronDown, Loader2, RotateCcw, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { activeCategories, activeGraduated, type LayerStyle, type SimpleKind } from "@/lib/layer-style";
+import { activeCategories, activeGraduated, activeMask, type LayerStyle, type SimpleKind } from "@/lib/layer-style";
 import { CategoryChip, LegendSwatch, categoryRows } from "./map-legend";
 import { StyleSymbology, type FieldValue } from "./style-symbology";
 import { StyleLabels } from "./style-labels";
@@ -88,6 +88,7 @@ export function StylePanel({
   const rows = categoryRows(style);
   const categorized = !!activeCategories(style);
   const graduated = !!activeGraduated(style);
+  const masked = !!activeMask(style);
 
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-card/40 lg:flex">
@@ -101,7 +102,7 @@ export function StylePanel({
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">{layerName}</h2>
             <p className="font-secondary text-[11px] capitalize text-muted-foreground">
-              {kind} · {categorized ? "categories" : graduated ? "graduated" : "single symbol"}
+              {kind} · {categorized ? "categories" : graduated ? "graduated" : masked ? "mask layer" : "single symbol"}
             </p>
           </div>
         </div>
