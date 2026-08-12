@@ -138,7 +138,7 @@ function ProjectComments() {
   function select(id: string) {
     setSelectedId(id);
     const target = (comments ?? []).find((c) => c.id === id);
-    if (target) mapRef.current?.flyTo?.([target.lng, target.lat], 14);
+    if (target) mapRef.current?.flyTo(target.lng, target.lat);
   }
 
   return (
