@@ -1,14 +1,6 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  FolderKanban,
-  Globe2,
-  MessageSquare,
-  Settings,
-  Layers,
-  LogOut,
-  ChevronDown,
-} from "lucide-react";
+import { FolderKanban, Settings, Layers, LogOut, ChevronDown } from "lucide-react";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -21,12 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-
-const navItems = [
-  { title: "Projects", url: "/projects", icon: FolderKanban },
-  { title: "Published maps", url: "/published", icon: Globe2 },
-  { title: "Comments", url: "/comments", icon: MessageSquare },
-] as const;
+import { useRecentProjects } from "@/components/projects/project-switcher";
 
 const HeaderSlotContext = createContext<HTMLElement | null>(null);
 
@@ -53,8 +40,20 @@ function useProfile() {
   });
 }
 
+async function signOutAndRedirect(
+  queryClient: ReturnType<typeof useQueryClient>,
+  navigate: ReturnType<typeof useNavigate>,
+) {
+  await queryClient.cancelQueries();
+  queryClient.clear();
+  await supabase.auth.signOut();
+  navigate({ to: "/auth", replace: true });
+}
+
 function BrandMenu() {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { data: recent } = useRecentProjects();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   return (
     <DropdownMenu>
@@ -66,23 +65,48 @@ function BrandMenu() {
         <ChevronDown className="h-4 w-4 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={9} className="w-60">
-        {navItems.map((item) => (
-          <DropdownMenuItem key={item.title} asChild>
+        <DropdownMenuLabel className="font-secondary text-xs text-muted-foreground">
+          Recent projects
+        </DropdownMenuLabel>
+        {(recent ?? []).length === 0 && (
+          <p className="px-2 py-1.5 font-secondary text-xs text-muted-foreground">
+            No projects yet.
+          </p>
+        )}
+        {(recent ?? []).map((project) => (
+          <DropdownMenuItem key={project.id} asChild>
             <Link
-              to={item.url}
-              className={
-                pathname.startsWith(item.url) ? "font-semibold text-foreground" : undefined
-              }
+              to="/projects/$projectId/map"
+              params={{ projectId: project.id }}
+              className="truncate"
             >
-              <item.icon className="mr-2 h-4 w-4" />
-              {item.title}
+              {project.title}
             </Link>
           </DropdownMenuItem>
         ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link to="/projects">
+            <FolderKanban className="mr-2 h-4 w-4" />
+            All projects →
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/settings">
+            <Settings className="mr-2 h-4 w-4" />
+            Settings →
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => void signOutAndRedirect(queryClient, navigate)}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
 
 function AccountMenu() {
   const { data: profile } = useProfile();

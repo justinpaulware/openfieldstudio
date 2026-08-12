@@ -1,22 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { ProjectGallery } from "@/components/projects/project-gallery";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/published")({
-  head: () => ({
-    meta: [
-      { title: "Published maps — Open Field" },
-      {
-        name: "description",
-        content: "See which of your Open Field projects are live and shareable.",
-      },
-      { property: "og:title", content: "Published maps — Open Field" },
-      { property: "og:description", content: "Your live, shareable webmaps." },
-    ],
-  }),
-  component: PublishedPage,
+  // Publishing now lives inside each project's Publish tab.
+  beforeLoad: () => {
+    throw redirect({ to: "/projects", replace: true });
+  },
 });
-
-function PublishedPage() {
-  return <ProjectGallery mode="published" />;
-}
