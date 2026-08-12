@@ -20,6 +20,7 @@ import { Route as MapsSlugRouteImport } from './routes/maps.$slug'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProjectsProjectIdRouteImport } from './routes/_authenticated/projects.$projectId'
 import { Route as AuthenticatedProjectsProjectIdIndexRouteImport } from './routes/_authenticated/projects.$projectId.index'
+import { Route as AuthenticatedProjectsProjectIdCommentsRouteImport } from './routes/_authenticated/projects.$projectId.comments'
 import { Route as AuthenticatedProjectsProjectIdDetailsRouteImport } from './routes/_authenticated/projects.$projectId.details'
 import { Route as AuthenticatedProjectsProjectIdMapRouteImport } from './routes/_authenticated/projects.$projectId.map'
 import { Route as AuthenticatedProjectsProjectIdPublishRouteImport } from './routes/_authenticated/projects.$projectId.publish'
@@ -83,6 +84,12 @@ const AuthenticatedProjectsProjectIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
   } as any)
+const AuthenticatedProjectsProjectIdCommentsRoute =
+  AuthenticatedProjectsProjectIdCommentsRouteImport.update({
+    id: '/comments',
+    path: '/comments',
+    getParentRoute: () => AuthenticatedProjectsProjectIdRoute,
+  } as any)
 const AuthenticatedProjectsProjectIdDetailsRoute =
   AuthenticatedProjectsProjectIdDetailsRouteImport.update({
     id: '/details',
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/maps/$slug': typeof MapsSlugRoute
   '/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/comments': typeof AuthenticatedProjectsProjectIdCommentsRoute
   '/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
   '/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
   '/projects/$projectId/publish': typeof AuthenticatedProjectsProjectIdPublishRoute
@@ -140,6 +148,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/maps/$slug': typeof MapsSlugRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
+  '/projects/$projectId/comments': typeof AuthenticatedProjectsProjectIdCommentsRoute
   '/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
   '/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
   '/projects/$projectId/publish': typeof AuthenticatedProjectsProjectIdPublishRoute
@@ -159,6 +168,7 @@ export interface FileRoutesById {
   '/maps/$slug': typeof MapsSlugRoute
   '/_authenticated/projects/$projectId': typeof AuthenticatedProjectsProjectIdRouteWithChildren
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
+  '/_authenticated/projects/$projectId/comments': typeof AuthenticatedProjectsProjectIdCommentsRoute
   '/_authenticated/projects/$projectId/details': typeof AuthenticatedProjectsProjectIdDetailsRoute
   '/_authenticated/projects/$projectId/map': typeof AuthenticatedProjectsProjectIdMapRoute
   '/_authenticated/projects/$projectId/publish': typeof AuthenticatedProjectsProjectIdPublishRoute
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/maps/$slug'
     | '/projects/$projectId'
     | '/projects/'
+    | '/projects/$projectId/comments'
     | '/projects/$projectId/details'
     | '/projects/$projectId/map'
     | '/projects/$projectId/publish'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/maps/$slug'
     | '/projects'
+    | '/projects/$projectId/comments'
     | '/projects/$projectId/details'
     | '/projects/$projectId/map'
     | '/projects/$projectId/publish'
@@ -212,6 +224,7 @@ export interface FileRouteTypes {
     | '/maps/$slug'
     | '/_authenticated/projects/$projectId'
     | '/_authenticated/projects/'
+    | '/_authenticated/projects/$projectId/comments'
     | '/_authenticated/projects/$projectId/details'
     | '/_authenticated/projects/$projectId/map'
     | '/_authenticated/projects/$projectId/publish'
@@ -307,6 +320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectIdIndexRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectIdRoute
     }
+    '/_authenticated/projects/$projectId/comments': {
+      id: '/_authenticated/projects/$projectId/comments'
+      path: '/comments'
+      fullPath: '/projects/$projectId/comments'
+      preLoaderRoute: typeof AuthenticatedProjectsProjectIdCommentsRouteImport
+      parentRoute: typeof AuthenticatedProjectsProjectIdRoute
+    }
     '/_authenticated/projects/$projectId/details': {
       id: '/_authenticated/projects/$projectId/details'
       path: '/details'
@@ -346,6 +366,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedProjectsProjectIdRouteChildren {
+  AuthenticatedProjectsProjectIdCommentsRoute: typeof AuthenticatedProjectsProjectIdCommentsRoute
   AuthenticatedProjectsProjectIdDetailsRoute: typeof AuthenticatedProjectsProjectIdDetailsRoute
   AuthenticatedProjectsProjectIdMapRoute: typeof AuthenticatedProjectsProjectIdMapRoute
   AuthenticatedProjectsProjectIdPublishRoute: typeof AuthenticatedProjectsProjectIdPublishRoute
@@ -356,6 +377,8 @@ interface AuthenticatedProjectsProjectIdRouteChildren {
 
 const AuthenticatedProjectsProjectIdRouteChildren: AuthenticatedProjectsProjectIdRouteChildren =
   {
+    AuthenticatedProjectsProjectIdCommentsRoute:
+      AuthenticatedProjectsProjectIdCommentsRoute,
     AuthenticatedProjectsProjectIdDetailsRoute:
       AuthenticatedProjectsProjectIdDetailsRoute,
     AuthenticatedProjectsProjectIdMapRoute:
