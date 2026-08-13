@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  isUsernameAvailable,
+  normalizeUsername,
+  validateUsername,
+} from "@/lib/username";
 
 export const Route = createFileRoute("/_authenticated/settings")({
   head: () => ({
@@ -23,6 +28,7 @@ export const Route = createFileRoute("/_authenticated/settings")({
 function SettingsPage() {
   const queryClient = useQueryClient();
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["profile", "settings"],
@@ -31,23 +37,36 @@ function SettingsPage() {
       if (!auth.user) return null;
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, display_name")
+        .select("id, display_name, username")
         .eq("id", auth.user.id)
         .maybeSingle();
-      return { email: auth.user.email ?? "", ...(profile ?? { id: auth.user.id, display_name: "" }) };
+      return { email: auth.user.email ?? "", ...(profile ?? { id: auth.user.id, display_name: "", username: null }) };
     },
   });
 
   useEffect(() => {
-    if (data) setDisplayName(data.display_name ?? "");
+    if (!data) return;
+    setDisplayName(data.display_name ?? "");
+    setUsername(data.username ?? "");
   }, [data]);
 
   const save = useMutation({
     mutationFn: async () => {
       if (!data) return;
+      const handle = normalizeUsername(username);
+      if (handle || data.username) {
+        const problem = validateUsername(handle);
+        if (problem) throw new Error(problem);
+        if (!(await isUsernameAvailable(handle, data.id))) {
+          throw new Error("That username is already taken.");
+        }
+      }
       const { error } = await supabase
         .from("profiles")
-        .update({ display_name: displayName.trim() || null })
+        .update({
+          display_name: displayName.trim() || null,
+          username: handle || null,
+        })
         .eq("id", data.id);
       if (error) throw error;
     },
@@ -81,6 +100,19 @@ function SettingsPage() {
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder="Your name"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="your-name"
+            />
+            <p className="font-secondary text-xs text-muted-foreground">
+              Your published maps live at openfield.nu/
+              {normalizeUsername(username) || "your-name"}/map-name
+            </p>
           </div>
           <div className="flex justify-end border-t border-border pt-5">
             <Button onClick={() => save.mutate()} disabled={save.isPending}>
