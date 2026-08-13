@@ -28,12 +28,28 @@ export type PublishedLayer = Database["public"]["Tables"]["layers"]["Row"] & {
 };
 export type PublishedFolder = Database["public"]["Tables"]["layer_folders"]["Row"];
 
-export async function loadPublishedMap(slug: string) {
+/** Resolve a public `[username]/[map-slug]` pair to a published project id. */
+async function resolveOwner(
+  supabase: ReturnType<typeof publicClient>,
+  username: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", username.toLowerCase())
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+export async function loadPublishedMap(username: string, slug: string) {
   const supabase = publicClient();
+  const ownerId = await resolveOwner(supabase, username);
+  if (!ownerId) return null;
   const { data: project, error } = await supabase
     .from("projects")
     .select("*")
-    .eq("slug", slug)
+    .eq("owner_id", ownerId)
+    .eq("published_slug", slug)
     .eq("status", "published")
     .maybeSingle();
   if (error) throw error;
@@ -62,12 +78,15 @@ export async function loadPublishedMap(slug: string) {
 }
 
 /** Fetch one layer's features for a published project. Verifies the project first. */
-export async function loadPublishedLayerData(slug: string, layerId: string) {
+export async function loadPublishedLayerData(username: string, slug: string, layerId: string) {
   const supabase = publicClient();
+  const ownerId = await resolveOwner(supabase, username);
+  if (!ownerId) return null;
   const { data: project } = await supabase
     .from("projects")
     .select("id")
-    .eq("slug", slug)
+    .eq("owner_id", ownerId)
+    .eq("published_slug", slug)
     .eq("status", "published")
     .maybeSingle();
   if (!project) return null;
@@ -108,6 +127,7 @@ const MAX_BODY = 2000;
 
 /** Public comment submission. RLS enforces "published + comments enabled". */
 export async function submitPublicComment(input: {
+  username: string;
   slug: string;
   lng: number;
   lat: number;
@@ -117,12 +137,16 @@ export async function submitPublicComment(input: {
   authorEmail?: string | null;
 }) {
   const supabase = publicClient();
-  const { data: project } = await supabase
-    .from("projects")
-    .select("id, comments_enabled, comment_categories")
-    .eq("slug", input.slug)
-    .eq("status", "published")
-    .maybeSingle();
+  const ownerId = await resolveOwner(supabase, input.username);
+  const { data: project } = ownerId
+    ? await supabase
+        .from("projects")
+        .select("id, comments_enabled, comment_categories")
+        .eq("owner_id", ownerId)
+        .eq("published_slug", input.slug)
+        .eq("status", "published")
+        .maybeSingle()
+    : { data: null };
   if (!project) return { ok: false as const, error: "This map is not published." };
   if (!project.comments_enabled) {
     return { ok: false as const, error: "Comments are turned off for this map." };
@@ -145,12 +169,15 @@ export async function submitPublicComment(input: {
 }
 
 /** Approved comments for a published map. */
-export async function loadApprovedComments(slug: string) {
+export async function loadApprovedComments(username: string, slug: string) {
   const supabase = publicClient();
+  const ownerId = await resolveOwner(supabase, username);
+  if (!ownerId) return [];
   const { data: project } = await supabase
     .from("projects")
     .select("id")
-    .eq("slug", slug)
+    .eq("owner_id", ownerId)
+    .eq("published_slug", slug)
     .eq("status", "published")
     .maybeSingle();
   if (!project) return [];

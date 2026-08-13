@@ -17,6 +17,7 @@ import { submitComment } from "@/lib/publish.functions";
 export type PendingPin = { lng: number; lat: number };
 
 export function CommentComposer({
+  username,
   slug,
   pin,
   categories,
@@ -24,6 +25,7 @@ export function CommentComposer({
   onClose,
   onSubmitted,
 }: {
+  username: string;
   slug: string;
   pin: PendingPin;
   categories: string[];
@@ -54,6 +56,7 @@ export function CommentComposer({
     try {
       const result = await submitComment({
         data: {
+          username,
           slug,
           lng: pin.lng,
           lat: pin.lat,

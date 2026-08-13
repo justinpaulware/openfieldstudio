@@ -44,7 +44,8 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { StatusChip } from "@/components/status-chip";
-import { slugify, randomSuffix } from "@/lib/slug";
+import { uniqueProjectSlug } from "@/lib/slug";
+import { useMyProfile } from "@/hooks/use-profile";
 import { signThumbnails } from "@/lib/thumbnails";
 import { cn } from "@/lib/utils";
 
@@ -53,6 +54,7 @@ export type GalleryProject = {
   title: string;
   description: string | null;
   slug: string;
+  published_slug: string | null;
   tags: string[];
   status: "draft" | "published" | "archived";
   updated_at: string;
@@ -70,6 +72,9 @@ export type GalleryFolder = {
 type DragItem = { kind: "project" | "folder"; id: string };
 
 export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
+  const { data: myProfile } = useMyProfile();
+  const publicPath = (project: GalleryProject) =>
+    myProfile?.username ? `/${myProfile.username}/${project.published_slug ?? project.slug}` : null;
   const queryClient = useQueryClient();
   const publishedOnly = mode === "published";
 
@@ -101,7 +106,7 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
       const { data, error } = await supabase
         .from("projects")
         .select(
-          "id, title, description, slug, tags, status, updated_at, folder_id, thumbnail_url",
+          "id, title, description, slug, published_slug, tags, status, updated_at, folder_id, thumbnail_url",
         )
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -163,12 +168,13 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
     mutationFn: async () => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("Not signed in");
-      const base = slugify(title) || "map";
+      const slug = await uniqueProjectSlug(auth.user.id, title);
       const { error } = await supabase.from("projects").insert({
         owner_id: auth.user.id,
         title: title.trim(),
         description: description.trim() || null,
-        slug: `${base}-${randomSuffix()}`,
+        slug,
+        published_slug: slug,
         folder_id: folderId,
         tags: tags
           .split(",")
@@ -252,11 +258,14 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
     mutationFn: async (project: GalleryProject) => {
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) throw new Error("Not signed in");
+      const copyTitle = `${project.title} (copy)`;
+      const slug = await uniqueProjectSlug(auth.user.id, copyTitle);
       const { error } = await supabase.from("projects").insert({
         owner_id: auth.user.id,
-        title: `${project.title} (copy)`,
+        title: copyTitle,
         description: project.description,
-        slug: `${slugify(project.title) || "map"}-${randomSuffix()}`,
+        slug,
+        published_slug: slug,
         tags: project.tags,
         folder_id: project.folder_id,
       });
@@ -500,8 +509,8 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
               className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]"
             >
               <Link
-                to="/projects/$projectId"
-                params={{ projectId: project.id }}
+                to="/projects/$projectSlug"
+                params={{ projectSlug: project.slug }}
                 className="flex h-28 items-center justify-center overflow-hidden bg-secondary"
               >
                 {thumbs[project.id] ? (
@@ -518,8 +527,8 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
               <div className="flex flex-1 flex-col p-4">
                 <div className="flex items-start justify-between gap-2">
                   <Link
-                    to="/projects/$projectId"
-                    params={{ projectId: project.id }}
+                    to="/projects/$projectSlug"
+                    params={{ projectSlug: project.slug }}
                     className="font-medium leading-tight hover:underline"
                   >
                     {project.title}
@@ -536,9 +545,9 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {project.status === "published" && (
+                      {project.status === "published" && publicPath(project) && (
                         <DropdownMenuItem asChild>
-                          <a href={`/maps/${project.slug}`} target="_blank" rel="noreferrer">
+                          <a href={publicPath(project)!} target="_blank" rel="noreferrer">
                             Open live map
                           </a>
                         </DropdownMenuItem>
@@ -577,14 +586,14 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                {publishedOnly ? (
+                {publishedOnly && publicPath(project) ? (
                   <a
-                    href={`/maps/${project.slug}`}
+                    href={publicPath(project)!}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-2 truncate font-secondary text-xs text-muted-foreground hover:text-foreground"
                   >
-                    /maps/{project.slug}
+                    {publicPath(project)}
                   </a>
                 ) : (
                   project.description && (

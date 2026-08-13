@@ -180,6 +180,7 @@ export type Database = {
           created_at: string
           feature_count: number
           fields: Json
+          filter_config: Json
           folder_id: string | null
           geometry_type: Database["public"]["Enums"]["layer_geometry_type"]
           id: string
@@ -199,6 +200,7 @@ export type Database = {
           created_at?: string
           feature_count?: number
           fields?: Json
+          filter_config?: Json
           folder_id?: string | null
           geometry_type?: Database["public"]["Enums"]["layer_geometry_type"]
           id?: string
@@ -218,6 +220,7 @@ export type Database = {
           created_at?: string
           feature_count?: number
           fields?: Json
+          filter_config?: Json
           folder_id?: string | null
           geometry_type?: Database["public"]["Enums"]["layer_geometry_type"]
           id?: string
@@ -256,6 +259,7 @@ export type Database = {
           display_name: string | null
           id: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -263,6 +267,7 @@ export type Database = {
           display_name?: string | null
           id: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -270,6 +275,7 @@ export type Database = {
           display_name?: string | null
           id?: string
           updated_at?: string
+          username?: string | null
         }
         Relationships: []
       }
@@ -334,6 +340,7 @@ export type Database = {
           map_zoom: number
           owner_id: string
           published_at: string | null
+          published_slug: string | null
           scale_units: string
           show_legend: boolean
           slug: string
@@ -363,6 +370,7 @@ export type Database = {
           map_zoom?: number
           owner_id: string
           published_at?: string | null
+          published_slug?: string | null
           scale_units?: string
           show_legend?: boolean
           slug: string
@@ -392,6 +400,7 @@ export type Database = {
           map_zoom?: number
           owner_id?: string
           published_at?: string | null
+          published_slug?: string | null
           scale_units?: string
           show_legend?: boolean
           slug?: string

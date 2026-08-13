@@ -26,6 +26,7 @@ function relativeTime(iso: string) {
 }
 
 export function CommentPanel({
+  username,
   slug,
   comments,
   categories,
@@ -38,6 +39,7 @@ export function CommentPanel({
   onSelect,
   onSubmitted,
 }: {
+  username: string;
   slug: string;
   comments: PublicComment[];
   categories: string[];
@@ -86,6 +88,7 @@ export function CommentPanel({
           {pin ? (
             <CommentComposer
               inline
+              username={username}
               slug={slug}
               pin={pin}
               categories={categories}
