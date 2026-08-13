@@ -4,8 +4,8 @@ export const Route = createFileRoute("/_authenticated/projects/$projectSlug/deta
   // Details merged into the Publish tab.
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: "/projects/$projectId/publish",
-      params: { projectId: params.projectId },
+      to: "/projects/$projectSlug/publish",
+      params: { projectSlug: params.projectSlug },
       replace: true,
     });
   },

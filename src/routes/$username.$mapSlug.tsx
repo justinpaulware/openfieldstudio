@@ -46,7 +46,7 @@ export const Route = createFileRoute("/$username/$mapSlug")({
     ...(off(search["title"]) ? { title: false as const } : {}),
   }),
   loader: async ({ params }) => {
-    const data = await getPublishedMap({ data: { slug: params.slug } });
+    const data = await getPublishedMap({ data: { username: params.username, slug: params.mapSlug } });
     if (!data) throw notFound();
     return data;
   },
@@ -57,7 +57,7 @@ export const Route = createFileRoute("/$username/$mapSlug")({
     const description =
       loaderData?.project.description?.slice(0, 155) ??
       "An interactive webmap published with Open Field.";
-    const url = `${SITE}/maps/${params.slug}`;
+    const url = `${SITE}/${params.mapSlug}`;
     return {
       meta: [
         { title },

@@ -4,8 +4,8 @@ export const Route = createFileRoute("/_authenticated/projects/$projectSlug/styl
   // Styling lives inside the Map Editor so edits preview live on the map.
   beforeLoad: ({ params }) => {
     throw redirect({
-      to: "/projects/$projectId/map",
-      params: { projectId: params.projectId },
+      to: "/projects/$projectSlug/map",
+      params: { projectSlug: params.projectSlug },
       search: { style: true },
     });
   },

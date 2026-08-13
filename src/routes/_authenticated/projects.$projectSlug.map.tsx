@@ -6,6 +6,7 @@ import { FolderPlus, List, Loader2, Maximize, Palette, Plus } from "lucide-react
 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectHeaderActions } from "@/components/project-header";
 
@@ -121,7 +122,7 @@ type LayerWithStyle = LayerRow & { layer_styles: StyleRelation };
 
 
 function MapEditor() {
-  const { projectId } = Route.useParams();
+  const projectId = useProjectId();
   const queryClient = useQueryClient();
   const mapHandle = useRef<MapHandle>(null);
 
