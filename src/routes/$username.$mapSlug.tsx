@@ -40,7 +40,7 @@ type ViewerSearch = { legend?: false; title?: false };
 /** Only "off" flags are kept, so canonical URLs stay clean. */
 const off = (value: unknown) => value === false || value === "0" || value === "false";
 
-export const Route = createFileRoute("/maps/$slug")({
+export const Route = createFileRoute("/$username/$mapSlug")({
   validateSearch: (search: Record<string, unknown>): ViewerSearch => ({
     ...(off(search["legend"]) ? { legend: false as const } : {}),
     ...(off(search["title"]) ? { title: false as const } : {}),

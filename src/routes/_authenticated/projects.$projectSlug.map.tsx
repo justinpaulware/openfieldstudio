@@ -100,7 +100,7 @@ function numberValues(data: FeatureCollection | null | undefined, field: string)
 
 type MapSearch = { style?: boolean | undefined };
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId/map")({
+export const Route = createFileRoute("/_authenticated/projects/$projectSlug/map")({
   validateSearch: (search: Record<string, unknown>): MapSearch =>
     search["style"] === true || search["style"] === "true" ? { style: true } : {},
   head: () => ({

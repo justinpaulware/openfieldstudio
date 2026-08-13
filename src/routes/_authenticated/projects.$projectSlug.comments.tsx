@@ -14,7 +14,7 @@ import type { MapHandle } from "@/components/map/map-canvas";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId/comments")({
+export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
   head: () => ({
     meta: [
       { title: "Comments — Open Field" },

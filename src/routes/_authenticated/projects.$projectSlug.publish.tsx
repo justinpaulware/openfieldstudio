@@ -13,7 +13,7 @@ import { StatusChip } from "@/components/status-chip";
 import { supabase } from "@/integrations/supabase/client";
 import { slugify } from "@/lib/slug";
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId/publish")({
+export const Route = createFileRoute("/_authenticated/projects/$projectSlug/publish")({
   head: () => ({
     meta: [
       { title: "Publish — Open Field" },
