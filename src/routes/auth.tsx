@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  isUsernameAvailable,
+  normalizeUsername,
+  validateUsername,
+} from "@/lib/username";
 import { supabase } from "@/integrations/supabase/client";
 
 const searchSchema = z.object({
@@ -33,6 +38,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [sentConfirmation, setSentConfirmation] = useState(false);
 
@@ -50,13 +56,27 @@ function AuthPage() {
 
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
+    const handle = normalizeUsername(username);
+    const problem = validateUsername(handle);
+    if (problem) {
+      toast.error(problem);
+      return;
+    }
     setBusy(true);
+    if (!(await isUsernameAvailable(handle))) {
+      setBusy(false);
+      toast.error("That username is already taken.");
+      return;
+    }
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin,
-        data: { display_name: displayName || email.split("@")[0] },
+        data: {
+          display_name: displayName || email.split("@")[0],
+          username: handle,
+        },
       },
     });
     setBusy(false);
@@ -173,6 +193,20 @@ function AuthPage() {
                         onChange={(e) => setDisplayName(e.target.value)}
                         placeholder="Jane Cartographer"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-username">Username</Label>
+                      <Input
+                        id="signup-username"
+                        required
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        placeholder="jane-maps"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Your maps will live at openfield.nu/
+                        {normalizeUsername(username) || "username"}/map-name
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-email">Email</Label>

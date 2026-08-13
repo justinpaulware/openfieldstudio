@@ -40,13 +40,13 @@ type ViewerSearch = { legend?: false; title?: false };
 /** Only "off" flags are kept, so canonical URLs stay clean. */
 const off = (value: unknown) => value === false || value === "0" || value === "false";
 
-export const Route = createFileRoute("/maps/$slug")({
+export const Route = createFileRoute("/$username/$mapSlug")({
   validateSearch: (search: Record<string, unknown>): ViewerSearch => ({
     ...(off(search["legend"]) ? { legend: false as const } : {}),
     ...(off(search["title"]) ? { title: false as const } : {}),
   }),
   loader: async ({ params }) => {
-    const data = await getPublishedMap({ data: { slug: params.slug } });
+    const data = await getPublishedMap({ data: { username: params.username, slug: params.mapSlug } });
     if (!data) throw notFound();
     return data;
   },
@@ -57,7 +57,7 @@ export const Route = createFileRoute("/maps/$slug")({
     const description =
       loaderData?.project.description?.slice(0, 155) ??
       "An interactive webmap published with Open Field.";
-    const url = `${SITE}/maps/${params.slug}`;
+    const url = `${SITE}/${params.username}/${params.mapSlug}`;
     return {
       meta: [
         { title },
@@ -91,7 +91,7 @@ function ViewerMessage({ title }: { title: string }) {
 }
 
 function PublicMap() {
-  const { slug } = Route.useParams();
+  const { username, mapSlug: slug } = Route.useParams();
   const search = Route.useSearch();
   const loaderData = Route.useLoaderData();
   const project = loaderData.project;
@@ -108,8 +108,8 @@ function PublicMap() {
   const commentCategories = project.comment_categories ?? [];
 
   const commentsQuery = useQuery({
-    queryKey: ["approved-comments", slug],
-    queryFn: () => listApprovedComments({ data: { slug } }),
+    queryKey: ["approved-comments", username, slug],
+    queryFn: () => listApprovedComments({ data: { username, slug } }),
     enabled: commentsEnabled,
   });
   const comments = (commentsQuery.data ?? []) as PublicComment[];
@@ -153,9 +153,9 @@ function PublicMap() {
 
   const results = useQueries({
     queries: ordered.map((layer) => ({
-      queryKey: ["published-layer-data", slug, layer.id, layer.updated_at],
+      queryKey: ["published-layer-data", username, slug, layer.id, layer.updated_at],
       queryFn: () =>
-        getPublishedLayerData({ data: { slug, layerId: layer.id } }) as Promise<
+        getPublishedLayerData({ data: { username, slug, layerId: layer.id } }) as Promise<
           FeatureCollection | null
         >,
       staleTime: 5 * 60 * 1000,
@@ -272,6 +272,7 @@ function PublicMap() {
               rightSlot={
                 commentsEnabled ? (
                   <CommentPanel
+                    username={username}
                     slug={slug}
                     comments={comments}
                     categories={commentCategories}

@@ -76,8 +76,8 @@ function BrandMenu() {
         {(recent ?? []).map((project) => (
           <DropdownMenuItem key={project.id} asChild>
             <Link
-              to="/projects/$projectId/map"
-              params={{ projectId: project.id }}
+              to="/projects/$projectSlug/map"
+              params={{ projectSlug: project.slug }}
               className="truncate"
             >
               {project.title}

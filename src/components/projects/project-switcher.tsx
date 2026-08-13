@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 
-export type RecentProject = { id: string; title: string };
+export type RecentProject = { id: string; title: string; slug: string };
 
 export function useRecentProjects() {
   return useQuery({
@@ -20,7 +20,7 @@ export function useRecentProjects() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("projects")
-        .select("id, title")
+        .select("id, title, slug")
         .order("updated_at", { ascending: false })
         .limit(5);
       if (error) throw error;
@@ -30,7 +30,7 @@ export function useRecentProjects() {
 }
 
 /** Project-name dropdown in the project header: jump to a recent project. */
-export function ProjectSwitcher({ projectId, title }: { projectId: string; title: string }) {
+export function ProjectSwitcher({ projectSlug, title }: { projectSlug: string; title: string }) {
   const { data: recent } = useRecentProjects();
 
   return (
@@ -44,10 +44,14 @@ export function ProjectSwitcher({ projectId, title }: { projectId: string; title
           Recent projects
         </DropdownMenuLabel>
         {(recent ?? [])
-          .filter((p) => p.id !== projectId)
+          .filter((p) => p.slug !== projectSlug)
           .map((p) => (
             <DropdownMenuItem key={p.id} asChild>
-              <Link to="/projects/$projectId/map" params={{ projectId: p.id }} className="truncate">
+              <Link
+                to="/projects/$projectSlug/map"
+                params={{ projectSlug: p.slug }}
+                className="truncate"
+              >
                 {p.title}
               </Link>
             </DropdownMenuItem>

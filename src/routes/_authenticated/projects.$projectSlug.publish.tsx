@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { StatusChip } from "@/components/status-chip";
+import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { slugify } from "@/lib/slug";
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId/publish")({
+export const Route = createFileRoute("/_authenticated/projects/$projectSlug/publish")({
   head: () => ({
     meta: [
       { title: "Publish — Open Field" },
@@ -90,7 +91,7 @@ function CopyField({ value, label }: { value: string; label: string }) {
 }
 
 function ProjectPublish() {
-  const { projectId } = Route.useParams();
+  const projectId = useProjectId();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 

@@ -2,25 +2,36 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 export const getPublishedMap = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ slug: z.string().min(1).max(120) }).parse(data))
+  .inputValidator((data) =>
+    z
+      .object({ username: z.string().min(1).max(30), slug: z.string().min(1).max(120) })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     const { loadPublishedMap } = await import("./publish.server");
-    return loadPublishedMap(data.slug);
+    return loadPublishedMap(data.username, data.slug);
   });
 
 export const getPublishedLayerData = createServerFn({ method: "POST" })
   .inputValidator((data) =>
-    z.object({ slug: z.string().min(1).max(120), layerId: z.string().uuid() }).parse(data),
+    z
+      .object({
+        username: z.string().min(1).max(30),
+        slug: z.string().min(1).max(120),
+        layerId: z.string().uuid(),
+      })
+      .parse(data),
   )
   .handler(async ({ data }) => {
     const { loadPublishedLayerData } = await import("./publish.server");
-    return loadPublishedLayerData(data.slug, data.layerId);
+    return loadPublishedLayerData(data.username, data.slug, data.layerId);
   });
 
 export const submitComment = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
       .object({
+        username: z.string().min(1).max(30),
         slug: z.string().min(1).max(120),
         lng: z.number().min(-180).max(180),
         lat: z.number().min(-90).max(90),
@@ -34,6 +45,7 @@ export const submitComment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { submitPublicComment } = await import("./publish.server");
     return submitPublicComment({
+      username: data.username,
       slug: data.slug,
       lng: data.lng,
       lat: data.lat,
@@ -45,8 +57,12 @@ export const submitComment = createServerFn({ method: "POST" })
   });
 
 export const listApprovedComments = createServerFn({ method: "GET" })
-  .inputValidator((data) => z.object({ slug: z.string().min(1).max(120) }).parse(data))
+  .inputValidator((data) =>
+    z
+      .object({ username: z.string().min(1).max(30), slug: z.string().min(1).max(120) })
+      .parse(data),
+  )
   .handler(async ({ data }) => {
     const { loadApprovedComments } = await import("./publish.server");
-    return loadApprovedComments(data.slug);
+    return loadApprovedComments(data.username, data.slug);
   });

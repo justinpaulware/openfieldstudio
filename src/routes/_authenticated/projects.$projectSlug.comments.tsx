@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-export const Route = createFileRoute("/_authenticated/projects/$projectId/comments")({
+export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
   head: () => ({
     meta: [
       { title: "Comments — Open Field" },
@@ -41,7 +42,7 @@ type CommentRow = {
 };
 
 function ProjectComments() {
-  const { projectId } = Route.useParams();
+  const projectId = useProjectId();
   const queryClient = useQueryClient();
   const mapRef = useRef<MapHandle | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
