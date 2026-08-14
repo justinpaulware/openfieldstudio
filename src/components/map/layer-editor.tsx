@@ -1,25 +1,57 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Loader2, RotateCcw, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { activeCategories, activeGraduated, activeMask, type LayerStyle, type SimpleKind } from "@/lib/layer-style";
+import {
+  activeCategories,
+  activeGraduated,
+  activeMask,
+  type LayerStyle,
+  type SimpleKind,
+} from "@/lib/layer-style";
+import { isFilterActive, type FilterConfig } from "@/lib/layer-filter";
 import { CategoryChip, LegendSwatch, categoryRows } from "./map-legend";
 import { StyleSymbology, type FieldValue } from "./style-symbology";
 import { StyleLabels } from "./style-labels";
 import { StylePopups } from "./style-popups";
+import { LayerFilter } from "./layer-filter";
 
 export type StyleSaveState = "idle" | "dirty" | "saving" | "saved";
+
+export type EditorSection = "data" | "filter" | "symbology" | "labels" | "popups";
+
+export type LayerSourceInfo = {
+  sourceType: string;
+  geometryType: string;
+  storagePath: string | null;
+  sourceUrl: string | null;
+};
+
+const SOURCE_LABEL: Record<string, string> = {
+  geojson_file: "GeoJSON upload",
+  csv_url: "CSV",
+  arcgis_rest: "ArcGIS Feature Service",
+};
 
 type Props = {
   layerName: string;
   kind: SimpleKind;
   style: LayerStyle;
+  filter: FilterConfig;
+  source: LayerSourceInfo;
+  featureCount: number;
+  filteredCount: number;
   saveState: StyleSaveState;
   fields: string[];
   valuesFor: (field: string) => FieldValue[];
   numericFields: string[];
   numbersFor: (field: string) => number[];
+  initialSection?: EditorSection;
   onChange: (patch: Partial<LayerStyle>) => void;
+  onFilterChange: (config: FilterConfig) => void;
+  onRename: (name: string) => void;
   onSave: () => void;
   onReset: () => void;
   onClose: () => void;
@@ -30,26 +62,21 @@ function Section({
   hint,
   open,
   onToggle,
-  disabled,
   children,
 }: {
   title: string;
-  hint?: string;
+  hint?: string | undefined;
   open: boolean;
   onToggle: () => void;
-  disabled?: boolean;
   children?: ReactNode;
 }) {
   return (
     <section className="border-b border-border">
       <button
         type="button"
-        onClick={disabled ? undefined : onToggle}
+        onClick={onToggle}
         aria-expanded={open}
-        className={cn(
-          "flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-semibold",
-          disabled ? "cursor-default text-muted-foreground" : "hover:bg-muted/50",
-        )}
+        className="flex w-full items-center justify-between gap-2 px-4 py-2.5 text-left text-sm font-semibold hover:bg-muted/50"
       >
         <span className="flex items-center gap-2">
           {title}
@@ -59,36 +86,63 @@ function Section({
             </span>
           )}
         </span>
-        {!disabled && (
-          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
-        )}
+        <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
       </button>
       {open && children && <div className="px-4 pb-4">{children}</div>}
     </section>
   );
 }
 
-export function StylePanel({
+function DataRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-3 py-1">
+      <span className="font-secondary text-[11px] uppercase tracking-wide text-muted-foreground">
+        {label}
+      </span>
+      <span className="min-w-0 break-words text-right font-secondary text-xs">{value}</span>
+    </div>
+  );
+}
+
+export function LayerEditor({
   layerName,
   kind,
   style,
+  filter,
+  source,
+  featureCount,
+  filteredCount,
   saveState,
   fields,
   valuesFor,
   numericFields,
   numbersFor,
+  initialSection = "symbology",
   onChange,
+  onFilterChange,
+  onRename,
   onSave,
   onReset,
   onClose,
 }: Props) {
-  const [openSection, setOpenSection] = useState<"styles" | "labels" | "popups" | null>("styles");
-  const toggle = (section: "styles" | "labels" | "popups") =>
+  const [openSection, setOpenSection] = useState<EditorSection | null>(initialSection);
+  useEffect(() => setOpenSection(initialSection), [initialSection, layerName]);
+
+  const [nameDraft, setNameDraft] = useState(layerName);
+  useEffect(() => setNameDraft(layerName), [layerName]);
+
+  const toggle = (section: EditorSection) =>
     setOpenSection((current) => (current === section ? null : section));
+
   const rows = categoryRows(style);
   const categorized = !!activeCategories(style);
   const graduated = !!activeGraduated(style);
   const masked = !!activeMask(style);
+  const filtered = isFilterActive(filter);
+
+  const sourceDetail = source.storagePath
+    ? source.storagePath.split("/").pop()
+    : (source.sourceUrl ?? "—");
 
   return (
     <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-card/40 lg:flex">
@@ -102,14 +156,21 @@ export function StylePanel({
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">{layerName}</h2>
             <p className="font-secondary text-[11px] capitalize text-muted-foreground">
-              {kind} · {categorized ? "categories" : graduated ? "graduated" : masked ? "mask layer" : "single symbol"}
+              {kind} ·{" "}
+              {categorized
+                ? "categories"
+                : graduated
+                  ? "graduated"
+                  : masked
+                    ? "mask layer"
+                    : "single symbol"}
             </p>
           </div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close style panel"
+          aria-label="Close layer editor"
           className="text-muted-foreground hover:text-foreground"
         >
           <X className="h-4 w-4" />
@@ -117,7 +178,68 @@ export function StylePanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <Section title="Styles" open={openSection === "styles"} onToggle={() => toggle("styles")}>
+        <Section title="Data" open={openSection === "data"} onToggle={() => toggle("data")}>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="layer-name" className="text-xs">
+                Layer name
+              </Label>
+              <Input
+                id="layer-name"
+                className="h-8 text-xs"
+                value={nameDraft}
+                onChange={(event) => setNameDraft(event.target.value)}
+                onBlur={() => {
+                  const next = nameDraft.trim();
+                  if (next && next !== layerName) onRename(next);
+                  else setNameDraft(layerName);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur();
+                }}
+              />
+            </div>
+            <div className="divide-y divide-border/60">
+              <DataRow label="Source" value={SOURCE_LABEL[source.sourceType] ?? source.sourceType} />
+              <DataRow
+                label="Geometry"
+                value={<span className="capitalize">{source.geometryType}</span>}
+              />
+              <DataRow
+                label="Features"
+                value={
+                  filtered
+                    ? `${filteredCount.toLocaleString()} of ${featureCount.toLocaleString()}`
+                    : featureCount.toLocaleString()
+                }
+              />
+              <DataRow label="Detail" value={sourceDetail} />
+            </div>
+          </div>
+        </Section>
+
+        <Section
+          title="Filter"
+          hint={filtered ? "On" : undefined}
+          open={openSection === "filter"}
+          onToggle={() => toggle("filter")}
+        >
+          <LayerFilter
+            config={filter}
+            fields={fields}
+            numericFields={numericFields}
+            valuesFor={valuesFor}
+            matched={filteredCount}
+            total={featureCount}
+            onChange={onFilterChange}
+          />
+        </Section>
+
+        <Section
+          title="Symbology"
+          open={openSection === "symbology"}
+          onToggle={() => toggle("symbology")}
+        >
           <StyleSymbology
             kind={kind}
             style={style}
@@ -144,7 +266,6 @@ export function StylePanel({
         >
           <StylePopups style={style} fields={fields} onChange={onChange} />
         </Section>
-
       </div>
 
       <div className="space-y-1.5 border-t border-border px-4 py-3">
