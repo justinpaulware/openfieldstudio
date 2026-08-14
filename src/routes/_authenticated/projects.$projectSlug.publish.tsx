@@ -13,6 +13,8 @@ import { StatusChip } from "@/components/status-chip";
 import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { slugify } from "@/lib/slug";
+import { useMyProfile } from "@/hooks/use-profile";
+import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/publish")({
   head: () => ({
@@ -94,6 +96,7 @@ function ProjectPublish() {
   const projectId = useProjectId();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const { data: profile } = useMyProfile();
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project", projectId],
@@ -121,7 +124,7 @@ function ProjectPublish() {
     if (!project) return;
     setTitle(project.title);
     setDescription(project.description ?? "");
-    setSlug(project.slug);
+    setSlug(project.published_slug ?? project.slug);
     setTags((project.tags ?? []).join(", "));
     setAuthor(project.author ?? "");
     setCredits(project.credits ?? "");
@@ -141,7 +144,7 @@ function ProjectPublish() {
         .update({
           title: title.trim(),
           description: description.trim() || null,
-          slug: slugify(slug) || slug,
+          published_slug: slugify(slug) || slug,
           tags: tags
             .split(",")
             .map((t) => t.trim())
@@ -159,7 +162,11 @@ function ProjectPublish() {
       invalidate();
     },
     onError: (e: Error) =>
-      toast.error(e.message.includes("duplicate") ? "That URL slug is already taken." : e.message),
+      toast.error(
+        e.message.includes("duplicate")
+          ? "This URL is already in use. Please choose another slug."
+          : e.message,
+      ),
   });
 
   const setStatus = useMutation({
@@ -194,7 +201,9 @@ function ProjectPublish() {
   });
 
   const origin = typeof window === "undefined" ? "" : window.location.origin;
-  const publicUrl = `${origin}/maps/${project?.slug ?? ""}`;
+  const username = profile?.username ?? null;
+  const publicSlug = slugify(slug) || slug || project?.published_slug || project?.slug || "";
+  const publicUrl = username ? `${origin}/${username}/${publicSlug}` : "";
   const embedUrl = useMemo(() => {
     const params = new URLSearchParams();
 
@@ -223,7 +232,7 @@ function ProjectPublish() {
           <StatusChip status={project.status} />
         </div>
         <div className="flex gap-2">
-          {isPublished && (
+          {isPublished && publicUrl && (
             <Button asChild variant="outline">
               <a href={publicUrl} target="_blank" rel="noreferrer">
                 <ExternalLink className="mr-1.5 h-4 w-4" />
@@ -261,9 +270,11 @@ function ProjectPublish() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="slug">URL slug</Label>
+            <Label htmlFor="slug">Public URL slug</Label>
             <Input id="slug" value={slug} onChange={(e) => setSlug(e.target.value)} />
-            <p className="font-secondary text-xs text-muted-foreground">/maps/{slugify(slug) || slug}</p>
+            <p className="font-secondary text-xs text-muted-foreground">
+              openfield.nu/{username ?? "your-username"}/{publicSlug}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="tags">Tags</Label>
@@ -280,12 +291,20 @@ function ProjectPublish() {
       <Section
         title="Public link"
         description={
-          isPublished
-            ? "Anyone with this link can view the map."
-            : "Publish the map to make this link work."
+          !username
+            ? "Choose a username to unlock your public map URLs."
+            : isPublished
+              ? "Anyone with this link can view the map."
+              : "Publish the map to make this link work."
         }
       >
-        <CopyField label="Map URL" value={publicUrl} />
+        {username ? (
+          <CopyField label="Map URL" value={publicUrl} />
+        ) : (
+          <Button asChild variant="outline" size="sm">
+            <Link to="/settings">Choose a username in Settings</Link>
+          </Button>
+        )}
         {project.published_at && (
           <p className="font-secondary text-xs text-muted-foreground">
             Last published {new Date(project.published_at).toLocaleString()}

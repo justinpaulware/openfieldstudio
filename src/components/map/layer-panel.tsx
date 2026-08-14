@@ -7,6 +7,7 @@ import {
   Database,
   Eye,
   EyeOff,
+  Filter,
   Folder,
   FolderPlus,
   GripVertical,
@@ -66,12 +67,6 @@ export function flattenLayerOrder(layers: LayerRow[], folders: FolderRow[]): Lay
   for (const layer of layers) if (!seen.has(layer.id)) out.push(layer);
   return out;
 }
-
-const SOURCE_LABEL: Record<string, string> = {
-  geojson_file: "GeoJSON",
-  csv_url: "CSV",
-  arcgis_rest: "ArcGIS",
-};
 
 export type PanelLayer = LayerRow & { layer_styles?: StyleRelation };
 
@@ -231,6 +226,9 @@ type Props = {
   onRefresh: (layer: LayerRow) => void;
   onEditSource: (layer: LayerRow) => void;
   onStyle: (layer: PanelLayer) => void;
+  onFilter: (layer: PanelLayer) => void;
+  /** True when the layer has an active attribute filter. */
+  filteredFor?: (layer: PanelLayer) => boolean;
   onDuplicate: (layer: LayerRow) => void;
   onMoveToFolder: (layer: LayerRow, folderId: string | null) => void;
   onFolderRename: (folder: FolderRow, name: string) => void;
@@ -260,6 +258,8 @@ export function LayerPanel({
   onRefresh,
   onEditSource,
   onStyle,
+  onFilter,
+  filteredFor,
   onDuplicate,
   onMoveToFolder,
   onFolderRename,
@@ -481,6 +481,16 @@ export function LayerPanel({
             />
           </div>
 
+          {filteredFor?.(layer) && (
+            <Badge
+              variant="secondary"
+              className="h-4 shrink-0 px-1.5 text-[10px] font-normal"
+              title="This layer has an active filter"
+            >
+              Filtered
+            </Badge>
+          )}
+
           <span className="shrink-0 font-secondary text-[11px] text-muted-foreground">
             ({layer.feature_count.toLocaleString()})
           </span>
@@ -517,6 +527,10 @@ export function LayerPanel({
               <DropdownMenuItem onClick={() => onStyle(layer)}>
                 <Palette className="mr-2 h-4 w-4" />
                 Style…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onFilter(layer)}>
+                <Filter className="mr-2 h-4 w-4" />
+                Filter layer…
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onZoomTo(layer)}>
                 <Crosshair className="mr-2 h-4 w-4" />
@@ -575,14 +589,6 @@ export function LayerPanel({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-
-        {isSelected && (
-          <div className="mt-2 flex items-center gap-2 pl-6 pr-1">
-            <Badge variant="secondary" className="h-4 shrink-0 px-1.5 text-[10px] font-normal">
-              {SOURCE_LABEL[layer.source_type] ?? layer.source_type}
-            </Badge>
-          </div>
-        )}
 
         {error && isSelected && <p className="mt-2 pl-6 text-xs text-destructive">{error}</p>}
         <DropLine visible={showLine("layer", layer.id, "after")} side="bottom" />
