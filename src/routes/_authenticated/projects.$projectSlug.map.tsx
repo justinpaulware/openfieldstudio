@@ -14,7 +14,11 @@ import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
-import { StylePanel, type StyleSaveState } from "@/components/map/style-panel";
+import {
+  LayerEditor,
+  type EditorSection,
+  type StyleSaveState,
+} from "@/components/map/layer-editor";
 import {
   MapLegend,
   MapTitleCard,
@@ -36,6 +40,12 @@ import {
   type StyleRelation,
 } from "@/lib/layer-style";
 import type { Bbox, FeatureCollection } from "@/lib/geo";
+import {
+  filterCollection,
+  isFilterActive,
+  parseFilterConfig,
+  type FilterConfig,
+} from "@/lib/layer-filter";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
@@ -389,6 +399,35 @@ function MapEditor() {
   const pendingStyles = useRef<Record<string, LayerStyle>>({});
   const [saveState, setSaveState] = useState<Record<string, StyleSaveState>>({});
   const [styleLayerId, setStyleLayerId] = useState<string | null>(null);
+  const [editorSection, setEditorSection] = useState<EditorSection>("symbology");
+
+  // Filter drafts keep the map instant while the database write debounces.
+  const [filterDrafts, setFilterDrafts] = useState<Record<string, FilterConfig>>({});
+  const filterTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const filterFor = useCallback(
+    (layer: LayerRow): FilterConfig =>
+      filterDrafts[layer.id] ?? parseFilterConfig(layer.filter_config),
+    [filterDrafts],
+  );
+
+  const persistFilter = useCallback(
+    (layerId: string, config: FilterConfig) => {
+      setFilterDrafts((drafts) => ({ ...drafts, [layerId]: config }));
+      const timers = filterTimers.current;
+      if (timers[layerId]) clearTimeout(timers[layerId]);
+      timers[layerId] = setTimeout(async () => {
+        delete timers[layerId];
+        const { error } = await supabase
+          .from("layers")
+          .update({ filter_config: config })
+          .eq("id", layerId);
+        if (error) toast.error(`Filter was not saved: ${error.message}`);
+        else await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+      }, 400);
+    },
+    [projectId, queryClient],
+  );
 
   const styleFor = useCallback(
     (layer: LayerWithStyle): LayerStyle =>
@@ -479,6 +518,15 @@ function MapEditor() {
     [layers, folders],
   );
 
+  /** Attribute filters apply everywhere the layer is used: map, legend, table. */
+  const filteredById = useMemo(() => {
+    const out: Record<string, FeatureCollection | null> = {};
+    for (const layer of layers) {
+      out[layer.id] = filterCollection(byId[layer.id] ?? null, filterFor(layer));
+    }
+    return out;
+  }, [layers, byId, filterFor]);
+
   const renderLayers: RenderLayer[] = useMemo(
     () =>
       orderedLayers.map((layer) => ({
@@ -487,10 +535,10 @@ function MapEditor() {
         visible: layer.visible,
         opacity: layer.opacity,
         geometryType: layer.geometry_type,
-        data: byId[layer.id] ?? null,
+        data: filteredById[layer.id] ?? null,
         style: styleFor(layer),
       })),
-    [orderedLayers, byId, styleFor],
+    [orderedLayers, filteredById, styleFor],
   );
 
   const legendGroups: LegendGroup[] = useMemo(() => {
@@ -675,11 +723,11 @@ function MapEditor() {
           variant={styleLayerId ? "secondary" : "outline"}
           size="sm"
           disabled={!orderedLayers.length}
-          title="Open the style editor"
+          title="Open the layer editor"
           onClick={toggleStyleEditor}
         >
           <Palette className="mr-1.5 h-4 w-4" />
-          Style editor
+          Layer editor
         </Button>
       </ProjectHeaderActions>
 
@@ -696,8 +744,8 @@ function MapEditor() {
                 variant={styleLayerId ? "secondary" : "ghost"}
                 size="icon"
                 className="h-7 w-7"
-                title="Style editor"
-                aria-label="Style editor"
+                title="Layer editor"
+                aria-label="Layer editor"
                 disabled={!orderedLayers.length}
                 onClick={toggleStyleEditor}
               >
@@ -774,7 +822,14 @@ function MapEditor() {
                 }
                 onFolderReorder={(ids) => reorderFolders.mutate(ids)}
                 onCreateFolder={(parentId) => createFolder.mutate(parentId)}
+                filteredFor={(layer) => isFilterActive(filterFor(layer))}
                 onStyle={(layer) => {
+                  setEditorSection("symbology");
+                  setStyleLayerId(layer.id);
+                  setSelectedId(layer.id);
+                }}
+                onFilter={(layer) => {
+                  setEditorSection("filter");
                   setStyleLayerId(layer.id);
                   setSelectedId(layer.id);
                 }}
@@ -829,16 +884,32 @@ function MapEditor() {
         </main>
 
         {styleLayer && (
-          <StylePanel
+          <LayerEditor
             layerName={styleLayer.name}
             kind={geometryKind(styleLayer.geometry_type)}
             style={styleFor(styleLayer)}
+            filter={filterFor(styleLayer)}
+            source={{
+              sourceType: styleLayer.source_type,
+              geometryType: styleLayer.geometry_type,
+              storagePath: styleLayer.storage_path,
+              sourceUrl: styleLayer.source_url,
+            }}
+            featureCount={byId[styleLayer.id]?.features.length ?? styleLayer.feature_count}
+            filteredCount={
+              filteredById[styleLayer.id]?.features.length ??
+              byId[styleLayer.id]?.features.length ??
+              styleLayer.feature_count
+            }
             saveState={saveState[styleLayer.id] ?? "idle"}
             fields={attributeFields(byId[styleLayer.id])}
             valuesFor={(field) => fieldValues(byId[styleLayer.id], field)}
             numericFields={numericFields(byId[styleLayer.id])}
             numbersFor={(field) => numberValues(byId[styleLayer.id], field)}
+            initialSection={editorSection}
             onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
+            onFilterChange={(config) => persistFilter(styleLayer.id, config)}
+            onRename={(name) => updateLayer.mutate({ id: styleLayer.id, patch: { name } })}
             onSave={() => flushStyle(styleLayer.id)}
             onReset={() => applyStyle(styleLayer.id, DEFAULT_LAYER_STYLE, {})}
             onClose={() => setStyleLayerId(null)}
@@ -863,7 +934,7 @@ function MapEditor() {
         open={!!tableLayer}
         onOpenChange={(open) => !open && setTableLayerId(null)}
         layerName={tableLayer?.name ?? ""}
-        data={tableLayer ? (byId[tableLayer.id] ?? null) : null}
+        data={tableLayer ? (filteredById[tableLayer.id] ?? null) : null}
       />
 
       <LayerSourceDialog

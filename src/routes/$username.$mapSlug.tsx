@@ -12,6 +12,7 @@ import {
   listApprovedComments,
 } from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
+import { filterCollection, parseFilterConfig } from "@/lib/layer-filter";
 import {
   MapLegend,
   MapTitleCard,
@@ -166,7 +167,9 @@ function PublicMap() {
   const dataById = useMemo(() => {
     const map: Record<string, FeatureCollection | null> = {};
     ordered.forEach((layer, index) => {
-      map[layer.id] = (results[index]?.data as FeatureCollection | null) ?? null;
+      const data = (results[index]?.data as FeatureCollection | null) ?? null;
+      // Saved attribute filters apply to the public map too.
+      map[layer.id] = filterCollection(data, parseFilterConfig(layer.filter_config));
     });
     return map;
   }, [ordered, results]);
