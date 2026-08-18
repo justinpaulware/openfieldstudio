@@ -32,6 +32,32 @@ export type MaskSpec = {
   boundaryDash: DashPattern;
 };
 
+/** Proportional symbols: circle size scales continuously with a numeric field. */
+export type ProportionalScale = "linear" | "sqrt";
+
+export type ProportionalSpec = {
+  field: string;
+  minSize: number;
+  maxSize: number;
+  scale: ProportionalScale;
+  /** Data range captured when the field was chosen, used for sizing + legend. */
+  dataMin: number;
+  dataMax: number;
+  hideNoValue: boolean;
+};
+
+/** Heatmap: a density surface built from point features. */
+export type HeatmapSpec = {
+  /** Empty means every point counts equally. */
+  weightField: string;
+  weightMax: number;
+  radius: number;
+  intensity: number;
+  blur: number;
+  ramp: string;
+  opacity: number;
+};
+
 export type CategoryEntry = {
   /** Stringified attribute value. */
   value: string;
