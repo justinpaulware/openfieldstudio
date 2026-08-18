@@ -509,18 +509,49 @@ function parsePopup(value: unknown): PopupSpec {
   };
 }
 
+function parseProportional(value: unknown): ProportionalSpec | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw["field"] !== "string" || !raw["field"]) return null;
+  return {
+    field: raw["field"],
+    minSize: num(raw["minSize"], 4),
+    maxSize: num(raw["maxSize"], 28),
+    scale: pick(raw["scale"], ["linear", "sqrt"] as const, "sqrt"),
+    dataMin: num(raw["dataMin"], 0),
+    dataMax: num(raw["dataMax"], 1),
+    hideNoValue: raw["hideNoValue"] === true,
+  };
+}
+
+function parseHeatmap(value: unknown): HeatmapSpec {
+  if (!value || typeof value !== "object") return DEFAULT_HEATMAP;
+  const raw = value as Record<string, unknown>;
+  const ramp = str(raw["ramp"], DEFAULT_HEATMAP.ramp);
+  return {
+    weightField: str(raw["weightField"], ""),
+    weightMax: num(raw["weightMax"], DEFAULT_HEATMAP.weightMax),
+    radius: num(raw["radius"], DEFAULT_HEATMAP.radius),
+    intensity: num(raw["intensity"], DEFAULT_HEATMAP.intensity),
+    blur: num(raw["blur"], DEFAULT_HEATMAP.blur),
+    ramp: ramp in HEATMAP_RAMPS ? ramp : DEFAULT_HEATMAP.ramp,
+    opacity: num(raw["opacity"], DEFAULT_HEATMAP.opacity),
+  };
+}
+
 /** Merge a layer_styles row (columns + style_config jsonb) into a complete style. */
 export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
   const config = (row?.style_config ?? {}) as Record<string, unknown>;
   const categories = parseCategories(config["categories"]);
   const graduated = parseGraduated(config["graduated"]);
+  const proportional = parseProportional(config["proportional"]);
   const saved = pick(row?.style_mode, STYLE_MODES, DEFAULT_LAYER_STYLE.mode);
   const mode: StyleMode =
     saved === "categorized" && !categories
       ? "single"
       : saved === "graduated" && !graduated
         ? "single"
-        : saved === "proportional" || saved === "heatmap"
+        : saved === "proportional" && !proportional
           ? "single"
           : saved;
   return {
@@ -537,6 +568,8 @@ export function resolveLayerStyle(row?: StyleRow | null): LayerStyle {
     categories,
     graduated,
     mask: parseMask(config["mask"]),
+    proportional,
+    heatmap: parseHeatmap(config["heatmap"]),
     labels: parseLabels(config["labels"]),
     popup: parsePopup(config["popup"]),
   };
@@ -560,10 +593,78 @@ export function styleToRow(style: LayerStyle) {
       categories: style.categories,
       graduated: style.graduated,
       mask: style.mask,
+      proportional: style.proportional,
+      heatmap: style.heatmap,
       labels: style.labels,
       popup: style.popup,
     },
   };
+}
+
+/** Proportional sizing only applies in proportional mode with a field chosen. */
+export function activeProportional(style: LayerStyle): ProportionalSpec | null {
+  if (style.mode !== "proportional") return null;
+  const spec = style.proportional;
+  if (!spec?.field) return null;
+  return spec;
+}
+
+export function activeHeatmap(style: LayerStyle): HeatmapSpec | null {
+  return style.mode === "heatmap" ? style.heatmap : null;
+}
+
+/** Sizes for legend circles / preview: value → radius using the chosen scale. */
+export function proportionalRadius(spec: ProportionalSpec, value: number): number {
+  const min = Math.min(spec.dataMin, spec.dataMax);
+  const max = Math.max(spec.dataMin, spec.dataMax);
+  if (!(max > min)) return spec.maxSize;
+  const clamped = Math.min(max, Math.max(min, value));
+  const t = (clamped - min) / (max - min);
+  const eased = spec.scale === "sqrt" ? Math.sqrt(t) : t;
+  return spec.minSize + eased * (spec.maxSize - spec.minSize);
+}
+
+/** MapLibre circle-radius expression for proportional symbols. */
+export function proportionalRadiusExpression(spec: ProportionalSpec): unknown[] {
+  const min = Math.min(spec.dataMin, spec.dataMax);
+  const max = Math.max(spec.dataMin, spec.dataMax);
+  const value: unknown[] = ["to-number", ["get", spec.field], min];
+  if (!(max > min)) return ["literal", spec.maxSize] as unknown[];
+  if (spec.scale === "linear") {
+    return ["interpolate", ["linear"], value, min, spec.minSize, max, spec.maxSize];
+  }
+  // Square-root scaling approximated with stops so area reads proportionally.
+  const steps = 8;
+  const stops: unknown[] = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    stops.push(min + t * (max - min), spec.minSize + Math.sqrt(t) * (spec.maxSize - spec.minSize));
+  }
+  return ["interpolate", ["linear"], value, ...stops];
+}
+
+/** Filter dropping features without a usable numeric value. */
+export function proportionalFilter(spec: ProportionalSpec): unknown[] | null {
+  if (!spec.hideNoValue) return null;
+  return ["all", ["has", spec.field], ["!=", ["get", spec.field], null]];
+}
+
+/** MapLibre heatmap-color ramp expression (density 0 → 1). */
+export function heatmapColorExpression(spec: HeatmapSpec): unknown[] {
+  const colors = HEATMAP_RAMPS[spec.ramp] ?? HEATMAP_RAMPS["magma"]!;
+  const stops: unknown[] = ["interpolate", ["linear"], ["heatmap-density"], 0, "rgba(0,0,0,0)"];
+  colors.forEach((color, index) => {
+    const t = (index + 1) / colors.length;
+    stops.push(Number(t.toFixed(3)), color);
+  });
+  return stops;
+}
+
+/** MapLibre heatmap-weight expression, normalized against the captured max. */
+export function heatmapWeightExpression(spec: HeatmapSpec): unknown[] | number {
+  if (!spec.weightField) return 1;
+  const max = spec.weightMax > 0 ? spec.weightMax : 1;
+  return ["interpolate", ["linear"], ["to-number", ["get", spec.weightField], 0], 0, 0, max, 1];
 }
 
 /** Labels only render when switched on with a field chosen. */
