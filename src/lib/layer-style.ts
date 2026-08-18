@@ -157,6 +157,8 @@ export type LayerStyle = {
   categories: CategorySpec | null;
   graduated: GraduatedSpec | null;
   mask: MaskSpec;
+  proportional: ProportionalSpec | null;
+  heatmap: HeatmapSpec;
   labels: LabelSpec;
   popup: PopupSpec;
 };
