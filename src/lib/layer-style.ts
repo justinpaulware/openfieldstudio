@@ -222,6 +222,25 @@ export const DEFAULT_MASK: MaskSpec = {
   boundaryDash: "solid",
 };
 
+/** Named heatmap gradients, low density → high density. */
+export const HEATMAP_RAMPS: Record<string, string[]> = {
+  magma: ["#2b0b3f", "#7b2382", "#c43c75", "#f0704a", "#fcd34d"],
+  inferno: ["#1b0c41", "#781c6d", "#cf4446", "#fb9a06", "#fcffa4"],
+  viridis: ["#440154", "#3b528b", "#21918c", "#5ec962", "#fde725"],
+  turbo: ["#30123b", "#28bceb", "#a2fc3c", "#fb8022", "#7a0403"],
+  heat: ["#0b1e5b", "#2f7bd1", "#7fd4a1", "#f6d353", "#d7263d"],
+};
+
+export const DEFAULT_HEATMAP: HeatmapSpec = {
+  weightField: "",
+  weightMax: 1,
+  radius: 24,
+  intensity: 1,
+  blur: 0.6,
+  ramp: "magma",
+  opacity: 0.85,
+};
+
 export const DEFAULT_LAYER_STYLE: LayerStyle = {
   fillColor: "#f5c518",
   strokeColor: "#1b1d22",
@@ -236,6 +255,8 @@ export const DEFAULT_LAYER_STYLE: LayerStyle = {
   categories: null,
   graduated: null,
   mask: DEFAULT_MASK,
+  proportional: null,
+  heatmap: DEFAULT_HEATMAP,
   labels: DEFAULT_LABELS,
   popup: DEFAULT_POPUP,
 };
