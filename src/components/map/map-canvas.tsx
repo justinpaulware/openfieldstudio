@@ -610,7 +610,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   // Drop anything we own that no longer belongs.
   for (const layer of map.getStyle().layers ?? []) {
-    const match = /^of-(fill|line|circle|outline|symbol|label|maskfill)-(.+)$/.exec(layer.id);
+    const match = /^of-(fill|line|circle|outline|symbol|label|maskfill|heat)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
