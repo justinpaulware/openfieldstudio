@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_PALETTES,
+  HEATMAP_RAMPS,
   buildCategories,
   buildGraduated,
   categoryDrives,
@@ -22,9 +23,11 @@ import {
   type CategoryTarget,
   type DashPattern,
   type GraduatedSpec,
+  type HeatmapSpec,
   type LayerStyle,
   type LineCapStyle,
   type MarkerShape,
+  type ProportionalSpec,
   type SimpleKind,
   type StyleMode,
 } from "@/lib/layer-style";
@@ -808,15 +811,245 @@ function MaskEditor({
   );
 }
 
+function ProportionalEditor({
+  style,
+  numericFields,
+  numbersFor,
+  onChange,
+}: {
+  style: LayerStyle;
+  numericFields: string[];
+  numbersFor: (field: string) => number[];
+  onChange: (patch: Partial<LayerStyle>) => void;
+}) {
+  const spec: ProportionalSpec = style.proportional ?? {
+    field: "",
+    minSize: 4,
+    maxSize: 28,
+    scale: "sqrt",
+    dataMin: 0,
+    dataMax: 1,
+    hideNoValue: false,
+  };
+  const set = (patch: Partial<ProportionalSpec>) =>
+    onChange({ proportional: { ...spec, ...patch } });
+
+  const pickField = (field: string) => {
+    const values = numbersFor(field).filter((n) => Number.isFinite(n));
+    const dataMin = values.length ? Math.min(...values) : 0;
+    const dataMax = values.length ? Math.max(...values) : 1;
+    set({ field, dataMin, dataMax });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Size field</Label>
+        <Select value={spec.field} onValueChange={pickField}>
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue placeholder="Choose a numeric field" />
+          </SelectTrigger>
+          <SelectContent>
+            {numericFields.map((field) => (
+              <SelectItem key={field} value={field} className="text-xs">
+                {field}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!numericFields.length && (
+          <p className="font-secondary text-[11px] text-muted-foreground">
+            This layer has no numeric fields to size by.
+          </p>
+        )}
+      </div>
+
+      {spec.field && (
+        <>
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-secondary text-[11px] text-muted-foreground">
+              Range {spec.dataMin.toLocaleString()} – {spec.dataMax.toLocaleString()}
+            </p>
+            <button
+              type="button"
+              onClick={() => pickField(spec.field)}
+              className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] hover:bg-muted"
+            >
+              <RefreshCw className="h-3 w-3" />
+              Rescan
+            </button>
+          </div>
+
+          <OptionRow<"linear" | "sqrt">
+            label="Scaling"
+            value={spec.scale}
+            onChange={(scale) => set({ scale })}
+            options={[
+              { value: "sqrt", label: "Square root" },
+              { value: "linear", label: "Linear" },
+            ]}
+          />
+          <SliderField
+            label="Smallest symbol"
+            value={spec.minSize}
+            min={1}
+            max={Math.max(2, spec.maxSize - 1)}
+            step={0.5}
+            suffix="px"
+            onChange={(minSize) => set({ minSize })}
+          />
+          <SliderField
+            label="Largest symbol"
+            value={spec.maxSize}
+            min={spec.minSize + 1}
+            max={80}
+            step={0.5}
+            suffix="px"
+            onChange={(maxSize) => set({ maxSize })}
+          />
+          <div className="flex items-center justify-between gap-2">
+            <Label className="text-xs text-muted-foreground">Hide features with no value</Label>
+            <Switch
+              checked={spec.hideNoValue}
+              onCheckedChange={(hideNoValue) => set({ hideNoValue })}
+            />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function HeatmapEditor({
+  style,
+  numericFields,
+  numbersFor,
+  onChange,
+}: {
+  style: LayerStyle;
+  numericFields: string[];
+  numbersFor: (field: string) => number[];
+  onChange: (patch: Partial<LayerStyle>) => void;
+}) {
+  const spec = style.heatmap;
+  const set = (patch: Partial<HeatmapSpec>) => onChange({ heatmap: { ...spec, ...patch } });
+
+  const pickWeight = (value: string) => {
+    if (value === "__count__") {
+      set({ weightField: "", weightMax: 1 });
+      return;
+    }
+    const values = numbersFor(value).filter((n) => Number.isFinite(n));
+    set({ weightField: value, weightMax: values.length ? Math.max(...values) : 1 });
+  };
+
+  return (
+    <div className="space-y-4">
+      <p className="font-secondary text-[11px] leading-snug text-muted-foreground">
+        Points blend into a density surface. Zoom in for finer detail.
+      </p>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Weight by</Label>
+        <Select value={spec.weightField || "__count__"} onValueChange={pickWeight}>
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__count__" className="text-xs">
+              Point count
+            </SelectItem>
+            {numericFields.map((field) => (
+              <SelectItem key={field} value={field} className="text-xs">
+                {field}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Color ramp</Label>
+        <Select value={spec.ramp} onValueChange={(ramp) => set({ ramp })}>
+          <SelectTrigger className="h-8 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.keys(HEATMAP_RAMPS).map((id) => (
+              <SelectItem key={id} value={id} className="text-xs">
+                <span className="flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-12 rounded-sm"
+                    style={{
+                      background: `linear-gradient(to right, ${(HEATMAP_RAMPS[id] ?? []).join(", ")})`,
+                    }}
+                  />
+                  <span className="capitalize">{id}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <SliderField
+        label="Radius"
+        value={spec.radius}
+        min={4}
+        max={80}
+        step={1}
+        suffix="px"
+        onChange={(radius) => set({ radius })}
+      />
+      <SliderField
+        label="Intensity"
+        value={spec.intensity}
+        min={0.1}
+        max={5}
+        step={0.1}
+        onChange={(intensity) => set({ intensity })}
+      />
+      <SliderField
+        label="Blur"
+        value={spec.blur}
+        min={0}
+        max={1}
+        step={0.05}
+        onChange={(blur) => set({ blur })}
+      />
+      <SliderField
+        label="Opacity"
+        value={Math.round(spec.opacity * 100)}
+        min={0}
+        max={100}
+        step={5}
+        suffix="%"
+        onChange={(value) => set({ opacity: value / 100 })}
+      />
+    </div>
+  );
+}
+
 export function StyleSymbology(props: Props) {
   const { style, onChange, kind } = props;
   const polygonal = kind === "polygon";
+  const pointy = kind === "point";
   const modes: { value: StyleMode; label: string; disabled?: boolean; note?: string }[] = [
     { value: "single", label: "Single symbol" },
     { value: "categorized", label: "Categories" },
     { value: "graduated", label: "Graduated" },
-    { value: "proportional", label: "Proportional", disabled: true, note: "Coming next" },
-    { value: "heatmap", label: "Heatmap", disabled: true, note: "Coming next" },
+    {
+      value: "proportional",
+      label: "Proportional",
+      disabled: !pointy,
+      ...(pointy ? {} : { note: "Points only" }),
+    },
+    {
+      value: "heatmap",
+      label: "Heatmap",
+      disabled: !pointy,
+      ...(pointy ? {} : { note: "Points only" }),
+    },
     {
       value: "mask",
       label: "Mask layer",
@@ -825,6 +1058,7 @@ export function StyleSymbology(props: Props) {
     },
   ];
   const masked = style.mode === "mask";
+  const heat = style.mode === "heatmap";
 
   return (
     <div className="space-y-4">
@@ -877,9 +1111,27 @@ export function StyleSymbology(props: Props) {
         />
       )}
 
+      {style.mode === "proportional" && (
+        <ProportionalEditor
+          style={props.style}
+          numericFields={props.numericFields}
+          numbersFor={props.numbersFor}
+          onChange={onChange}
+        />
+      )}
+
       {masked ? (
         <div className="space-y-4 border-t border-border pt-4">
           <MaskEditor style={style} onChange={onChange} />
+        </div>
+      ) : heat ? (
+        <div className="space-y-4 border-t border-border pt-4">
+          <HeatmapEditor
+            style={style}
+            numericFields={props.numericFields}
+            numbersFor={props.numbersFor}
+            onChange={onChange}
+          />
         </div>
       ) : (
         <div className="space-y-4 border-t border-border pt-4">

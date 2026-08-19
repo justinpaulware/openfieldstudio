@@ -24,6 +24,12 @@ import {
   type LayerStyle,
   type PopupSpec,
   activeMask,
+  activeProportional,
+  activeHeatmap,
+  proportionalRadiusExpression,
+  proportionalFilter,
+  heatmapColorExpression,
+  heatmapWeightExpression,
 } from "@/lib/layer-style";
 import { buildMaskGeometry } from "@/lib/mask-geometry";
 
@@ -604,7 +610,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   // Drop anything we own that no longer belongs.
   for (const layer of map.getStyle().layers ?? []) {
-    const match = /^of-(fill|line|circle|outline|symbol|label|maskfill)-(.+)$/.exec(layer.id);
+    const match = /^of-(fill|line|circle|outline|symbol|label|maskfill|heat)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
@@ -756,12 +762,43 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       );
     }
 
-    if (!mask && (layer.geometryType === "point" || layer.geometryType === "mixed")) {
-      const pointFilter = withCategories(pointBase);
+    // Heatmap replaces the point symbols with a density surface.
+    const heat = activeHeatmap(style);
+    const heatId = LYR(layer.id, "heat");
+    const pointish = layer.geometryType === "point" || layer.geometryType === "mixed";
+    if (!mask && heat && pointish) {
+      ensure(heatId, {
+        id: heatId,
+        type: "heatmap",
+        source: sourceId,
+        filter: pointBase as maplibregl.FilterSpecification,
+      });
+      map.setFilter(heatId, pointBase as maplibregl.FilterSpecification);
+      map.setLayoutProperty(heatId, "visibility", visibility);
+      map.setPaintProperty(heatId, "heatmap-weight", heatmapWeightExpression(heat) as never);
+      map.setPaintProperty(heatId, "heatmap-intensity", heat.intensity);
+      map.setPaintProperty(heatId, "heatmap-radius", heat.radius);
+      map.setPaintProperty(heatId, "heatmap-color", heatmapColorExpression(heat) as never);
+      map.setPaintProperty(heatId, "heatmap-opacity", heat.opacity);
+      removeLayerIfPresent(map, LYR(layer.id, "circle"));
+      removeLayerIfPresent(map, LYR(layer.id, "symbol"));
+    } else {
+      removeLayerIfPresent(map, heatId);
+    }
+
+    if (!mask && !heat && pointish) {
+      const proportional = activeProportional(style);
+      const noValue = proportional ? proportionalFilter(proportional) : null;
+      const basePointFilter = withCategories(pointBase);
+      const pointFilter = (
+        noValue ? ["all", basePointFilter, noValue] : basePointFilter
+      ) as maplibregl.FilterSpecification;
       // Square / triangle markers are rasterised icons, so a per-feature color
-      // expression cannot apply — categorized layers fall back to circles.
+      // expression cannot apply — categorized and proportional layers use circles.
       const useSymbol =
-        !categorized && (style.markerShape === "square" || style.markerShape === "triangle");
+        !categorized &&
+        !proportional &&
+        (style.markerShape === "square" || style.markerShape === "triangle");
 
       if (useSymbol) {
         removeLayerIfPresent(map, LYR(layer.id, "circle"));
@@ -798,7 +835,13 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         map.setFilter(LYR(layer.id, "circle"), pointFilter);
         map.setLayoutProperty(LYR(layer.id, "circle"), "visibility", visibility);
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", primaryColor);
-        map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", radiusPaint(style) as never);
+        map.setPaintProperty(
+          LYR(layer.id, "circle"),
+          "circle-radius",
+          (proportional
+            ? proportionalRadiusExpression(proportional)
+            : radiusPaint(style)) as never,
+        );
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", ring ? 0 : fillAlpha);
         map.setPaintProperty(
           LYR(layer.id, "circle"),

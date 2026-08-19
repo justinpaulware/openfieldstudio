@@ -4,17 +4,85 @@ import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand-mark";
 
 
-import type { LayerStyle, SimpleKind } from "@/lib/layer-style";
+import type { HeatmapSpec, LayerStyle, ProportionalSpec, SimpleKind } from "@/lib/layer-style";
 import {
+  HEATMAP_RAMPS,
   activeCategories,
   activeGraduated,
+  activeHeatmap,
   activeMask,
+  activeProportional,
   classLabel,
   categoryDrives,
   dashArray,
   isTransparent,
   paintColor,
+  proportionalRadius,
 } from "@/lib/layer-style";
+
+const compact = (n: number) =>
+  Math.abs(n) >= 1000 ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : `${+n.toFixed(2)}`;
+
+/** Nested circles sized from the layer's data range. */
+export function ProportionalLegend({
+  spec,
+  style,
+}: {
+  spec: ProportionalSpec;
+  style: LayerStyle;
+}) {
+  const mid = (spec.dataMin + spec.dataMax) / 2;
+  const stops = [spec.dataMax, mid, spec.dataMin];
+  const max = Math.max(spec.minSize, spec.maxSize);
+  const box = max * 2 + 4;
+  const fill = isTransparent(style.fillColor) ? "none" : paintColor(style.fillColor);
+  const stroke = isTransparent(style.strokeColor) ? "none" : paintColor(style.strokeColor);
+  return (
+    <div className="flex items-end gap-2">
+      <svg width={box} height={box} viewBox={`0 0 ${box} ${box}`} aria-hidden="true">
+        {stops.map((value, index) => {
+          const r = proportionalRadius(spec, value);
+          return (
+            <circle
+              key={index}
+              cx={box / 2}
+              cy={box - 2 - r}
+              r={r}
+              fill={fill}
+              fillOpacity={style.fillOpacity * 0.5}
+              stroke={stroke}
+              strokeOpacity={style.strokeOpacity}
+              strokeWidth={1}
+            />
+          );
+        })}
+      </svg>
+      <ul className="space-y-0.5 text-[11px]">
+        {stops.map((value, index) => (
+          <li key={index}>{compact(value)}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Gradient bar for a heatmap layer. */
+export function HeatmapLegend({ spec }: { spec: HeatmapSpec }) {
+  const colors = HEATMAP_RAMPS[spec.ramp] ?? HEATMAP_RAMPS["magma"]!;
+  return (
+    <div className="space-y-1">
+      <div
+        className="h-2.5 w-full rounded-sm"
+        style={{ background: `linear-gradient(to right, ${colors.join(", ")})` }}
+      />
+      <div className="flex justify-between text-[10px] opacity-70">
+        <span>Low</span>
+        <span>{spec.weightField ? spec.weightField : "Density"}</span>
+        <span>High</span>
+      </div>
+    </div>
+  );
+}
 
 export type LegendEntry = {
   id: string;
