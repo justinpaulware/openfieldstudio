@@ -1033,12 +1033,23 @@ function HeatmapEditor({
 export function StyleSymbology(props: Props) {
   const { style, onChange, kind } = props;
   const polygonal = kind === "polygon";
+  const pointy = kind === "point";
   const modes: { value: StyleMode; label: string; disabled?: boolean; note?: string }[] = [
     { value: "single", label: "Single symbol" },
     { value: "categorized", label: "Categories" },
     { value: "graduated", label: "Graduated" },
-    { value: "proportional", label: "Proportional", disabled: true, note: "Coming next" },
-    { value: "heatmap", label: "Heatmap", disabled: true, note: "Coming next" },
+    {
+      value: "proportional",
+      label: "Proportional",
+      disabled: !pointy,
+      ...(pointy ? {} : { note: "Points only" }),
+    },
+    {
+      value: "heatmap",
+      label: "Heatmap",
+      disabled: !pointy,
+      ...(pointy ? {} : { note: "Points only" }),
+    },
     {
       value: "mask",
       label: "Mask layer",
@@ -1047,6 +1058,7 @@ export function StyleSymbology(props: Props) {
     },
   ];
   const masked = style.mode === "mask";
+  const heat = style.mode === "heatmap";
 
   return (
     <div className="space-y-4">
