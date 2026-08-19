@@ -835,7 +835,13 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
         map.setFilter(LYR(layer.id, "circle"), pointFilter);
         map.setLayoutProperty(LYR(layer.id, "circle"), "visibility", visibility);
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-color", primaryColor);
-        map.setPaintProperty(LYR(layer.id, "circle"), "circle-radius", radiusPaint(style) as never);
+        map.setPaintProperty(
+          LYR(layer.id, "circle"),
+          "circle-radius",
+          (proportional
+            ? proportionalRadiusExpression(proportional)
+            : radiusPaint(style)) as never,
+        );
         map.setPaintProperty(LYR(layer.id, "circle"), "circle-opacity", ring ? 0 : fillAlpha);
         map.setPaintProperty(
           LYR(layer.id, "circle"),
