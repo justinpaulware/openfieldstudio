@@ -24,6 +24,12 @@ import {
   type LayerStyle,
   type PopupSpec,
   activeMask,
+  activeProportional,
+  activeHeatmap,
+  proportionalRadiusExpression,
+  proportionalFilter,
+  heatmapColorExpression,
+  heatmapWeightExpression,
 } from "@/lib/layer-style";
 import { buildMaskGeometry } from "@/lib/mask-geometry";
 
