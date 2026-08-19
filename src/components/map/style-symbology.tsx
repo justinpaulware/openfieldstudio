@@ -1111,9 +1111,27 @@ export function StyleSymbology(props: Props) {
         />
       )}
 
+      {style.mode === "proportional" && (
+        <ProportionalEditor
+          style={props.style}
+          numericFields={props.numericFields}
+          numbersFor={props.numbersFor}
+          onChange={onChange}
+        />
+      )}
+
       {masked ? (
         <div className="space-y-4 border-t border-border pt-4">
           <MaskEditor style={style} onChange={onChange} />
+        </div>
+      ) : heat ? (
+        <div className="space-y-4 border-t border-border pt-4">
+          <HeatmapEditor
+            style={style}
+            numericFields={props.numericFields}
+            numbersFor={props.numbersFor}
+            onChange={onChange}
+          />
         </div>
       ) : (
         <div className="space-y-4 border-t border-border pt-4">
