@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CATEGORY_PALETTES,
+  HEATMAP_RAMPS,
   buildCategories,
   buildGraduated,
   categoryDrives,
@@ -22,9 +23,11 @@ import {
   type CategoryTarget,
   type DashPattern,
   type GraduatedSpec,
+  type HeatmapSpec,
   type LayerStyle,
   type LineCapStyle,
   type MarkerShape,
+  type ProportionalSpec,
   type SimpleKind,
   type StyleMode,
 } from "@/lib/layer-style";
