@@ -151,6 +151,28 @@ export function LegendSwatch({
   colorOverride?: string;
   strokeOverride?: string;
 }) {
+  const prop = activeProportional(style);
+  if (prop) {
+    const fill = isTransparent(style.fillColor) ? "none" : paintColor(style.fillColor);
+    const stroke = isTransparent(style.strokeColor) ? "none" : paintColor(style.strokeColor);
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
+        <circle cx="11.5" cy="11.5" r="5" fill={fill} fillOpacity={style.fillOpacity} stroke={stroke} strokeWidth="1" />
+        <circle cx="7" cy="7" r="2.5" fill={fill} fillOpacity={style.fillOpacity} stroke={stroke} strokeWidth="1" />
+      </svg>
+    );
+  }
+  const heat = activeHeatmap(style);
+  if (heat) {
+    const colors = HEATMAP_RAMPS[heat.ramp] ?? HEATMAP_RAMPS["magma"]!;
+    return (
+      <span
+        className="h-3.5 w-4 shrink-0 rounded-[3px] border border-border/80"
+        style={{ background: `linear-gradient(to right, ${colors.join(", ")})` }}
+        aria-hidden="true"
+      />
+    );
+  }
   const mask = activeMask(style);
   if (mask) {
     const maskFill = isTransparent(mask.color) ? "none" : paintColor(mask.color);
@@ -176,6 +198,7 @@ export function LegendSwatch({
       </svg>
     );
   }
+
 
   const dash = dashArray(style.dashPattern);
   const dashProp = dash
@@ -326,6 +349,38 @@ export function MapLegend({
                 {group.entries.map((entry) => {
                   const rows = categoryRows(entry.style);
                   const dim = hidden?.[entry.id] ? "opacity-45" : "";
+                  const prop = activeProportional(entry.style);
+                  const heat = activeHeatmap(entry.style);
+                  if (prop) {
+                    return (
+                      <li key={entry.id} className={cn("space-y-1", dim)}>
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                            {entry.name}
+                          </span>
+                          <EyeToggle id={entry.id} name={entry.name} />
+                        </div>
+                        <div className="pl-1">
+                          <ProportionalLegend spec={prop} style={entry.style} />
+                        </div>
+                      </li>
+                    );
+                  }
+                  if (heat) {
+                    return (
+                      <li key={entry.id} className={cn("space-y-1", dim)}>
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                            {entry.name}
+                          </span>
+                          <EyeToggle id={entry.id} name={entry.name} />
+                        </div>
+                        <div className="pl-1">
+                          <HeatmapLegend spec={heat} />
+                        </div>
+                      </li>
+                    );
+                  }
                   if (rows.length) {
                     return (
                       <li key={entry.id} className="space-y-1">
@@ -337,6 +392,7 @@ export function MapLegend({
                           </span>
                           <EyeToggle id={entry.id} name={entry.name} />
                         </div>
+
 
                         <ul className={cn("space-y-1 pl-1", dim)}>
                           {rows.map((row, rowIndex) => (
