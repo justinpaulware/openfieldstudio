@@ -36,7 +36,7 @@ Based on your answers, the shape is:
 3. Per-view publishing, 3-segment public URLs, and the Publish tab rework.
 4. Per-view style overrides with reset affordances.
 
-A future published-map **view switcher** (a dropdown letting a visitor hop between Existing Conditions / Proposed / Feedback) is explicitly out of scope, but the URL and data shape above supports adding it later.
+A future published-map **view switcher** (a dropdown letting a visitor hop between Existing Conditions / Proposed / Feedback) is **on the long-term wishlist**, not part of this phase, but the URL and data shape above are designed so it can be added later without rework.
 
 ## Technical notes
 
