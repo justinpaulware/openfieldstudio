@@ -151,6 +151,28 @@ export function LegendSwatch({
   colorOverride?: string;
   strokeOverride?: string;
 }) {
+  const prop = activeProportional(style);
+  if (prop) {
+    const fill = isTransparent(style.fillColor) ? "none" : paintColor(style.fillColor);
+    const stroke = isTransparent(style.strokeColor) ? "none" : paintColor(style.strokeColor);
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true" className="shrink-0">
+        <circle cx="11.5" cy="11.5" r="5" fill={fill} fillOpacity={style.fillOpacity} stroke={stroke} strokeWidth="1" />
+        <circle cx="7" cy="7" r="2.5" fill={fill} fillOpacity={style.fillOpacity} stroke={stroke} strokeWidth="1" />
+      </svg>
+    );
+  }
+  const heat = activeHeatmap(style);
+  if (heat) {
+    const colors = HEATMAP_RAMPS[heat.ramp] ?? HEATMAP_RAMPS["magma"]!;
+    return (
+      <span
+        className="h-3.5 w-4 shrink-0 rounded-[3px] border border-border/80"
+        style={{ background: `linear-gradient(to right, ${colors.join(", ")})` }}
+        aria-hidden="true"
+      />
+    );
+  }
   const mask = activeMask(style);
   if (mask) {
     const maskFill = isTransparent(mask.color) ? "none" : paintColor(mask.color);
@@ -176,6 +198,7 @@ export function LegendSwatch({
       </svg>
     );
   }
+
 
   const dash = dashArray(style.dashPattern);
   const dashProp = dash
