@@ -31,7 +31,7 @@ import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-const SITE = "https://openfieldstudio.lovable.app";
+const SITE = "https://openfield.nu";
 
 type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
