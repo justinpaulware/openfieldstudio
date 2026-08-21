@@ -320,6 +320,83 @@ export type Database = {
           },
         ]
       }
+      project_views: {
+        Row: {
+          basemap: string
+          created_at: string
+          description: string | null
+          embed_config: Json
+          id: string
+          is_main: boolean
+          map_bearing: number
+          map_center: number[]
+          map_pitch: number
+          map_zoom: number
+          name: string
+          project_id: string
+          published_at: string | null
+          scale_units: string
+          show_legend: boolean
+          slug: string
+          sort_order: number
+          status: Database["public"]["Enums"]["project_status"]
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          basemap?: string
+          created_at?: string
+          description?: string | null
+          embed_config?: Json
+          id?: string
+          is_main?: boolean
+          map_bearing?: number
+          map_center?: number[]
+          map_pitch?: number
+          map_zoom?: number
+          name: string
+          project_id: string
+          published_at?: string | null
+          scale_units?: string
+          show_legend?: boolean
+          slug?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["project_status"]
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          basemap?: string
+          created_at?: string
+          description?: string | null
+          embed_config?: Json
+          id?: string
+          is_main?: boolean
+          map_bearing?: number
+          map_center?: number[]
+          map_pitch?: number
+          map_zoom?: number
+          name?: string
+          project_id?: string
+          published_at?: string | null
+          scale_units?: string
+          show_legend?: boolean
+          slug?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["project_status"]
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_views_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           author: string | null
@@ -417,6 +494,54 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "project_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      view_layers: {
+        Row: {
+          filter_config: Json
+          id: string
+          layer_id: string
+          opacity: number
+          sort_order: number
+          style_override: Json | null
+          view_id: string
+          visible: boolean
+        }
+        Insert: {
+          filter_config?: Json
+          id?: string
+          layer_id: string
+          opacity?: number
+          sort_order?: number
+          style_override?: Json | null
+          view_id: string
+          visible?: boolean
+        }
+        Update: {
+          filter_config?: Json
+          id?: string
+          layer_id?: string
+          opacity?: number
+          sort_order?: number
+          style_override?: Json | null
+          view_id?: string
+          visible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "view_layers_layer_id_fkey"
+            columns: ["layer_id"]
+            isOneToOne: false
+            referencedRelation: "layers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "view_layers_view_id_fkey"
+            columns: ["view_id"]
+            isOneToOne: false
+            referencedRelation: "project_views"
             referencedColumns: ["id"]
           },
         ]
