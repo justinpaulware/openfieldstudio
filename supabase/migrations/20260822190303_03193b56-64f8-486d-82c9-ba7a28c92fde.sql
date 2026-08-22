@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.sync_main_view_publish_state() FROM PUBLIC, anon, authenticated;
