@@ -766,11 +766,12 @@ function MapEditor() {
     );
   }
 
+  const framing = activeView ?? project;
   const initialView = {
-    center: [project.map_center?.[0] ?? 0, project.map_center?.[1] ?? 20] as [number, number],
-    zoom: project.map_zoom ?? 2,
-    pitch: project.map_pitch ?? 0,
-    bearing: project.map_bearing ?? 0,
+    center: [framing.map_center?.[0] ?? 0, framing.map_center?.[1] ?? 20] as [number, number],
+    zoom: framing.map_zoom ?? 2,
+    pitch: framing.map_pitch ?? 0,
+    bearing: framing.map_bearing ?? 0,
   };
 
   return (
@@ -886,7 +887,7 @@ function MapEditor() {
                   setSelectedId((current) => (current === id ? null : id));
                 }}
                 onToggleVisible={(layer) =>
-                  updateLayer.mutate({ id: layer.id, patch: { visible: !layer.visible } })
+                  setViewLayer.mutate({ layerId: layer.id, patch: { visible: !layer.visible } })
                 }
                 onRename={(layer, name) => updateLayer.mutate({ id: layer.id, patch: { name } })}
                 onZoomTo={(layer) => zoomTo(layer.bbox as Bbox | null)}
