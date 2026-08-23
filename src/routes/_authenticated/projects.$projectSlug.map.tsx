@@ -109,11 +109,15 @@ function numberValues(data: FeatureCollection | null | undefined, field: string)
   return out;
 }
 
-type MapSearch = { style?: boolean | undefined };
+type MapSearch = { style?: boolean | undefined; view?: string | undefined };
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/map")({
-  validateSearch: (search: Record<string, unknown>): MapSearch =>
-    search["style"] === true || search["style"] === "true" ? { style: true } : {},
+  validateSearch: (search: Record<string, unknown>): MapSearch => ({
+    ...(search["style"] === true || search["style"] === "true" ? { style: true as const } : {}),
+    ...(typeof search["view"] === "string" && search["view"] && search["view"] !== "main"
+      ? { view: search["view"] }
+      : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Map editor — Open Field" },
