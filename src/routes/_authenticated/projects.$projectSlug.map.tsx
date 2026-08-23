@@ -402,51 +402,86 @@ function MapEditor() {
 
   const reorder = useMutation({
     mutationFn: async (orderedIds: string[]) => {
-      await Promise.all(
-        orderedIds.map((id, index) =>
-          supabase.from("layers").update({ sort_order: index }).eq("id", id),
-        ),
-      );
+      if (activeView) {
+        await Promise.all(
+          orderedIds.map((id, index) =>
+            supabase
+              .from("view_layers")
+              .upsert(
+                { view_id: activeView.id, layer_id: id, sort_order: index },
+                { onConflict: "view_id,layer_id" },
+              ),
+          ),
+        );
+      }
+      if (!activeView || activeView.is_main) {
+        await Promise.all(
+          orderedIds.map((id, index) =>
+            supabase.from("layers").update({ sort_order: index }).eq("id", id),
+          ),
+        );
+      }
     },
-    onSuccess: invalidateLayers,
+    onSuccess: () => {
+      void invalidateViewLayers();
+      void invalidateLayers();
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const saveView = useMutation({
     mutationFn: async (patch?: { basemap?: string; scale_units?: string; show_legend?: boolean }) => {
       const view = viewRef.current ?? mapHandle.current?.getView() ?? null;
-      const { error } = await supabase
-        .from("projects")
-        .update({
-          ...(view
-            ? {
-                map_center: view.center,
-                map_zoom: view.zoom,
-                map_pitch: view.pitch,
-                map_bearing: view.bearing,
-              }
-            : {}),
-          ...(patch ?? {}),
-        })
-        .eq("id", projectId);
-      if (error) throw error;
-      await captureProjectThumbnail(projectId, mapHandle.current);
+      const framing = view
+        ? {
+            map_center: view.center,
+            map_zoom: view.zoom,
+            map_pitch: view.pitch,
+            map_bearing: view.bearing,
+          }
+        : {};
+
+      if (activeView) {
+        const { error } = await supabase
+          .from("project_views")
+          .update({ ...framing, ...(patch ?? {}) })
+          .eq("id", activeView.id);
+        if (error) throw error;
+      }
+
+      // The Main view stays mirrored on the project row for legacy reads.
+      if (!activeView || activeView.is_main) {
+        const { error } = await supabase
+          .from("projects")
+          .update({ ...framing, ...(patch ?? {}) })
+          .eq("id", projectId);
+        if (error) throw error;
+        await captureProjectThumbnail(projectId, mapHandle.current);
+      }
     },
     onSuccess: () => {
       setViewDirty(false);
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-views", projectId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const [basemap, setBasemap] = useState<string | null>(null);
-  const activeBasemap = basemap ?? project?.basemap ?? "positron";
+  const activeBasemap = basemap ?? activeView?.basemap ?? project?.basemap ?? "positron";
   const [scaleUnits, setScaleUnits] = useState<ScaleUnits | null>(null);
   const activeScaleUnits: ScaleUnits =
-    scaleUnits ?? ((project as { scale_units?: string } | undefined)?.scale_units as ScaleUnits) ?? "imperial";
+    scaleUnits ??
+    ((activeView?.scale_units ?? (project as { scale_units?: string } | undefined)?.scale_units) as
+      | ScaleUnits
+      | undefined) ??
+    "imperial";
   const [legend, setLegend] = useState<boolean | null>(null);
   const showLegend =
-    legend ?? (project as { show_legend?: boolean } | undefined)?.show_legend ?? true;
+    legend ??
+    activeView?.show_legend ??
+    (project as { show_legend?: boolean } | undefined)?.show_legend ??
+    true;
 
   // Style drafts keep the map instant while the database write debounces.
   const [styleDrafts, setStyleDrafts] = useState<Record<string, LayerStyle>>({});
