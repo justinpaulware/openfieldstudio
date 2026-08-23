@@ -27,6 +27,12 @@ import {
 } from "@/components/map/map-legend";
 
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
+import {
+  applyViewOverrides,
+  overrideMap,
+  useProjectViews,
+  useViewLayers,
+} from "@/lib/views";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
 import { captureProjectThumbnail } from "@/lib/thumbnails";
@@ -666,7 +672,6 @@ function MapEditor() {
   }, [allLayersBbox, hasSavedView]);
 
   // Arriving from the Styling tab opens the panel on the first layer.
-  const search = Route.useSearch();
   const styleParamHandled = useRef(false);
   useEffect(() => {
     if (styleParamHandled.current || !search.style || !orderedLayers.length) return;
