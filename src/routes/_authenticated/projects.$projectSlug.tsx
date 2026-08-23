@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { AppHeaderSlot } from "@/components/app-shell";
 import { PROJECT_ACTIONS_ID } from "@/components/project-header";
 import { ProjectSwitcher } from "@/components/projects/project-switcher";
 import { ProjectProvider } from "@/components/projects/project-context";
+import { ViewSwitcher } from "@/components/projects/view-switcher";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug")({
   component: ProjectLayout,
@@ -21,6 +22,7 @@ const TABS = [
 
 function ProjectLayout() {
   const { projectSlug } = Route.useParams();
+  const search = useSearch({ strict: false }) as { view?: string };
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-by-slug", projectSlug],
@@ -84,6 +86,11 @@ function ProjectLayout() {
             <span className="text-sm text-muted-foreground">/</span>
             <ProjectSwitcher projectSlug={projectSlug} title={project.title} />
             <StatusChip status={project.status} />
+            <ViewSwitcher
+              projectId={project.id}
+              projectSlug={projectSlug}
+              activeSlug={search.view ?? "main"}
+            />
           </div>
           <div id={PROJECT_ACTIONS_ID} className="flex items-center gap-2" />
         </header>

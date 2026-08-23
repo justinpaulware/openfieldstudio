@@ -27,6 +27,12 @@ import {
 } from "@/components/map/map-legend";
 
 import { useLayerRefresh, type SourcePatch } from "@/components/map/use-layer-refresh";
+import {
+  applyViewOverrides,
+  overrideMap,
+  useProjectViews,
+  useViewLayers,
+} from "@/lib/views";
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
 import { captureProjectThumbnail } from "@/lib/thumbnails";
@@ -109,11 +115,15 @@ function numberValues(data: FeatureCollection | null | undefined, field: string)
   return out;
 }
 
-type MapSearch = { style?: boolean | undefined };
+type MapSearch = { style?: boolean | undefined; view?: string | undefined };
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/map")({
-  validateSearch: (search: Record<string, unknown>): MapSearch =>
-    search["style"] === true || search["style"] === "true" ? { style: true } : {},
+  validateSearch: (search: Record<string, unknown>): MapSearch => ({
+    ...(search["style"] === true || search["style"] === "true" ? { style: true as const } : {}),
+    ...(typeof search["view"] === "string" && search["view"] && search["view"] !== "main"
+      ? { view: search["view"] }
+      : {}),
+  }),
   head: () => ({
     meta: [
       { title: "Map editor — Open Field" },
@@ -160,7 +170,7 @@ function MapEditor() {
     },
   });
 
-  const { data: layers = [], isLoading: layersLoading } = useQuery({
+  const { data: rawLayers = [], isLoading: layersLoading } = useQuery({
     queryKey: ["layers", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -171,6 +181,51 @@ function MapEditor() {
       if (error) throw error;
       return (data ?? []) as LayerWithStyle[];
     },
+  });
+
+  // Active view: everything below reads its per-layer overrides and framing.
+  const search = Route.useSearch();
+  const { data: views = [] } = useProjectViews(projectId);
+  const activeView =
+    views.find((v) => v.slug === (search.view ?? "main")) ?? views.find((v) => v.is_main) ?? null;
+  const { data: viewLayerRows = [] } = useViewLayers(activeView?.id ?? null);
+  const overrides = useMemo(() => overrideMap(viewLayerRows), [viewLayerRows]);
+
+  const layers = useMemo(
+    () => applyViewOverrides(rawLayers, overrides) as LayerWithStyle[],
+    [rawLayers, overrides],
+  );
+
+  const invalidateViewLayers = () =>
+    queryClient.invalidateQueries({ queryKey: ["view-layers", activeView?.id] });
+
+  /** Write a layer's per-view settings; the Main view mirrors to the layer row. */
+  const setViewLayer = useMutation({
+    mutationFn: async ({
+      layerId,
+      patch,
+    }: {
+      layerId: string;
+      patch: { visible?: boolean; opacity?: number; sort_order?: number };
+    }) => {
+      if (activeView) {
+        const { error } = await supabase
+          .from("view_layers")
+          .upsert({ view_id: activeView.id, layer_id: layerId, ...patch }, {
+            onConflict: "view_id,layer_id",
+          });
+        if (error) throw error;
+      }
+      if (!activeView || activeView.is_main) {
+        const { error } = await supabase.from("layers").update(patch).eq("id", layerId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      void invalidateViewLayers();
+      void queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const { data: folders = [] } = useQuery({
@@ -347,51 +402,86 @@ function MapEditor() {
 
   const reorder = useMutation({
     mutationFn: async (orderedIds: string[]) => {
-      await Promise.all(
-        orderedIds.map((id, index) =>
-          supabase.from("layers").update({ sort_order: index }).eq("id", id),
-        ),
-      );
+      if (activeView) {
+        await Promise.all(
+          orderedIds.map((id, index) =>
+            supabase
+              .from("view_layers")
+              .upsert(
+                { view_id: activeView.id, layer_id: id, sort_order: index },
+                { onConflict: "view_id,layer_id" },
+              ),
+          ),
+        );
+      }
+      if (!activeView || activeView.is_main) {
+        await Promise.all(
+          orderedIds.map((id, index) =>
+            supabase.from("layers").update({ sort_order: index }).eq("id", id),
+          ),
+        );
+      }
     },
-    onSuccess: invalidateLayers,
+    onSuccess: () => {
+      void invalidateViewLayers();
+      void invalidateLayers();
+    },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const saveView = useMutation({
     mutationFn: async (patch?: { basemap?: string; scale_units?: string; show_legend?: boolean }) => {
       const view = viewRef.current ?? mapHandle.current?.getView() ?? null;
-      const { error } = await supabase
-        .from("projects")
-        .update({
-          ...(view
-            ? {
-                map_center: view.center,
-                map_zoom: view.zoom,
-                map_pitch: view.pitch,
-                map_bearing: view.bearing,
-              }
-            : {}),
-          ...(patch ?? {}),
-        })
-        .eq("id", projectId);
-      if (error) throw error;
-      await captureProjectThumbnail(projectId, mapHandle.current);
+      const framing = view
+        ? {
+            map_center: view.center,
+            map_zoom: view.zoom,
+            map_pitch: view.pitch,
+            map_bearing: view.bearing,
+          }
+        : {};
+
+      if (activeView) {
+        const { error } = await supabase
+          .from("project_views")
+          .update({ ...framing, ...(patch ?? {}) })
+          .eq("id", activeView.id);
+        if (error) throw error;
+      }
+
+      // The Main view stays mirrored on the project row for legacy reads.
+      if (!activeView || activeView.is_main) {
+        const { error } = await supabase
+          .from("projects")
+          .update({ ...framing, ...(patch ?? {}) })
+          .eq("id", projectId);
+        if (error) throw error;
+        await captureProjectThumbnail(projectId, mapHandle.current);
+      }
     },
     onSuccess: () => {
       setViewDirty(false);
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-views", projectId] });
     },
     onError: (error: Error) => toast.error(error.message),
   });
 
   const [basemap, setBasemap] = useState<string | null>(null);
-  const activeBasemap = basemap ?? project?.basemap ?? "positron";
+  const activeBasemap = basemap ?? activeView?.basemap ?? project?.basemap ?? "positron";
   const [scaleUnits, setScaleUnits] = useState<ScaleUnits | null>(null);
   const activeScaleUnits: ScaleUnits =
-    scaleUnits ?? ((project as { scale_units?: string } | undefined)?.scale_units as ScaleUnits) ?? "imperial";
+    scaleUnits ??
+    ((activeView?.scale_units ?? (project as { scale_units?: string } | undefined)?.scale_units) as
+      | ScaleUnits
+      | undefined) ??
+    "imperial";
   const [legend, setLegend] = useState<boolean | null>(null);
   const showLegend =
-    legend ?? (project as { show_legend?: boolean } | undefined)?.show_legend ?? true;
+    legend ??
+    activeView?.show_legend ??
+    (project as { show_legend?: boolean } | undefined)?.show_legend ??
+    true;
 
   // Style drafts keep the map instant while the database write debounces.
   const [styleDrafts, setStyleDrafts] = useState<Record<string, LayerStyle>>({});
@@ -607,7 +697,26 @@ function MapEditor() {
   }, [layers]);
 
   const autoFitted = useRef(false);
-  const hasSavedView = !!project?.map_center;
+  const hasSavedView = !!(activeView?.map_center ?? project?.map_center);
+
+  // Switching views re-frames the map and drops any unsaved local chrome edits.
+  const lastViewId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeView || lastViewId.current === activeView.id) return;
+    const first = lastViewId.current === null;
+    lastViewId.current = activeView.id;
+    setBasemap(null);
+    setScaleUnits(null);
+    setLegend(null);
+    setViewDirty(false);
+    if (first || !activeView.map_center) return;
+    mapHandle.current?.setView({
+      center: [activeView.map_center[0] ?? 0, activeView.map_center[1] ?? 20],
+      zoom: activeView.map_zoom,
+      pitch: activeView.map_pitch,
+      bearing: activeView.map_bearing,
+    });
+  }, [activeView]);
 
   useEffect(() => {
     if (autoFitted.current || hasSavedView || !allLayersBbox) return;
@@ -617,7 +726,6 @@ function MapEditor() {
   }, [allLayersBbox, hasSavedView]);
 
   // Arriving from the Styling tab opens the panel on the first layer.
-  const search = Route.useSearch();
   const styleParamHandled = useRef(false);
   useEffect(() => {
     if (styleParamHandled.current || !search.style || !orderedLayers.length) return;
@@ -677,11 +785,12 @@ function MapEditor() {
     );
   }
 
+  const framing = activeView ?? project;
   const initialView = {
-    center: [project.map_center?.[0] ?? 0, project.map_center?.[1] ?? 20] as [number, number],
-    zoom: project.map_zoom ?? 2,
-    pitch: project.map_pitch ?? 0,
-    bearing: project.map_bearing ?? 0,
+    center: [framing.map_center?.[0] ?? 0, framing.map_center?.[1] ?? 20] as [number, number],
+    zoom: framing.map_zoom ?? 2,
+    pitch: framing.map_pitch ?? 0,
+    bearing: framing.map_bearing ?? 0,
   };
 
   return (
@@ -797,7 +906,7 @@ function MapEditor() {
                   setSelectedId((current) => (current === id ? null : id));
                 }}
                 onToggleVisible={(layer) =>
-                  updateLayer.mutate({ id: layer.id, patch: { visible: !layer.visible } })
+                  setViewLayer.mutate({ layerId: layer.id, patch: { visible: !layer.visible } })
                 }
                 onRename={(layer, name) => updateLayer.mutate({ id: layer.id, patch: { name } })}
                 onZoomTo={(layer) => zoomTo(layer.bbox as Bbox | null)}

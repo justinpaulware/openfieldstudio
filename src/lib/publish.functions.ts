@@ -4,12 +4,16 @@ import { z } from "zod";
 export const getPublishedMap = createServerFn({ method: "GET" })
   .inputValidator((data) =>
     z
-      .object({ username: z.string().min(1).max(30), slug: z.string().min(1).max(120) })
+      .object({
+        username: z.string().min(1).max(30),
+        slug: z.string().min(1).max(120),
+        viewSlug: z.string().min(1).max(120).nullish(),
+      })
       .parse(data),
   )
   .handler(async ({ data }) => {
     const { loadPublishedMap } = await import("./publish.server");
-    return loadPublishedMap(data.username, data.slug);
+    return loadPublishedMap(data.username, data.slug, data.viewSlug ?? null);
   });
 
 export const getPublishedLayerData = createServerFn({ method: "POST" })

@@ -41,7 +41,7 @@ async function resolveOwner(
   return data?.id ?? null;
 }
 
-export async function loadPublishedMap(username: string, slug: string) {
+export async function loadPublishedMap(username: string, slug: string, viewSlug?: string | null) {
   const supabase = publicClient();
   const ownerId = await resolveOwner(supabase, username);
   if (!ownerId) return null;
@@ -70,9 +70,54 @@ export async function loadPublishedMap(username: string, slug: string) {
   if (layersResult.error) throw layersResult.error;
   if (foldersResult.error) throw foldersResult.error;
 
+  // Resolve the requested view (or the Main view) and apply its overrides.
+  const viewQuery = supabase
+    .from("project_views")
+    .select("*")
+    .eq("project_id", project.id)
+    .eq("status", "published");
+  const { data: view } = await (viewSlug
+    ? viewQuery.eq("slug", viewSlug)
+    : viewQuery.eq("is_main", true)
+  ).maybeSingle();
+  if (!view) return null;
+
+  const { data: viewLayers } = await supabase
+    .from("view_layers")
+    .select("*")
+    .eq("view_id", view.id);
+
+  const overrides = new Map((viewLayers ?? []).map((row) => [row.layer_id, row]));
+  const layers = ((layersResult.data ?? []) as PublishedLayer[])
+    .map((layer) => {
+      const override = overrides.get(layer.id);
+      return override
+        ? {
+            ...layer,
+            visible: override.visible,
+            opacity: override.opacity,
+            sort_order: override.sort_order,
+            filter_config: override.filter_config,
+          }
+        : layer;
+    })
+    .sort((a, b) => a.sort_order - b.sort_order);
+
   return {
-    project: project as PublishedProject,
-    layers: (layersResult.data ?? []) as PublishedLayer[],
+    project: {
+      ...(project as PublishedProject),
+      title: view.is_main ? project.title : `${project.title} — ${view.name}`,
+      description: view.description ?? project.description,
+      map_center: view.map_center,
+      map_zoom: view.map_zoom,
+      map_pitch: view.map_pitch,
+      map_bearing: view.map_bearing,
+      basemap: view.basemap,
+      show_legend: view.show_legend,
+      scale_units: view.scale_units,
+    } as PublishedProject,
+    view: { id: view.id, name: view.name, slug: view.slug, is_main: view.is_main },
+    layers,
     folders: (foldersResult.data ?? []) as PublishedFolder[],
   };
 }
