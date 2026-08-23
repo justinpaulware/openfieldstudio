@@ -48,6 +48,13 @@ export type RenderLayer = {
 export type MapHandle = {
   fitBbox: (bbox: Bbox, padding?: number) => void;
   flyTo: (lng: number, lat: number) => void;
+  /** Jump to a saved framing (used when switching project views). */
+  setView: (view: {
+    center: [number, number];
+    zoom?: number | null;
+    pitch?: number | null;
+    bearing?: number | null;
+  }) => void;
   getView: () => { center: [number, number]; zoom: number; pitch: number; bearing: number } | null;
   /** JPEG snapshot of the current map canvas, downscaled for use as a thumbnail. */
   captureThumbnail: (width?: number, height?: number) => Promise<Blob | null>;
@@ -231,6 +238,14 @@ export default function MapCanvas({
         );
       },
       flyTo: (lng, lat) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, duration: 700 }),
+      setView: (view) =>
+        mapRef.current?.easeTo({
+          center: view.center,
+          zoom: view.zoom ?? mapRef.current.getZoom(),
+          pitch: view.pitch ?? 0,
+          bearing: view.bearing ?? 0,
+          duration: 600,
+        }),
       getView: () => {
         const map = mapRef.current;
         if (!map) return null;

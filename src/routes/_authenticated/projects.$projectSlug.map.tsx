@@ -710,7 +710,7 @@ function MapEditor() {
     setLegend(null);
     setViewDirty(false);
     if (first || !activeView.map_center) return;
-    mapHandle.current?.flyTo({
+    mapHandle.current?.setView({
       center: [activeView.map_center[0] ?? 0, activeView.map_center[1] ?? 20],
       zoom: activeView.map_zoom,
       pitch: activeView.map_pitch,
