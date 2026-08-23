@@ -164,7 +164,7 @@ function MapEditor() {
     },
   });
 
-  const { data: layers = [], isLoading: layersLoading } = useQuery({
+  const { data: rawLayers = [], isLoading: layersLoading } = useQuery({
     queryKey: ["layers", projectId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -175,6 +175,51 @@ function MapEditor() {
       if (error) throw error;
       return (data ?? []) as LayerWithStyle[];
     },
+  });
+
+  // Active view: everything below reads its per-layer overrides and framing.
+  const search = Route.useSearch();
+  const { data: views = [] } = useProjectViews(projectId);
+  const activeView =
+    views.find((v) => v.slug === (search.view ?? "main")) ?? views.find((v) => v.is_main) ?? null;
+  const { data: viewLayerRows = [] } = useViewLayers(activeView?.id ?? null);
+  const overrides = useMemo(() => overrideMap(viewLayerRows), [viewLayerRows]);
+
+  const layers = useMemo(
+    () => applyViewOverrides(rawLayers, overrides) as LayerWithStyle[],
+    [rawLayers, overrides],
+  );
+
+  const invalidateViewLayers = () =>
+    queryClient.invalidateQueries({ queryKey: ["view-layers", activeView?.id] });
+
+  /** Write a layer's per-view settings; the Main view mirrors to the layer row. */
+  const setViewLayer = useMutation({
+    mutationFn: async ({
+      layerId,
+      patch,
+    }: {
+      layerId: string;
+      patch: { visible?: boolean; opacity?: number; sort_order?: number };
+    }) => {
+      if (activeView) {
+        const { error } = await supabase
+          .from("view_layers")
+          .upsert({ view_id: activeView.id, layer_id: layerId, ...patch }, {
+            onConflict: "view_id,layer_id",
+          });
+        if (error) throw error;
+      }
+      if (!activeView || activeView.is_main) {
+        const { error } = await supabase.from("layers").update(patch).eq("id", layerId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      void invalidateViewLayers();
+      void queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const { data: folders = [] } = useQuery({
