@@ -14,6 +14,7 @@ import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { slugify } from "@/lib/slug";
 import { useMyProfile } from "@/hooks/use-profile";
+import { useProjectViews, useUpdateView, type ProjectView } from "@/lib/views";
 import { Link } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/publish")({
@@ -92,8 +93,101 @@ function CopyField({ value, label }: { value: string; label: string }) {
   );
 }
 
+/** Publish state and public link for every view in the project. */
+function ViewsSection({
+  projectId,
+  projectSlug,
+  username,
+  publicSlug,
+}: {
+  projectId: string;
+  projectSlug: string;
+  username: string | null;
+  publicSlug: string;
+}) {
+  const { data: views = [] } = useProjectViews(projectId);
+  const updateView = useUpdateView(projectId);
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+
+  const urlFor = (view: ProjectView) =>
+    username
+      ? `${origin}/${username}/${publicSlug}${view.is_main ? "" : `/${view.slug}`}`
+      : "";
+
+  const toggle = async (view: ProjectView) => {
+    const status = view.status === "published" ? "draft" : "published";
+    try {
+      await updateView.mutateAsync({
+        id: view.id,
+        patch: {
+          status,
+          published_at: status === "published" ? new Date().toISOString() : null,
+        },
+      });
+      toast.success(status === "published" ? "View published." : "View unpublished.");
+    } catch (error) {
+      toast.error((error as Error).message);
+    }
+  };
+
+  if (views.length <= 1) return null;
+
+  return (
+    <Section
+      title="Views"
+      description="Each view publishes on its own URL with its own framing and layer visibility."
+    >
+      <ul className="divide-y divide-border rounded-lg border border-border">
+        {views.map((view) => (
+          <li key={view.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="truncate text-sm font-medium">{view.name}</span>
+                <StatusChip status={view.status} />
+              </div>
+              <p className="truncate font-secondary text-xs text-muted-foreground">
+                {urlFor(view) || "Set a username in Settings to get a public link."}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
+                <Link
+                  to="/projects/$projectSlug/map"
+                  params={{ projectSlug }}
+                  search={view.is_main ? {} : { view: view.slug }}
+                >
+                  Edit
+                </Link>
+              </Button>
+              {view.status === "published" && urlFor(view) && (
+                <Button asChild variant="outline" size="sm">
+                  <a href={urlFor(view)} target="_blank" rel="noreferrer">
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                    Open
+                  </a>
+                </Button>
+              )}
+              {!view.is_main && (
+                <Button
+                  variant={view.status === "published" ? "outline" : "default"}
+                  size="sm"
+                  disabled={updateView.isPending}
+                  onClick={() => void toggle(view)}
+                >
+                  {view.status === "published" ? "Unpublish" : "Publish"}
+                </Button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </Section>
+  );
+}
+
 function ProjectPublish() {
   const projectId = useProjectId();
+  const { projectSlug } = Route.useParams();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: profile } = useMyProfile();
@@ -260,6 +354,13 @@ function ProjectPublish() {
           </Button>
         </div>
       </div>
+
+      <ViewsSection
+        projectId={projectId}
+        projectSlug={projectSlug}
+        username={username}
+        publicSlug={publicSlug}
+      />
 
       <Section title="Project details" description="Shown on the public map and in your dashboard.">
         <div className="space-y-2">
