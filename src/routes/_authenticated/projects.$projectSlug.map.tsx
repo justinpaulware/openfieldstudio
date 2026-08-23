@@ -697,7 +697,26 @@ function MapEditor() {
   }, [layers]);
 
   const autoFitted = useRef(false);
-  const hasSavedView = !!project?.map_center;
+  const hasSavedView = !!(activeView?.map_center ?? project?.map_center);
+
+  // Switching views re-frames the map and drops any unsaved local chrome edits.
+  const lastViewId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeView || lastViewId.current === activeView.id) return;
+    const first = lastViewId.current === null;
+    lastViewId.current = activeView.id;
+    setBasemap(null);
+    setScaleUnits(null);
+    setLegend(null);
+    setViewDirty(false);
+    if (first || !activeView.map_center) return;
+    mapHandle.current?.flyTo({
+      center: [activeView.map_center[0] ?? 0, activeView.map_center[1] ?? 20],
+      zoom: activeView.map_zoom,
+      pitch: activeView.map_pitch,
+      bearing: activeView.map_bearing,
+    });
+  }, [activeView]);
 
   useEffect(() => {
     if (autoFitted.current || hasSavedView || !allLayersBbox) return;
