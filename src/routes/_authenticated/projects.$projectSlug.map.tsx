@@ -508,16 +508,34 @@ function MapEditor() {
       if (timers[layerId]) clearTimeout(timers[layerId]);
       timers[layerId] = setTimeout(async () => {
         delete timers[layerId];
-        const { error } = await supabase
-          .from("layers")
-          .update({ filter_config: config })
-          .eq("id", layerId);
-        if (error) toast.error(`Filter was not saved: ${error.message}`);
-        else await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+        // Filters are a per-view setting; the Main view mirrors to the layer row.
+        if (activeView) {
+          const { error } = await supabase.from("view_layers").upsert(
+            { view_id: activeView.id, layer_id: layerId, filter_config: config },
+            { onConflict: "view_id,layer_id" },
+          );
+          if (error) {
+            toast.error(`Filter was not saved: ${error.message}`);
+            return;
+          }
+        }
+        if (!activeView || activeView.is_main) {
+          const { error } = await supabase
+            .from("layers")
+            .update({ filter_config: config })
+            .eq("id", layerId);
+          if (error) {
+            toast.error(`Filter was not saved: ${error.message}`);
+            return;
+          }
+        }
+        await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+        await queryClient.invalidateQueries({ queryKey: ["view-layers", activeView?.id] });
       }, 400);
     },
-    [projectId, queryClient],
+    [projectId, queryClient, activeView],
   );
+
 
   const styleFor = useCallback(
     (layer: LayerWithStyle): LayerStyle =>
