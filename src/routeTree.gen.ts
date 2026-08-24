@@ -17,6 +17,7 @@ import { Route as UsernameMapSlugRouteImport } from './routes/$username.$mapSlug
 import { Route as AuthenticatedCommentsRouteImport } from './routes/_authenticated/comments'
 import { Route as AuthenticatedPublishedRouteImport } from './routes/_authenticated/published'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as UsernameMapSlugViewSlugRouteImport } from './routes/$username.$mapSlug.$viewSlug'
 import { Route as AuthenticatedProjectsIndexRouteImport } from './routes/_authenticated/projects.index'
 import { Route as AuthenticatedProjectsProjectSlugRouteImport } from './routes/_authenticated/projects.$projectSlug'
 import { Route as AuthenticatedProjectsProjectSlugIndexRouteImport } from './routes/_authenticated/projects.$projectSlug.index'
@@ -65,6 +66,11 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const UsernameMapSlugViewSlugRoute = UsernameMapSlugViewSlugRouteImport.update({
+  id: '/$viewSlug',
+  path: '/$viewSlug',
+  getParentRoute: () => UsernameMapSlugRoute,
 } as any)
 const AuthenticatedProjectsIndexRoute =
   AuthenticatedProjectsIndexRouteImport.update({
@@ -125,10 +131,11 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/$username/$mapSlug': typeof UsernameMapSlugRoute
+  '/$username/$mapSlug': typeof UsernameMapSlugRouteWithChildren
   '/comments': typeof AuthenticatedCommentsRoute
   '/published': typeof AuthenticatedPublishedRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/$username/$mapSlug/$viewSlug': typeof UsernameMapSlugViewSlugRoute
   '/projects/$projectSlug': typeof AuthenticatedProjectsProjectSlugRouteWithChildren
   '/projects/': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectSlug/comments': typeof AuthenticatedProjectsProjectSlugCommentsRoute
@@ -143,10 +150,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/$username/$mapSlug': typeof UsernameMapSlugRoute
+  '/$username/$mapSlug': typeof UsernameMapSlugRouteWithChildren
   '/comments': typeof AuthenticatedCommentsRoute
   '/published': typeof AuthenticatedPublishedRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/$username/$mapSlug/$viewSlug': typeof UsernameMapSlugViewSlugRoute
   '/projects': typeof AuthenticatedProjectsIndexRoute
   '/projects/$projectSlug/comments': typeof AuthenticatedProjectsProjectSlugCommentsRoute
   '/projects/$projectSlug/details': typeof AuthenticatedProjectsProjectSlugDetailsRoute
@@ -162,10 +170,11 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/reset-password': typeof ResetPasswordRoute
-  '/$username/$mapSlug': typeof UsernameMapSlugRoute
+  '/$username/$mapSlug': typeof UsernameMapSlugRouteWithChildren
   '/_authenticated/comments': typeof AuthenticatedCommentsRoute
   '/_authenticated/published': typeof AuthenticatedPublishedRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/$username/$mapSlug/$viewSlug': typeof UsernameMapSlugViewSlugRoute
   '/_authenticated/projects/$projectSlug': typeof AuthenticatedProjectsProjectSlugRouteWithChildren
   '/_authenticated/projects/': typeof AuthenticatedProjectsIndexRoute
   '/_authenticated/projects/$projectSlug/comments': typeof AuthenticatedProjectsProjectSlugCommentsRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/published'
     | '/settings'
+    | '/$username/$mapSlug/$viewSlug'
     | '/projects/$projectSlug'
     | '/projects/'
     | '/projects/$projectSlug/comments'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/comments'
     | '/published'
     | '/settings'
+    | '/$username/$mapSlug/$viewSlug'
     | '/projects'
     | '/projects/$projectSlug/comments'
     | '/projects/$projectSlug/details'
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/_authenticated/comments'
     | '/_authenticated/published'
     | '/_authenticated/settings'
+    | '/$username/$mapSlug/$viewSlug'
     | '/_authenticated/projects/$projectSlug'
     | '/_authenticated/projects/'
     | '/_authenticated/projects/$projectSlug/comments'
@@ -238,7 +250,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
-  UsernameMapSlugRoute: typeof UsernameMapSlugRoute
+  UsernameMapSlugRoute: typeof UsernameMapSlugRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
@@ -298,6 +310,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/$username/$mapSlug/$viewSlug': {
+      id: '/$username/$mapSlug/$viewSlug'
+      path: '/$viewSlug'
+      fullPath: '/$username/$mapSlug/$viewSlug'
+      preLoaderRoute: typeof UsernameMapSlugViewSlugRouteImport
+      parentRoute: typeof UsernameMapSlugRoute
     }
     '/_authenticated/projects/': {
       id: '/_authenticated/projects/'
@@ -418,12 +437,24 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface UsernameMapSlugRouteChildren {
+  UsernameMapSlugViewSlugRoute: typeof UsernameMapSlugViewSlugRoute
+}
+
+const UsernameMapSlugRouteChildren: UsernameMapSlugRouteChildren = {
+  UsernameMapSlugViewSlugRoute: UsernameMapSlugViewSlugRoute,
+}
+
+const UsernameMapSlugRouteWithChildren = UsernameMapSlugRoute._addFileChildren(
+  UsernameMapSlugRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
-  UsernameMapSlugRoute: UsernameMapSlugRoute,
+  UsernameMapSlugRoute: UsernameMapSlugRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
