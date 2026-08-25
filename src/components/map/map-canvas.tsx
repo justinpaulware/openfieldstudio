@@ -315,6 +315,9 @@ export default function MapCanvas({
       bearing: initialView.bearing,
       attributionControl: { compact: true },
       canvasContextAttributes: { preserveDrawingBuffer: true },
+      // Resizes are handled below so tiny (sub-pixel / scrollbar-width) layout
+      // jitter cannot drive a repeating resize loop.
+      trackResize: false,
     });
     mapRef.current = map;
 
