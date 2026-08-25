@@ -379,8 +379,30 @@ export default function MapCanvas({
       });
     });
 
+    // Coalesced, threshold-guarded resize handling. Changes smaller than 2px
+    // are ignored, and at most one resize runs per animation frame.
+    let frame = 0;
+    let lastW = Math.round(scaleContainerEl.clientWidth);
+    let lastH = Math.round(scaleContainerEl.clientHeight);
+    const observer = new ResizeObserver(() => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (!mapRef.current) return;
+        const w = Math.round(scaleContainerEl.clientWidth);
+        const h = Math.round(scaleContainerEl.clientHeight);
+        if (Math.abs(w - lastW) < 2 && Math.abs(h - lastH) < 2) return;
+        lastW = w;
+        lastH = h;
+        map.resize();
+      });
+    });
+    observer.observe(scaleContainerEl);
+
     return () => {
       if (watchdog) clearTimeout(watchdog);
+      if (frame) cancelAnimationFrame(frame);
+      observer.disconnect();
       scaleContainerEl.removeEventListener("click", scaleClick);
       readyRef.current = false;
       mapRef.current = null;
