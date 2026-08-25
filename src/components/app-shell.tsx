@@ -175,7 +175,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <AccountMenu />
           </div>
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        {/* Scrollbar gutter is reserved so a scrollbar appearing can never
+            change the width of a full-height tool (e.g. the map editor). */}
+        <main className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">{children}</main>
       </div>
     </HeaderSlotContext.Provider>
   );
