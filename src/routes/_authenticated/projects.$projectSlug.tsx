@@ -107,7 +107,13 @@ function ProjectLayout() {
           <div id={PROJECT_ACTIONS_ID} className="flex items-center gap-2" />
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div
+          className={
+            isMapTab
+              ? "min-h-0 flex-1 overflow-hidden"
+              : "min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]"
+          }
+        >
           <Outlet />
         </div>
       </div>
