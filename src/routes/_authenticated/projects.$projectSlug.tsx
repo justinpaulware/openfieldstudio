@@ -29,6 +29,12 @@ const TABS = [
 function ProjectLayout() {
   const { projectSlug } = Route.useParams();
   const search = useSearch({ strict: false }) as { view?: string };
+  // The map editor is a full-height tool: it must never sit inside a scroll
+  // container, or an appearing/disappearing scrollbar resizes the map canvas
+  // in a loop (flickering scrollbars, jumpy zoom, broken pan).
+  const isMapTab = useRouterState({
+    select: (state) => state.location.pathname.endsWith("/map"),
+  });
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-by-slug", projectSlug],
