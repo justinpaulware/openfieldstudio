@@ -16,7 +16,7 @@ Panels currently use mixed offsets (title/legend at 16px from the edge, popup/co
 
 Standardize across title, legend, popup, and comments:
 
-- 12px from every viewport edge.
+- 16px from every viewport edge.
 - 8px between stacked panels.
 - Same card shell: radius, border, background, shadow, and 12px internal padding.
 
