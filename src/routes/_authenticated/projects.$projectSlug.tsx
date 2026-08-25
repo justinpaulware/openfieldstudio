@@ -1,4 +1,10 @@
-import { createFileRoute, Link, Outlet, useSearch } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  Outlet,
+  useRouterState,
+  useSearch,
+} from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
