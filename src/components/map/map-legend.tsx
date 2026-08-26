@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Check, ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -101,21 +101,30 @@ export type LegendGroup = {
 };
 
 /** Category rows for a categorized layer: value label + color. */
-export function categoryRows(style: LayerStyle): { label: string; color: string }[] {
+export function categoryRows(style: LayerStyle): { label: string; color: string; key: string }[] {
   const spec = activeCategories(style);
   if (spec) {
     const rows = spec.entries
       .filter((entry) => entry.visible)
-      .map((entry) => ({ label: entry.value === "" ? "(blank)" : entry.value, color: entry.color }));
-    if (spec.otherVisible) rows.push({ label: "Other", color: spec.otherColor });
+      .map((entry) => ({
+        label: entry.value === "" ? "(blank)" : entry.value,
+        color: entry.color,
+        key: `cat:${entry.value}`,
+      }));
+    if (spec.otherVisible) rows.push({ label: "Other", color: spec.otherColor, key: "other" });
     return rows;
   }
   const grad = activeGraduated(style);
   if (grad) {
     const rows = grad.classes
-      .filter((cls) => cls.visible)
-      .map((cls) => ({ label: classLabel(cls), color: cls.color }));
-    if (grad.otherVisible) rows.push({ label: "No value", color: grad.otherColor });
+      .map((cls, index) => ({ cls, index }))
+      .filter(({ cls }) => cls.visible)
+      .map(({ cls, index }) => ({
+        label: classLabel(cls),
+        color: cls.color,
+        key: `cls:${index}`,
+      }));
+    if (grad.otherVisible) rows.push({ label: "No value", color: grad.otherColor, key: "other" });
     return rows;
   }
   return [];
@@ -295,12 +304,17 @@ export function MapLegend({
   className,
   hidden,
   onToggle,
+  categoryHidden,
+  onToggleCategory,
 }: {
   groups: LegendGroup[];
   className?: string;
   /** When provided, each entry gets an eye toggle on the right. */
   hidden?: Record<string, boolean>;
   onToggle?: (id: string) => void;
+  /** layerId -> { categoryKey: true } for viewer-local category filtering. */
+  categoryHidden?: Record<string, Record<string, boolean>>;
+  onToggleCategory?: (layerId: string, key: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const visible = groups.filter((group) => group.entries.length > 0);
@@ -395,23 +409,55 @@ export function MapLegend({
 
 
                         <ul className={cn("space-y-1 pl-1", dim)}>
-                          {rows.map((row, rowIndex) => (
-                            <li key={`${row.label}-${rowIndex}`} className="flex items-center gap-2">
-                              <span className="flex">
-                                <LegendSwatch
-                                  kind={entry.kind}
-                                  style={entry.style}
-                                  {...(categoryDrives(entry.style, "fill")
-                                    ? { colorOverride: row.color }
-                                    : {})}
-                                  {...(categoryDrives(entry.style, "stroke")
-                                    ? { strokeOverride: row.color }
-                                    : {})}
-                                />
-                              </span>
-                              <span className="truncate text-xs">{row.label}</span>
-                            </li>
-                          ))}
+                          {rows.map((row, rowIndex) => {
+                            const catOff = categoryHidden?.[entry.id]?.[row.key] === true;
+                            const swatch = (
+                              <>
+                                <span className="flex">
+                                  <LegendSwatch
+                                    kind={entry.kind}
+                                    style={entry.style}
+                                    {...(categoryDrives(entry.style, "fill")
+                                      ? { colorOverride: row.color }
+                                      : {})}
+                                    {...(categoryDrives(entry.style, "stroke")
+                                      ? { strokeOverride: row.color }
+                                      : {})}
+                                  />
+                                </span>
+                                <span className="truncate text-xs">{row.label}</span>
+                              </>
+                            );
+                            return (
+                              <li key={`${row.key}-${rowIndex}`}>
+                                {onToggleCategory ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onToggleCategory(entry.id, row.key)}
+                                    aria-pressed={!catOff}
+                                    title={catOff ? `Show ${row.label}` : `Hide ${row.label}`}
+                                    className={cn(
+                                      "flex w-full items-center gap-2 rounded px-0.5 py-px text-left hover:bg-black/5",
+                                      catOff && "opacity-40",
+                                    )}
+                                  >
+                                    <span
+                                      aria-hidden="true"
+                                      className={cn(
+                                        "flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border border-current/40",
+                                        !catOff && "bg-current/10",
+                                      )}
+                                    >
+                                      {!catOff && <Check className="h-2.5 w-2.5" />}
+                                    </span>
+                                    {swatch}
+                                  </button>
+                                ) : (
+                                  <span className="flex items-center gap-2">{swatch}</span>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </li>
                     );
@@ -437,17 +483,63 @@ export function MapLegend({
   );
 }
 
-export function MapTitleCard({ title, className }: { title: string; className?: string }) {
+export function MapTitleCard({
+  title,
+  description,
+  className,
+}: {
+  title: string;
+  description?: string | null;
+  className?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [clamped, setClamped] = useState(false);
+  const textRef = useRef<HTMLParagraphElement | null>(null);
+  const text = (description ?? "").trim();
+
+  useEffect(() => {
+    const node = textRef.current;
+    if (!node || !text) {
+      setClamped(false);
+      return;
+    }
+    setClamped(node.scrollHeight - node.clientHeight > 2);
+  }, [text, expanded]);
+
   if (!title) return null;
   return (
     <div
       className={cn(
-        "inline-flex w-fit min-w-56 max-w-[min(50vw,44rem)] items-center gap-2.5 rounded-lg border border-map-overlay-border bg-map-overlay p-2.5 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "w-fit min-w-56 max-w-[min(50vw,26rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
         className,
       )}
     >
-      <BrandMark />
-      <h2 className="truncate text-base font-semibold leading-tight">{title}</h2>
+      <div className="inline-flex w-full items-center gap-2.5">
+        <BrandMark />
+        <h2 className="truncate text-base font-semibold leading-tight">{title}</h2>
+      </div>
+      {text && (
+        <div className="mt-1.5">
+          <p
+            ref={textRef}
+            className={cn(
+              "font-secondary text-xs leading-relaxed opacity-70",
+              !expanded && "line-clamp-3",
+            )}
+          >
+            {text}
+          </p>
+          {(clamped || expanded) && (
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="mt-1 font-secondary text-[11px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100"
+            >
+              {expanded ? "Show less" : "Show more"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -53,8 +53,8 @@ export function CommentPanel({
   onSubmitted: () => void;
 }) {
   return (
-    <div className="pointer-events-auto w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
-      <div className="flex items-center gap-1.5 px-3 py-2">
+    <div className="pointer-events-auto w-full overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
+      <div className="flex items-center gap-1.5 p-3">
         <MessageSquare className="h-4 w-4 opacity-70" />
         <h3 className="text-sm font-semibold">Comments</h3>
         <span className="font-secondary text-xs opacity-60">{comments.length}</span>
@@ -84,7 +84,7 @@ export function CommentPanel({
       </div>
 
       {adding && (
-        <div className="border-t border-map-overlay-border px-3 py-2.5">
+        <div className="border-t border-map-overlay-border p-3">
           {pin ? (
             <CommentComposer
               inline
@@ -111,7 +111,7 @@ export function CommentPanel({
                 type="button"
                 onClick={() => onSelect(comment.id)}
                 className={cn(
-                  "w-full border-b border-map-overlay-border px-3 py-2 text-left last:border-b-0 hover:bg-black/5",
+                  "w-full border-b border-map-overlay-border px-3 py-2.5 text-left last:border-b-0 hover:bg-black/5",
                   selectedId === comment.id && "bg-black/5",
                 )}
               >
@@ -138,7 +138,7 @@ export function CommentPanel({
       )}
 
       {comments.length === 0 && !adding && (
-        <p className="border-t border-map-overlay-border px-3 py-2.5 font-secondary text-xs opacity-70">
+        <p className="border-t border-map-overlay-border p-3 font-secondary text-xs opacity-70">
           No comments yet. Use + to add the first one.
         </p>
       )}
