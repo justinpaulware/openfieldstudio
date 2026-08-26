@@ -156,6 +156,38 @@ export function PublicMapViewer({
     [],
   );
 
+  /** Viewer-local category filtering: layerId -> { categoryKey: true }. */
+  const [categoryHidden, setCategoryHidden] = useState<Record<string, Record<string, boolean>>>({});
+
+  const renderStyleFor = useMemo(
+    () => (layer: ViewerLayer) => {
+      const style = styleFor(layer);
+      const off = categoryHidden[layer.id];
+      if (!off || !Object.keys(off).length) return style;
+      const next = { ...style };
+      if (style.categories) {
+        next.categories = {
+          ...style.categories,
+          entries: style.categories.entries.map((entry) =>
+            off[`cat:${entry.value}`] ? { ...entry, visible: false } : entry,
+          ),
+          otherVisible: off["other"] ? false : style.categories.otherVisible,
+        };
+      }
+      if (style.graduated) {
+        next.graduated = {
+          ...style.graduated,
+          classes: style.graduated.classes.map((cls, index) =>
+            off[`cls:${index}`] ? { ...cls, visible: false } : cls,
+          ),
+          otherVisible: off["other"] ? false : style.graduated.otherVisible,
+        };
+      }
+      return next;
+    },
+    [styleFor, categoryHidden],
+  );
+
   const isVisible = (layer: ViewerLayer) => layer.visible && !hidden[layer.id];
 
   const renderLayers: RenderLayer[] = useMemo(
@@ -167,10 +199,10 @@ export function PublicMapViewer({
         opacity: layer.opacity,
         geometryType: layer.geometry_type,
         data: dataById[layer.id] ?? null,
-        style: styleFor(layer),
+        style: renderStyleFor(layer),
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ordered, dataById, styleFor, hidden],
+    [ordered, dataById, renderStyleFor, hidden],
   );
 
   const legendGroups: LegendGroup[] = useMemo(() => {
