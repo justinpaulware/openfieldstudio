@@ -409,23 +409,55 @@ export function MapLegend({
 
 
                         <ul className={cn("space-y-1 pl-1", dim)}>
-                          {rows.map((row, rowIndex) => (
-                            <li key={`${row.label}-${rowIndex}`} className="flex items-center gap-2">
-                              <span className="flex">
-                                <LegendSwatch
-                                  kind={entry.kind}
-                                  style={entry.style}
-                                  {...(categoryDrives(entry.style, "fill")
-                                    ? { colorOverride: row.color }
-                                    : {})}
-                                  {...(categoryDrives(entry.style, "stroke")
-                                    ? { strokeOverride: row.color }
-                                    : {})}
-                                />
-                              </span>
-                              <span className="truncate text-xs">{row.label}</span>
-                            </li>
-                          ))}
+                          {rows.map((row, rowIndex) => {
+                            const catOff = categoryHidden?.[entry.id]?.[row.key] === true;
+                            const swatch = (
+                              <>
+                                <span className="flex">
+                                  <LegendSwatch
+                                    kind={entry.kind}
+                                    style={entry.style}
+                                    {...(categoryDrives(entry.style, "fill")
+                                      ? { colorOverride: row.color }
+                                      : {})}
+                                    {...(categoryDrives(entry.style, "stroke")
+                                      ? { strokeOverride: row.color }
+                                      : {})}
+                                  />
+                                </span>
+                                <span className="truncate text-xs">{row.label}</span>
+                              </>
+                            );
+                            return (
+                              <li key={`${row.key}-${rowIndex}`}>
+                                {onToggleCategory ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => onToggleCategory(entry.id, row.key)}
+                                    aria-pressed={!catOff}
+                                    title={catOff ? `Show ${row.label}` : `Hide ${row.label}`}
+                                    className={cn(
+                                      "flex w-full items-center gap-2 rounded px-0.5 py-px text-left hover:bg-black/5",
+                                      catOff && "opacity-40",
+                                    )}
+                                  >
+                                    <span
+                                      aria-hidden="true"
+                                      className={cn(
+                                        "flex h-3 w-3 shrink-0 items-center justify-center rounded-[3px] border border-current/40",
+                                        !catOff && "bg-current/10",
+                                      )}
+                                    >
+                                      {!catOff && <Check className="h-2.5 w-2.5" />}
+                                    </span>
+                                    {swatch}
+                                  </button>
+                                ) : (
+                                  <span className="flex items-center gap-2">{swatch}</span>
+                                )}
+                              </li>
+                            );
+                          })}
                         </ul>
                       </li>
                     );
