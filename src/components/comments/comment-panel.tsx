@@ -53,8 +53,8 @@ export function CommentPanel({
   onSubmitted: () => void;
 }) {
   return (
-    <div className="pointer-events-auto w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
-      <div className="flex items-center gap-1.5 px-3 py-2">
+    <div className="pointer-events-auto w-full overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
+      <div className="flex items-center gap-1.5 p-3">
         <MessageSquare className="h-4 w-4 opacity-70" />
         <h3 className="text-sm font-semibold">Comments</h3>
         <span className="font-secondary text-xs opacity-60">{comments.length}</span>
