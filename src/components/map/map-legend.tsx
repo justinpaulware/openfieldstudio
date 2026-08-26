@@ -304,12 +304,17 @@ export function MapLegend({
   className,
   hidden,
   onToggle,
+  categoryHidden,
+  onToggleCategory,
 }: {
   groups: LegendGroup[];
   className?: string;
   /** When provided, each entry gets an eye toggle on the right. */
   hidden?: Record<string, boolean>;
   onToggle?: (id: string) => void;
+  /** layerId -> { categoryKey: true } for viewer-local category filtering. */
+  categoryHidden?: Record<string, Record<string, boolean>>;
+  onToggleCategory?: (layerId: string, key: string) => void;
 }) {
   const [open, setOpen] = useState(true);
   const visible = groups.filter((group) => group.entries.length > 0);
