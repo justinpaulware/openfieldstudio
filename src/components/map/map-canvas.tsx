@@ -135,6 +135,16 @@ export default function MapCanvas({
   const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [mapLoaded, setMapLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setLightbox(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightbox]);
+
   const activeBasemap = localBasemap ?? basemap;
   const activeScaleUnits = localScaleUnits ?? scaleUnits;
   const toggleScaleUnits = () => {
