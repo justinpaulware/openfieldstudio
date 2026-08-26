@@ -101,21 +101,30 @@ export type LegendGroup = {
 };
 
 /** Category rows for a categorized layer: value label + color. */
-export function categoryRows(style: LayerStyle): { label: string; color: string }[] {
+export function categoryRows(style: LayerStyle): { label: string; color: string; key: string }[] {
   const spec = activeCategories(style);
   if (spec) {
     const rows = spec.entries
       .filter((entry) => entry.visible)
-      .map((entry) => ({ label: entry.value === "" ? "(blank)" : entry.value, color: entry.color }));
-    if (spec.otherVisible) rows.push({ label: "Other", color: spec.otherColor });
+      .map((entry) => ({
+        label: entry.value === "" ? "(blank)" : entry.value,
+        color: entry.color,
+        key: `cat:${entry.value}`,
+      }));
+    if (spec.otherVisible) rows.push({ label: "Other", color: spec.otherColor, key: "other" });
     return rows;
   }
   const grad = activeGraduated(style);
   if (grad) {
     const rows = grad.classes
-      .filter((cls) => cls.visible)
-      .map((cls) => ({ label: classLabel(cls), color: cls.color }));
-    if (grad.otherVisible) rows.push({ label: "No value", color: grad.otherColor });
+      .map((cls, index) => ({ cls, index }))
+      .filter(({ cls }) => cls.visible)
+      .map(({ cls, index }) => ({
+        label: classLabel(cls),
+        color: cls.color,
+        key: `cls:${index}`,
+      }));
+    if (grad.otherVisible) rows.push({ label: "No value", color: grad.otherColor, key: "other" });
     return rows;
   }
   return [];
