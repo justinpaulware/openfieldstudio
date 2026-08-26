@@ -483,17 +483,63 @@ export function MapLegend({
   );
 }
 
-export function MapTitleCard({ title, className }: { title: string; className?: string }) {
+export function MapTitleCard({
+  title,
+  description,
+  className,
+}: {
+  title: string;
+  description?: string | null;
+  className?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [clamped, setClamped] = useState(false);
+  const textRef = useRef<HTMLParagraphElement | null>(null);
+  const text = (description ?? "").trim();
+
+  useEffect(() => {
+    const node = textRef.current;
+    if (!node || !text) {
+      setClamped(false);
+      return;
+    }
+    setClamped(node.scrollHeight - node.clientHeight > 2);
+  }, [text, expanded]);
+
   if (!title) return null;
   return (
     <div
       className={cn(
-        "inline-flex w-fit min-w-56 max-w-[min(50vw,44rem)] items-center gap-2.5 rounded-lg border border-map-overlay-border bg-map-overlay p-2.5 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "w-fit min-w-56 max-w-[min(50vw,26rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
         className,
       )}
     >
-      <BrandMark />
-      <h2 className="truncate text-base font-semibold leading-tight">{title}</h2>
+      <div className="inline-flex w-full items-center gap-2.5">
+        <BrandMark />
+        <h2 className="truncate text-base font-semibold leading-tight">{title}</h2>
+      </div>
+      {text && (
+        <div className="mt-1.5">
+          <p
+            ref={textRef}
+            className={cn(
+              "font-secondary text-xs leading-relaxed opacity-70",
+              !expanded && "line-clamp-3",
+            )}
+          >
+            {text}
+          </p>
+          {(clamped || expanded) && (
+            <button
+              type="button"
+              onClick={() => setExpanded((value) => !value)}
+              className="mt-1 font-secondary text-[11px] font-semibold underline underline-offset-2 opacity-70 hover:opacity-100"
+            >
+              {expanded ? "Show less" : "Show more"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
