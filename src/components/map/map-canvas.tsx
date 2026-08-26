@@ -129,6 +129,7 @@ export default function MapCanvas({
     spec: PopupSpec;
     properties: Record<string, unknown>;
   } | null>(null);
+  const [lightbox, setLightbox] = useState<{ src: string; caption: string } | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [localBasemap, setLocalBasemap] = useState<string | null>(null);
   const [localScaleUnits, setLocalScaleUnits] = useState<ScaleUnits | null>(null);
