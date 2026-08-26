@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand-mark";
 
