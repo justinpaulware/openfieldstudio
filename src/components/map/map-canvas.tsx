@@ -614,7 +614,37 @@ export default function MapCanvas({
         {rightSlot}
       </div>
 
-
+      {lightbox && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={lightbox.caption}
+          onClick={() => setLightbox(null)}
+          className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 p-6 backdrop-blur-sm"
+        >
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            aria-label="Close image"
+            className="absolute right-4 top-4 rounded-full bg-white/90 p-1.5 text-neutral-900 shadow hover:bg-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+          <figure
+            onClick={(event) => event.stopPropagation()}
+            className="flex max-h-full max-w-full flex-col items-center gap-2"
+          >
+            <img
+              src={lightbox.src}
+              alt={lightbox.caption}
+              className="max-h-[80vh] max-w-full rounded-lg object-contain shadow-2xl"
+            />
+            <figcaption className="font-secondary text-xs text-white/80">
+              {lightbox.caption}
+            </figcaption>
+          </figure>
+        </div>
+      )}
 
 
       {mapError ? (
