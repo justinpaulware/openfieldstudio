@@ -117,7 +117,7 @@ export function CommentComposer({
               maxLength={2000}
               onChange={(e) => setBody(e.target.value)}
               placeholder="This crossing needs a safer pedestrian connection."
-              className="bg-background text-foreground"
+              className="border-map-overlay-border bg-map-overlay-input text-map-overlay-foreground placeholder:text-map-overlay-muted"
             />
           </div>
 
@@ -125,7 +125,7 @@ export function CommentComposer({
             <div className="space-y-1.5">
               <Label className="text-xs">Category</Label>
               <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger className="bg-background text-foreground">
+                <SelectTrigger className="border-map-overlay-border bg-map-overlay-input text-map-overlay-foreground placeholder:text-map-overlay-muted">
                   <SelectValue placeholder="Optional" />
                 </SelectTrigger>
                 <SelectContent>
@@ -149,7 +149,7 @@ export function CommentComposer({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Optional"
-                className="bg-background text-foreground"
+                className="border-map-overlay-border bg-map-overlay-input text-map-overlay-foreground placeholder:text-map-overlay-muted"
               />
             </div>
             <div className="space-y-1.5">
@@ -161,7 +161,7 @@ export function CommentComposer({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Optional"
-                className="bg-background text-foreground"
+                className="border-map-overlay-border bg-map-overlay-input text-map-overlay-foreground placeholder:text-map-overlay-muted"
               />
             </div>
           </div>
