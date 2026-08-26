@@ -551,14 +551,11 @@ export default function MapCanvas({
         )}
       </div>
 
-      <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] w-auto flex-col items-end gap-2">
+      <div className="pointer-events-none absolute right-4 top-4 z-10 flex max-h-[calc(100%-32px)] w-80 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-2">
         {popupHit && (
-          <div
-            className="pointer-events-auto max-h-[60%] min-h-0 overflow-y-auto rounded-lg border border-neutral-200 bg-white/95 px-3 py-2.5 shadow-[var(--shadow-soft)] backdrop-blur"
-            style={{ width: Math.min(popupHit.spec.maxWidth, 420) }}
-          >
+          <div className="pointer-events-auto max-h-[60%] min-h-0 w-full overflow-y-auto rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]">
             <div className="mb-1.5 flex items-start justify-between gap-2">
-              <h3 className="text-sm font-semibold text-neutral-900">
+              <h3 className="text-sm font-semibold">
                 {popupTitle(popupHit.spec, popupHit.properties, popupHit.layerName)}
               </h3>
               {popupHit.spec.trigger === "click" && (
@@ -566,7 +563,7 @@ export default function MapCanvas({
                   type="button"
                   onClick={() => setPopupHit(null)}
                   aria-label="Close popup"
-                  className="text-neutral-500 hover:text-neutral-900"
+                  className="rounded p-0.5 opacity-60 hover:bg-black/5 hover:opacity-100"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -578,26 +575,31 @@ export default function MapCanvas({
                   row.value === null || row.value === undefined ? "" : String(row.value);
                 return (
                   <div key={row.label}>
-                    <dt className="text-[10px] uppercase tracking-wide text-neutral-500">
-                      {row.label}
-                    </dt>
-                    <dd className="break-words text-[13px] text-neutral-900">
+                    <dt className="text-[10px] uppercase tracking-wide opacity-60">{row.label}</dt>
+                    <dd className="break-words text-[13px]">
                       {row.format === "link" && raw ? (
                         <a
                           href={raw}
                           target="_blank"
                           rel="noreferrer noopener"
-                          className="text-[13px] text-blue-700 underline"
+                          className="text-[13px] underline underline-offset-2"
                         >
                           {raw}
                         </a>
                       ) : row.format === "image" && raw ? (
-                        <img
-                          src={raw}
-                          alt={row.label}
-                          loading="lazy"
-                          className="mt-1 max-h-32 w-full rounded object-cover"
-                        />
+                        <button
+                          type="button"
+                          onClick={() => setLightbox({ src: raw, caption: row.label })}
+                          className="mt-1 block w-full overflow-hidden rounded"
+                          aria-label={`Expand ${row.label}`}
+                        >
+                          <img
+                            src={raw}
+                            alt={row.label}
+                            loading="lazy"
+                            className="aspect-[4/3] w-full rounded object-cover transition hover:opacity-90"
+                          />
+                        </button>
                       ) : (
                         formatPopupValue(row.value, row.format)
                       )}
