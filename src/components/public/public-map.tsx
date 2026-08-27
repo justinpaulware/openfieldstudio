@@ -312,13 +312,22 @@ export function PublicMapViewer({
           </Suspense>
         </ClientOnly>
 
-        <div className="pointer-events-auto absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
-          {showTitle && <MapTitleCard title={project.title} />}
+        <div className="pointer-events-auto absolute left-4 top-4 z-10 flex max-h-[calc(100%-32px)] flex-col items-start gap-2 overflow-y-auto">
+          {showTitle && <MapTitleCard title={project.title} description={project.description} />}
           {showLegend && (
             <MapLegend
               groups={legendGroups}
               hidden={hidden}
               onToggle={(id) => setHidden((prev) => ({ ...prev, [id]: !prev[id] }))}
+              categoryHidden={categoryHidden}
+              onToggleCategory={(layerId, key) =>
+                setCategoryHidden((prev) => {
+                  const forLayer = { ...(prev[layerId] ?? {}) };
+                  if (forLayer[key]) delete forLayer[key];
+                  else forLayer[key] = true;
+                  return { ...prev, [layerId]: forLayer };
+                })
+              }
             />
           )}
         </div>
