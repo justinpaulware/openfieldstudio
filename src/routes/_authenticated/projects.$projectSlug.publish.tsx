@@ -96,41 +96,50 @@ function CopyField({ value, label }: { value: string; label: string }) {
 /** Publish state and public link for every view in the project. */
 function ViewsSection({
   projectId,
-  projectSlug,
   username,
   publicSlug,
 }: {
   projectId: string;
-  projectSlug: string;
   username: string | null;
   publicSlug: string;
 }) {
   const { data: views = [] } = useProjectViews(projectId);
   const updateView = useUpdateView(projectId);
+  const queryClient = useQueryClient();
+  const [pendingId, setPendingId] = useState<string | null>(null);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
   const urlFor = (view: ProjectView) =>
-    username
-      ? `${origin}/${username}/${publicSlug}${view.is_main ? "" : `/${view.slug}`}`
-      : "";
+    username ? `${origin}/${username}/${publicSlug}${view.is_main ? "" : `/${view.slug}`}` : "";
 
   const toggle = async (view: ProjectView) => {
     const status = view.status === "published" ? "draft" : "published";
+    const publishedAt = status === "published" ? new Date().toISOString() : null;
+    setPendingId(view.id);
     try {
+      if (view.is_main) {
+        // The main view is the project's publication — keep both rows in lockstep.
+        const { error } = await supabase
+          .from("projects")
+          .update({ status, published_at: publishedAt })
+          .eq("id", projectId);
+        if (error) throw error;
+      }
       await updateView.mutateAsync({
         id: view.id,
-        patch: {
-          status,
-          published_at: status === "published" ? new Date().toISOString() : null,
-        },
+        patch: { status, published_at: publishedAt },
       });
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success(status === "published" ? "View published." : "View unpublished.");
     } catch (error) {
       toast.error((error as Error).message);
+    } finally {
+      setPendingId(null);
     }
   };
 
-  if (views.length <= 1) return null;
+  if (!views.length) return null;
 
   return (
     <Section
@@ -143,6 +152,11 @@ function ViewsSection({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="truncate text-sm font-medium">{view.name}</span>
+                {view.is_main && (
+                  <span className="rounded border border-border px-1.5 py-0.5 font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
+                    Main
+                  </span>
+                )}
                 <StatusChip status={view.status} />
               </div>
               <p className="truncate font-secondary text-xs text-muted-foreground">
@@ -150,15 +164,6 @@ function ViewsSection({
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button asChild variant="ghost" size="sm">
-                <Link
-                  to="/projects/$projectSlug/map"
-                  params={{ projectSlug }}
-                  search={view.is_main ? {} : { view: view.slug }}
-                >
-                  Edit
-                </Link>
-              </Button>
               {view.status === "published" && urlFor(view) && (
                 <Button asChild variant="outline" size="sm">
                   <a href={urlFor(view)} target="_blank" rel="noreferrer">
@@ -167,16 +172,19 @@ function ViewsSection({
                   </a>
                 </Button>
               )}
-              {!view.is_main && (
-                <Button
-                  variant={view.status === "published" ? "outline" : "default"}
-                  size="sm"
-                  disabled={updateView.isPending}
-                  onClick={() => void toggle(view)}
-                >
-                  {view.status === "published" ? "Unpublish" : "Publish"}
-                </Button>
-              )}
+              <Button
+                variant={view.status === "published" ? "outline" : "default"}
+                size="sm"
+                disabled={pendingId === view.id}
+                onClick={() => void toggle(view)}
+              >
+                {pendingId === view.id ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  view.status !== "published" && <Globe2 className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {view.status === "published" ? "Unpublish" : "Publish"}
+              </Button>
             </div>
           </li>
         ))}
@@ -184,6 +192,7 @@ function ViewsSection({
     </Section>
   );
 }
+
 
 function ProjectPublish() {
   const projectId = useProjectId();
