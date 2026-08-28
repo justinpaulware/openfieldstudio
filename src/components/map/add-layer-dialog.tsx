@@ -65,6 +65,15 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
   // ArcGIS state
   const [arcgisUrl, setArcgisUrl] = useState("");
   const [arcgisName, setArcgisName] = useState("");
+  const [arcgisInfo, setArcgisInfo] = useState<ArcgisDescription | null>(null);
+  const [arcgisLayerUrl, setArcgisLayerUrl] = useState("");
+
+  const effectiveArcgisUrl =
+    arcgisInfo?.kind === "service"
+      ? arcgisLayerUrl
+      : arcgisInfo?.kind === "layer"
+        ? arcgisInfo.url
+        : arcgisUrl.trim();
 
   const reset = () => {
     setCsvUrl("");
@@ -74,7 +83,10 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
     setLonField("");
     setArcgisUrl("");
     setArcgisName("");
+    setArcgisInfo(null);
+    setArcgisLayerUrl("");
   };
+
 
   const insertLayer = async (args: InsertArgs) => {
     const { data: layer, error } = await supabase
