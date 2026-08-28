@@ -353,17 +353,59 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
 
           <TabsContent value="arcgis" className="mt-4 space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="arcgis-url">Service layer URL</Label>
-              <Input
-                id="arcgis-url"
-                placeholder="https://services.arcgis.com/.../FeatureServer/0"
-                value={arcgisUrl}
-                onChange={(event) => setArcgisUrl(event.target.value)}
-              />
+              <Label htmlFor="arcgis-url">Service or layer URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="arcgis-url"
+                  placeholder="https://server.example.com/arcgis/rest/services/.../MapServer/0"
+                  value={arcgisUrl}
+                  onChange={(event) => {
+                    setArcgisUrl(event.target.value);
+                    setArcgisInfo(null);
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleArcgisFetch}
+                  disabled={busy || !arcgisUrl.trim()}
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : "Fetch"}
+                </Button>
+              </div>
               <p className="font-secondary text-xs text-muted-foreground">
-                Point at a single layer index. Up to 5,000 features are fetched.
+                FeatureServer and MapServer are both supported — paste a layer
+                (…/MapServer/0) or a service root to pick a layer.
               </p>
             </div>
+
+            {arcgisInfo?.kind === "service" && (
+              <div className="space-y-2">
+                <Label>Layer</Label>
+                <Select value={arcgisLayerUrl} onValueChange={setArcgisLayerUrl}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a layer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {arcgisInfo.layers.map((layer) => (
+                      <SelectItem key={layer.url} value={layer.url}>
+                        {layer.name}
+                        {layer.geometryType ? ` · ${layer.geometryType.replace("esriGeometry", "")}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {arcgisInfo?.kind === "layer" && (
+              <p className="font-secondary text-xs text-muted-foreground">
+                {arcgisInfo.serverType} layer · {arcgisInfo.name}
+                {arcgisInfo.geometryType
+                  ? ` · ${arcgisInfo.geometryType.replace("esriGeometry", "")}`
+                  : ""}
+              </p>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="arcgis-name">Layer name (optional)</Label>
               <Input
@@ -375,12 +417,13 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
             <Button
               className="w-full"
               onClick={handleArcgisAdd}
-              disabled={busy || !arcgisUrl.trim()}
+              disabled={busy || !effectiveArcgisUrl}
             >
               {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Connect service
             </Button>
           </TabsContent>
+
         </Tabs>
       </DialogContent>
     </Dialog>
