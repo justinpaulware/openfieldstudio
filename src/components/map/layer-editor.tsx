@@ -32,7 +32,7 @@ export type LayerSourceInfo = {
 const SOURCE_LABEL: Record<string, string> = {
   geojson_file: "GeoJSON upload",
   csv_url: "CSV",
-  arcgis_rest: "ArcGIS Feature Service",
+  arcgis_rest: "ArcGIS REST Service",
 };
 
 type Props = {
