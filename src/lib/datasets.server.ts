@@ -158,44 +158,229 @@ export async function loadCsvGeoJSON(rawUrl: string, latField: string, lonField:
   return { type: "FeatureCollection", features } as unknown as FeatureCollection;
 }
 
-function normalizeArcgisUrl(rawUrl: string): URL {
+export type ArcgisServerType = "FeatureServer" | "MapServer";
+
+export type ArcgisEndpoint =
+  | { kind: "layer"; serverType: ArcgisServerType; url: string; layerId: number }
+  | { kind: "service"; serverType: ArcgisServerType; url: string };
+
+/** Classify a pasted ArcGIS REST URL as a service root or a single layer. */
+export function classifyArcgisUrl(rawUrl: string): ArcgisEndpoint {
   const url = assertPublicHttpUrl(rawUrl);
   url.search = "";
+  url.hash = "";
   url.pathname = url.pathname.replace(/\/+$/, "");
-  if (!/\/\d+$/.test(url.pathname)) {
-    throw new Error("Point at a specific layer, e.g. .../FeatureServer/0");
+
+  const match = url.pathname.match(/\/(FeatureServer|MapServer)(\/(\d+))?$/i);
+  if (!match) {
+    throw new Error(
+      "This URL isn't an ArcGIS REST endpoint. Expect a URL containing /FeatureServer or /MapServer, optionally followed by a layer number.",
+    );
   }
-  return url;
+  const serverType: ArcgisServerType = /featureserver/i.test(match[1] ?? "")
+    ? "FeatureServer"
+    : "MapServer";
+
+  if (match[3] === undefined) {
+    return { kind: "service", serverType, url: url.toString() };
+  }
+  return { kind: "layer", serverType, url: url.toString(), layerId: Number(match[3]) };
+}
+
+type ArcgisLayerMeta = {
+  name?: string;
+  type?: string;
+  geometryType?: string;
+  capabilities?: string;
+  drawingInfo?: unknown;
+  error?: { message?: string; details?: string[] };
+  layers?: { id: number; name?: string; geometryType?: string; type?: string; subLayerIds?: number[] | null }[];
+  tables?: { id: number; name?: string }[];
+};
+
+async function fetchArcgisJson(url: URL, what: string): Promise<ArcgisLayerMeta> {
+  let parsed: ArcgisLayerMeta;
+  try {
+    parsed = JSON.parse(await fetchText(url)) as ArcgisLayerMeta;
+  } catch (error) {
+    throw new Error(`Couldn't read ${what} from ${url.origin}${url.pathname}: ${(error as Error).message}`);
+  }
+  if (parsed.error) {
+    throw new Error(
+      `The ArcGIS service returned an error for ${url.pathname}: ${parsed.error.message ?? "unknown error"}`,
+    );
+  }
+  return parsed;
+}
+
+export type ArcgisDescription =
+  | {
+      kind: "service";
+      serverType: ArcgisServerType;
+      url: string;
+      layers: { id: number; name: string; geometryType: string | null; url: string }[];
+    }
+  | {
+      kind: "layer";
+      serverType: ArcgisServerType;
+      url: string;
+      name: string;
+      geometryType: string | null;
+    };
+
+/** Inspect an ArcGIS REST URL: list a service's layers, or describe a single layer. */
+export async function describeArcgis(rawUrl: string): Promise<ArcgisDescription> {
+  const endpoint = classifyArcgisUrl(rawUrl);
+  const metaUrl = new URL(endpoint.url);
+  metaUrl.searchParams.set("f", "json");
+  const meta = await fetchArcgisJson(metaUrl, `${endpoint.serverType} metadata`);
+
+  if (endpoint.kind === "service") {
+    const layers = (meta.layers ?? []).filter(
+      (layer) => !(layer.subLayerIds && layer.subLayerIds.length) && layer.type !== "Group Layer",
+    );
+    if (!layers.length) {
+      throw new Error(
+        `This ${endpoint.serverType} doesn't expose any queryable layers. Point at a specific layer, e.g. ${endpoint.url}/0`,
+      );
+    }
+    return {
+      kind: "service",
+      serverType: endpoint.serverType,
+      url: endpoint.url,
+      layers: layers.map((layer) => ({
+        id: layer.id,
+        name: layer.name ?? `Layer ${layer.id}`,
+        geometryType: layer.geometryType ?? null,
+        url: `${endpoint.url}/${layer.id}`,
+      })),
+    };
+  }
+
+  assertQueryableLayer(meta, endpoint.serverType);
+  return {
+    kind: "layer",
+    serverType: endpoint.serverType,
+    url: endpoint.url,
+    name: meta.name ?? `${endpoint.serverType} layer`,
+    geometryType: meta.geometryType ?? null,
+  };
+}
+
+function assertQueryableLayer(meta: ArcgisLayerMeta, serverType: ArcgisServerType) {
+  if (meta.type === "Group Layer" || (meta.layers && meta.layers.length && !meta.geometryType)) {
+    throw new Error(
+      `This ArcGIS layer can't be queried. Detected: ${serverType} group layer. Add one of its sublayers instead.`,
+    );
+  }
+  if (!meta.geometryType) {
+    throw new Error(
+      `This ArcGIS layer has no vector geometry. Detected: ${serverType} ${meta.type ?? "layer"}. Open Field supports point, line and polygon layers.`,
+    );
+  }
+  const capabilities = (meta.capabilities ?? "Query").toLowerCase();
+  if (!capabilities.includes("query")) {
+    throw new Error(
+      `This ${serverType} layer doesn't allow queries (capabilities: ${meta.capabilities}). Ask the publisher to enable Query, or use a different layer.`,
+    );
+  }
+}
+
+type EsriGeometry = {
+  x?: number;
+  y?: number;
+  points?: number[][];
+  paths?: number[][][];
+  rings?: number[][][];
+};
+
+/** Convert an Esri JSON feature set into GeoJSON (MapServer fallback path). */
+export function esriJsonToGeoJSON(payload: {
+  geometryType?: string;
+  features?: { attributes?: Record<string, unknown>; geometry?: EsriGeometry | null }[];
+}): FeatureCollection {
+  const features = (payload.features ?? []).flatMap((feature) => {
+    const geometry = feature.geometry;
+    if (!geometry) return [];
+    let geo: { type: string; coordinates: unknown } | null = null;
+
+    if (typeof geometry.x === "number" && typeof geometry.y === "number") {
+      geo = { type: "Point", coordinates: [geometry.x, geometry.y] };
+    } else if (geometry.points) {
+      geo = { type: "MultiPoint", coordinates: geometry.points };
+    } else if (geometry.paths) {
+      geo =
+        geometry.paths.length === 1
+          ? { type: "LineString", coordinates: geometry.paths[0] }
+          : { type: "MultiLineString", coordinates: geometry.paths };
+    } else if (geometry.rings) {
+      geo = { type: "Polygon", coordinates: geometry.rings };
+    }
+    if (!geo) return [];
+    return [
+      {
+        type: "Feature" as const,
+        geometry: geo,
+        properties: feature.attributes ?? {},
+      },
+    ];
+  });
+  return { type: "FeatureCollection", features } as unknown as FeatureCollection;
 }
 
 export async function loadArcgisGeoJSON(rawUrl: string) {
-  const base = normalizeArcgisUrl(rawUrl);
+  const endpoint = classifyArcgisUrl(rawUrl);
+  if (endpoint.kind === "service") {
+    throw new Error(
+      `That's an ArcGIS ${endpoint.serverType} root, not a layer. Choose a layer from the service, e.g. ${endpoint.url}/0`,
+    );
+  }
 
-  const metaUrl = new URL(base.toString());
+  const metaUrl = new URL(endpoint.url);
   metaUrl.searchParams.set("f", "json");
-  const metaText = await fetchText(metaUrl);
-  const meta = JSON.parse(metaText) as { name?: string; error?: { message?: string } };
-  if (meta.error) throw new Error(meta.error.message ?? "The ArcGIS service returned an error.");
+  const meta = await fetchArcgisJson(metaUrl, `${endpoint.serverType} layer metadata`);
+  assertQueryableLayer(meta, endpoint.serverType);
 
-  const fetchPage = async (offset: number) => {
-    const queryUrl = new URL(`${base.toString()}/query`);
-    queryUrl.searchParams.set("where", "1=1");
-    queryUrl.searchParams.set("outFields", "*");
-    queryUrl.searchParams.set("outSR", "4326");
-    queryUrl.searchParams.set("f", "geojson");
-    queryUrl.searchParams.set("resultRecordCount", String(ARCGIS_PAGE_SIZE));
-    if (offset > 0) queryUrl.searchParams.set("resultOffset", String(offset));
+  // MapServer endpoints often reject f=geojson; fall back to Esri JSON once and stay there.
+  let format: "geojson" | "json" = "geojson";
 
-    const parsed = JSON.parse(await fetchText(queryUrl)) as {
-      error?: { message?: string };
-      exceededTransferLimit?: boolean;
-      properties?: { exceededTransferLimit?: boolean };
+  const fetchPage = async (offset: number): Promise<{ fc: FeatureCollection; exceeded: boolean }> => {
+    const request = async (f: "geojson" | "json") => {
+      const queryUrl = new URL(`${endpoint.url}/query`);
+      queryUrl.searchParams.set("where", "1=1");
+      queryUrl.searchParams.set("outFields", "*");
+      queryUrl.searchParams.set("outSR", "4326");
+      queryUrl.searchParams.set("f", f);
+      queryUrl.searchParams.set("resultRecordCount", String(ARCGIS_PAGE_SIZE));
+      if (offset > 0) queryUrl.searchParams.set("resultOffset", String(offset));
+      return JSON.parse(await fetchText(queryUrl)) as {
+        error?: { message?: string };
+        exceededTransferLimit?: boolean;
+        properties?: { exceededTransferLimit?: boolean };
+        features?: unknown[];
+      };
     };
-    if (parsed?.error) {
-      throw new Error(parsed.error.message ?? "The ArcGIS service returned an error.");
+
+    let parsed = await request(format);
+    if (format === "geojson" && (parsed?.error || !toFeatureCollection(parsed))) {
+      format = "json";
+      parsed = await request("json");
     }
-    const fc = toFeatureCollection(parsed);
-    if (!fc) throw new Error("That service didn't return GeoJSON features.");
+    if (parsed?.error) {
+      throw new Error(
+        `The ArcGIS ${endpoint.serverType} refused the query: ${parsed.error.message ?? "unknown error"}`,
+      );
+    }
+
+    const fc =
+      format === "geojson"
+        ? toFeatureCollection(parsed)
+        : esriJsonToGeoJSON(parsed as Parameters<typeof esriJsonToGeoJSON>[0]);
+    if (!fc) {
+      throw new Error(
+        `The ArcGIS ${endpoint.serverType} didn't return usable geometry for this layer.`,
+      );
+    }
     const exceeded = Boolean(parsed.exceededTransferLimit ?? parsed.properties?.exceededTransferLimit);
     return { fc, exceeded };
   };
@@ -226,15 +411,18 @@ export async function loadArcgisGeoJSON(rawUrl: string) {
     offset += page.length;
   }
 
-
-  if (!features.length) throw new Error("That service didn't return GeoJSON features.");
+  if (!features.length) {
+    throw new Error(`The ${endpoint.serverType} returned no features for this layer.`);
+  }
 
   return {
-    name: meta.name ?? "ArcGIS layer",
+    name: meta.name ?? `${endpoint.serverType} layer`,
+    serverType: endpoint.serverType,
     featureCollection: { type: "FeatureCollection", features } as unknown as FeatureCollection,
     truncated,
   };
 }
+
 
 
 export function summarize(name: string, fc: FeatureCollection): RemoteSummary {
