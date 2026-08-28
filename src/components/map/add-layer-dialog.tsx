@@ -26,7 +26,22 @@ import {
   loadCsvLayer,
   previewCsv,
 } from "@/lib/datasets.functions";
-import type { ArcgisDescription } from "@/lib/datasets.server";
+
+type ArcgisDescription =
+  | {
+      kind: "service";
+      serverType: string;
+      url: string;
+      layers: { id: number; name: string; geometryType: string | null; url: string }[];
+    }
+  | {
+      kind: "layer";
+      serverType: string;
+      url: string;
+      name: string;
+      geometryType: string | null;
+    };
+
 
 import {
   collectFields,
