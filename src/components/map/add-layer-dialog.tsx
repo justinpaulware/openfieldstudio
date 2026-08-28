@@ -20,7 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { loadArcgisLayer, loadCsvLayer, previewCsv } from "@/lib/datasets.functions";
+import {
+  describeArcgisService,
+  loadArcgisLayer,
+  loadCsvLayer,
+  previewCsv,
+} from "@/lib/datasets.functions";
+import type { ArcgisDescription } from "@/lib/datasets.server";
+
 import {
   collectFields,
   computeBbox,
@@ -203,14 +210,39 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
     }
   };
 
-  const handleArcgisAdd = async () => {
+  const handleArcgisFetch = async () => {
     setBusy(true);
     try {
-      const { summary, truncated } = await loadArcgisLayer({ data: { url: arcgisUrl } });
+      const info = await describeArcgisService({ data: { url: arcgisUrl } });
+      setArcgisInfo(info);
+      if (info.kind === "service") {
+        setArcgisLayerUrl(info.layers[0]?.url ?? "");
+        toast.success(`Found ${info.layers.length} layers in this ${info.serverType}.`);
+      } else {
+        if (!arcgisName) setArcgisName(info.name);
+        toast.success(`${info.serverType} layer ready: ${info.name}`);
+      }
+    } catch (error) {
+      setArcgisInfo(null);
+      toast.error((error as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleArcgisAdd = async () => {
+    const url = effectiveArcgisUrl;
+    if (!url) return;
+    setBusy(true);
+    const loading = toast.loading(
+      `Loading ArcGIS ${arcgisInfo?.serverType ?? "REST"} layer…`,
+    );
+    try {
+      const { summary, truncated } = await loadArcgisLayer({ data: { url } });
       await insertLayer({
         name: arcgisName.trim() || summary.name,
         sourceType: "arcgis_rest",
-        sourceUrl: arcgisUrl.trim(),
+        sourceUrl: url,
         geometryType: summary.geometryType,
         featureCount: summary.featureCount,
         bbox: summary.bbox,
@@ -230,9 +262,11 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
     } catch (error) {
       toast.error((error as Error).message);
     } finally {
+      toast.dismiss(loading);
       setBusy(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={(next) => !busy && onOpenChange(next)}>
