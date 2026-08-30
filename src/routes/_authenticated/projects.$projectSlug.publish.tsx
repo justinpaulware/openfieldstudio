@@ -196,7 +196,7 @@ function ViewsSection({
 
 function ProjectPublish() {
   const projectId = useProjectId();
-  const { projectSlug } = Route.useParams();
+  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: profile } = useMyProfile();
@@ -272,30 +272,8 @@ function ProjectPublish() {
       ),
   });
 
-  const setStatus = useMutation({
-    mutationFn: async (status: "draft" | "published") => {
-      const publishedAt = status === "published" ? new Date().toISOString() : null;
-      const { error } = await supabase
-        .from("projects")
-        .update({ status, published_at: publishedAt })
-        .eq("id", projectId);
-      if (error) throw error;
-      // Keep the Main view in lockstep: public layer access is gated on a published view.
-      const { error: viewError } = await supabase
-        .from("project_views")
-        .update({ status, published_at: publishedAt })
-        .eq("project_id", projectId)
-        .eq("is_main", true);
-      if (viewError) throw viewError;
-      return status;
-    },
 
-    onSuccess: (status) => {
-      toast.success(status === "published" ? "Map published." : "Map unpublished.");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const remove = useMutation({
     mutationFn: async () => {
@@ -331,45 +309,15 @@ function ProjectPublish() {
     );
   }
 
-  const isPublished = project.status === "published";
-
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold">Publish</h1>
-          <StatusChip status={project.status} />
-        </div>
-        <div className="flex gap-2">
-          {isPublished && publicUrl && (
-            <Button asChild variant="outline">
-              <a href={publicUrl} target="_blank" rel="noreferrer">
-                <ExternalLink className="mr-1.5 h-4 w-4" />
-                View live map
-              </a>
-            </Button>
-          )}
-          <Button
-            variant={isPublished ? "outline" : "default"}
-            disabled={setStatus.isPending}
-            onClick={() => setStatus.mutate(isPublished ? "draft" : "published")}
-          >
-            {setStatus.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Globe2 className="mr-1.5 h-4 w-4" />
-            )}
-            {isPublished ? "Unpublish" : "Publish map"}
-          </Button>
-        </div>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-semibold">Publish</h1>
+        <StatusChip status={project.status} />
       </div>
 
-      <ViewsSection
-        projectId={projectId}
-        projectSlug={projectSlug}
-        username={username}
-        publicSlug={publicSlug}
-      />
+      <ViewsSection projectId={projectId} username={username} publicSlug={publicSlug} />
+
 
       <Section title="Project details" description="Shown on the public map and in your dashboard.">
         <div className="space-y-2">
@@ -409,7 +357,7 @@ function ProjectPublish() {
         description={
           !username
             ? "Choose a username to unlock your public map URLs."
-            : isPublished
+            : project.status === "published"
               ? "Anyone with this link can view the map."
               : "Publish the map to make this link work."
         }
