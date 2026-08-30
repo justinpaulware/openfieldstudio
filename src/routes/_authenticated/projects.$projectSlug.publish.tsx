@@ -331,45 +331,15 @@ function ProjectPublish() {
     );
   }
 
-  const isPublished = project.status === "published";
-
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold">Publish</h1>
-          <StatusChip status={project.status} />
-        </div>
-        <div className="flex gap-2">
-          {isPublished && publicUrl && (
-            <Button asChild variant="outline">
-              <a href={publicUrl} target="_blank" rel="noreferrer">
-                <ExternalLink className="mr-1.5 h-4 w-4" />
-                View live map
-              </a>
-            </Button>
-          )}
-          <Button
-            variant={isPublished ? "outline" : "default"}
-            disabled={setStatus.isPending}
-            onClick={() => setStatus.mutate(isPublished ? "draft" : "published")}
-          >
-            {setStatus.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Globe2 className="mr-1.5 h-4 w-4" />
-            )}
-            {isPublished ? "Unpublish" : "Publish map"}
-          </Button>
-        </div>
+      <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-semibold">Publish</h1>
+        <StatusChip status={project.status} />
       </div>
 
-      <ViewsSection
-        projectId={projectId}
-        projectSlug={projectSlug}
-        username={username}
-        publicSlug={publicSlug}
-      />
+      <ViewsSection projectId={projectId} username={username} publicSlug={publicSlug} />
+
 
       <Section title="Project details" description="Shown on the public map and in your dashboard.">
         <div className="space-y-2">
