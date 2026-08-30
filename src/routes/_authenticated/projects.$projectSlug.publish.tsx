@@ -196,7 +196,7 @@ function ViewsSection({
 
 function ProjectPublish() {
   const projectId = useProjectId();
-  const { projectSlug } = Route.useParams();
+  
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { data: profile } = useMyProfile();
