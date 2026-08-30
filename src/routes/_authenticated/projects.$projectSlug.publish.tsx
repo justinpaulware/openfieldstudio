@@ -272,30 +272,8 @@ function ProjectPublish() {
       ),
   });
 
-  const setStatus = useMutation({
-    mutationFn: async (status: "draft" | "published") => {
-      const publishedAt = status === "published" ? new Date().toISOString() : null;
-      const { error } = await supabase
-        .from("projects")
-        .update({ status, published_at: publishedAt })
-        .eq("id", projectId);
-      if (error) throw error;
-      // Keep the Main view in lockstep: public layer access is gated on a published view.
-      const { error: viewError } = await supabase
-        .from("project_views")
-        .update({ status, published_at: publishedAt })
-        .eq("project_id", projectId)
-        .eq("is_main", true);
-      if (viewError) throw viewError;
-      return status;
-    },
 
-    onSuccess: (status) => {
-      toast.success(status === "published" ? "Map published." : "Map unpublished.");
-      invalidate();
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+
 
   const remove = useMutation({
     mutationFn: async () => {
