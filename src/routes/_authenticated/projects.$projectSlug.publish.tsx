@@ -357,7 +357,7 @@ function ProjectPublish() {
         description={
           !username
             ? "Choose a username to unlock your public map URLs."
-            : isPublished
+            : project.status === "published"
               ? "Anyone with this link can view the map."
               : "Publish the map to make this link work."
         }
