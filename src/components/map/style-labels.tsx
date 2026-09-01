@@ -107,12 +107,81 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
             onChange={(size) => set({ size })}
           />
 
-          <div className="flex items-center justify-between gap-2">
-            <Label className="text-xs text-muted-foreground">Bold</Label>
-            <Switch checked={spec.bold} onCheckedChange={(bold) => set({ bold })} />
-          </div>
+          <Choice<"regular" | "bold">
+            label="Weight"
+            value={spec.bold ? "bold" : "regular"}
+            onChange={(weight) => set({ bold: weight === "bold" })}
+            options={[
+              { value: "regular", label: "Regular" },
+              { value: "bold", label: "Bold" },
+            ]}
+          />
+
+          <Choice<LabelTransform>
+            label="Text case"
+            value={spec.textTransform}
+            onChange={(textTransform) => set({ textTransform })}
+            options={[
+              { value: "none", label: "Original" },
+              { value: "upper", label: "UPPER" },
+              { value: "lower", label: "lower" },
+            ]}
+          />
 
           <ColorField label="Text color" value={spec.color} onChange={(color) => set({ color })} />
+          <SliderField
+            label="Text opacity"
+            value={spec.textOpacity}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={(textOpacity) => set({ textOpacity })}
+          />
+
+          <div className="space-y-3 rounded-md border border-border p-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs text-muted-foreground">Label background</Label>
+              <Switch
+                checked={spec.bgEnabled}
+                onCheckedChange={(bgEnabled) =>
+                  // A halo under a solid background just muddies the edge.
+                  set(bgEnabled ? { bgEnabled, haloWidth: 0 } : { bgEnabled })
+                }
+              />
+            </div>
+            {spec.bgEnabled && (
+              <>
+                <ColorField
+                  label="Background color"
+                  value={spec.bgColor}
+                  onChange={(bgColor) => set({ bgColor })}
+                />
+                <SliderField
+                  label="Background opacity"
+                  value={spec.bgOpacity}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  onChange={(bgOpacity) => set({ bgOpacity })}
+                />
+                <SliderField
+                  label="Padding"
+                  value={spec.bgPadding}
+                  min={0}
+                  max={10}
+                  step={1}
+                  suffix="px"
+                  onChange={(bgPadding) => set({ bgPadding })}
+                />
+                {kind === "line" && spec.linePlacement === "line" && (
+                  <p className="font-secondary text-[11px] text-muted-foreground">
+                    Backgrounds need horizontal labels — switch placement to Horizontal.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+
           <ColorField
             label="Halo color"
             value={spec.haloColor}
@@ -127,6 +196,15 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
             suffix="px"
             onChange={(haloWidth) => set({ haloWidth })}
           />
+          <SliderField
+            label="Halo opacity"
+            value={spec.haloOpacity}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={(haloOpacity) => set({ haloOpacity })}
+          />
+
 
           {kind === "line" ? (
             <Choice<LabelLinePlacement>

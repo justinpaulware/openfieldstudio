@@ -30,7 +30,9 @@ import {
   proportionalFilter,
   heatmapColorExpression,
   heatmapWeightExpression,
+  withAlpha,
 } from "@/lib/layer-style";
+
 import { buildMaskGeometry } from "@/lib/mask-geometry";
 
 
@@ -988,9 +990,32 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
     map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
     map.setPaintProperty(labelId, "text-color", paintColor(spec.color));
-    map.setPaintProperty(labelId, "text-halo-color", paintColor(spec.haloColor));
+    map.setPaintProperty(labelId, "text-opacity", spec.textOpacity);
+    map.setPaintProperty(labelId, "text-halo-color", withAlpha(spec.haloColor, spec.haloOpacity));
     map.setPaintProperty(labelId, "text-halo-width", spec.haloWidth);
+
+    // Label background: a solid image stretched behind the text in the same
+    // symbol layer, so it collides and moves with the label. Curved along-line
+    // labels can't carry a fitted rectangle, so it's skipped there.
+    const wantsBg = spec.bgEnabled && !alongLine && !isTransparent(spec.bgColor);
+    if (wantsBg) {
+      const bgIconId = labelBackgroundImage(map, spec.bgColor);
+      map.setLayoutProperty(labelId, "icon-image", bgIconId);
+      map.setLayoutProperty(labelId, "icon-text-fit", "both");
+      map.setLayoutProperty(labelId, "icon-text-fit-padding", [
+        spec.bgPadding,
+        spec.bgPadding,
+        spec.bgPadding,
+        spec.bgPadding,
+      ]);
+      map.setLayoutProperty(labelId, "icon-allow-overlap", spec.allowOverlap);
+      map.setLayoutProperty(labelId, "icon-ignore-placement", spec.allowOverlap);
+      map.setPaintProperty(labelId, "icon-opacity", spec.bgOpacity);
+    } else {
+      map.setLayoutProperty(labelId, "icon-image", undefined);
+    }
     map.setLayerZoomRange(labelId, spec.minZoom, Math.max(spec.minZoom + 0.1, spec.maxZoom));
+
   }
 }
 
@@ -1029,4 +1054,25 @@ function markerImage(style: LayerStyle): ImageData | null {
   if (style.strokeWidth > 0) ctx.stroke();
 
   return ctx.getImageData(0, 0, px, px);
+}
+
+/**
+ * Solid-color image used as the stretched label background. One image per
+ * color, registered lazily and reused across layers.
+ */
+function labelBackgroundImage(map: maplibregl.Map, color: string): string {
+  const hex = paintColor(color).toLowerCase();
+  const id = `of-labelbg-${hex.replace(/[^a-z0-9]/g, "")}`;
+  if (map.hasImage(id)) return id;
+  const size = 8;
+  const data = new Uint8Array(size * size * 4);
+  const rgb = withAlpha(hex, 1).match(/\d+/g) ?? ["255", "255", "255"];
+  for (let i = 0; i < size * size; i += 1) {
+    data[i * 4] = Number(rgb[0]);
+    data[i * 4 + 1] = Number(rgb[1]);
+    data[i * 4 + 2] = Number(rgb[2]);
+    data[i * 4 + 3] = 255;
+  }
+  map.addImage(id, { width: size, height: size, data }, { pixelRatio: 1 });
+  return id;
 }

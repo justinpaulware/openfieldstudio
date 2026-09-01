@@ -102,6 +102,7 @@ export type GraduatedSpec = {
 
 export type LabelPlacement = "center" | "above" | "below" | "left" | "right";
 export type LabelLinePlacement = "line" | "horizontal";
+export type LabelTransform = "none" | "upper" | "lower";
 
 export type LabelSpec = {
   enabled: boolean;
@@ -109,17 +110,25 @@ export type LabelSpec = {
   size: number;
   bold: boolean;
   color: string;
+  textOpacity: number;
   haloColor: string;
   haloWidth: number;
+  haloOpacity: number;
   placement: LabelPlacement;
   offset: number;
   linePlacement: LabelLinePlacement;
   allowOverlap: boolean;
   minZoom: number;
   maxZoom: number;
-  uppercase: boolean;
+  textTransform: LabelTransform;
   maxWidth: number;
+  /** Solid fill drawn behind the text (no border by design). */
+  bgEnabled: boolean;
+  bgColor: string;
+  bgOpacity: number;
+  bgPadding: number;
 };
+
 
 export type PopupTrigger = "click" | "hover";
 export type PopupFieldFormat = "text" | "number" | "date" | "link" | "image";
@@ -190,17 +199,24 @@ export const DEFAULT_LABELS: LabelSpec = {
   size: 12,
   bold: false,
   color: "#1b1d22",
+  textOpacity: 1,
   haloColor: "#ffffff",
   haloWidth: 1.2,
+  haloOpacity: 1,
   placement: "center",
   offset: 0.9,
   linePlacement: "line",
   allowOverlap: false,
   minZoom: 0,
   maxZoom: 22,
-  uppercase: false,
+  textTransform: "none",
   maxWidth: 10,
+  bgEnabled: false,
+  bgColor: "#ffffff",
+  bgOpacity: 1,
+  bgPadding: 3,
 };
+
 
 export const DEFAULT_POPUP: PopupSpec = {
   enabled: true,
@@ -376,6 +392,8 @@ const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
 const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "above", "below", "left", "right"];
 const LINE_PLACEMENTS: LabelLinePlacement[] = ["line", "horizontal"];
+const LABEL_TRANSFORMS: LabelTransform[] = ["none", "upper", "lower"];
+
 const POPUP_TRIGGERS: PopupTrigger[] = ["click", "hover"];
 const POPUP_FORMATS: PopupFieldFormat[] = ["text", "number", "date", "link", "image"];
 const POPUP_DENSITIES: ("compact" | "roomy")[] = ["compact", "roomy"];
@@ -460,24 +478,37 @@ function str(value: unknown, fallback: string): string {
 function parseLabels(value: unknown): LabelSpec {
   if (!value || typeof value !== "object") return DEFAULT_LABELS;
   const raw = value as Record<string, unknown>;
+  // Legacy configs stored `uppercase: boolean` before the transform enum existed.
+  const transform = LABEL_TRANSFORMS.includes(raw["textTransform"] as LabelTransform)
+    ? (raw["textTransform"] as LabelTransform)
+    : raw["uppercase"] === true
+      ? "upper"
+      : "none";
   return {
     enabled: raw["enabled"] === true,
     field: str(raw["field"], ""),
     size: num(raw["size"], DEFAULT_LABELS.size),
     bold: raw["bold"] === true,
     color: str(raw["color"], DEFAULT_LABELS.color),
+    textOpacity: num(raw["textOpacity"], DEFAULT_LABELS.textOpacity),
     haloColor: str(raw["haloColor"], DEFAULT_LABELS.haloColor),
     haloWidth: num(raw["haloWidth"], DEFAULT_LABELS.haloWidth),
+    haloOpacity: num(raw["haloOpacity"], DEFAULT_LABELS.haloOpacity),
     placement: pick(raw["placement"], LABEL_PLACEMENTS, DEFAULT_LABELS.placement),
     offset: num(raw["offset"], DEFAULT_LABELS.offset),
     linePlacement: pick(raw["linePlacement"], LINE_PLACEMENTS, DEFAULT_LABELS.linePlacement),
     allowOverlap: raw["allowOverlap"] === true,
     minZoom: num(raw["minZoom"], DEFAULT_LABELS.minZoom),
     maxZoom: num(raw["maxZoom"], DEFAULT_LABELS.maxZoom),
-    uppercase: raw["uppercase"] === true,
+    textTransform: transform,
     maxWidth: num(raw["maxWidth"], DEFAULT_LABELS.maxWidth),
+    bgEnabled: raw["bgEnabled"] === true,
+    bgColor: str(raw["bgColor"], DEFAULT_LABELS.bgColor),
+    bgOpacity: num(raw["bgOpacity"], DEFAULT_LABELS.bgOpacity),
+    bgPadding: num(raw["bgPadding"], DEFAULT_LABELS.bgPadding),
   };
 }
+
 
 function parsePopup(value: unknown): PopupSpec {
   if (!value || typeof value !== "object") return DEFAULT_POPUP;
@@ -677,8 +708,28 @@ export function activeLabels(style: LayerStyle): LabelSpec | null {
 /** MapLibre text-field expression for a label spec. */
 export function labelTextExpression(spec: LabelSpec): unknown[] {
   const value: unknown[] = ["to-string", ["get", spec.field]];
-  return spec.uppercase ? ["upcase", value] : value;
+  if (spec.textTransform === "upper") return ["upcase", value];
+  if (spec.textTransform === "lower") return ["downcase", value];
+  return value;
 }
+
+/** Hex color + 0-1 alpha as an rgba() string MapLibre accepts. */
+export function withAlpha(color: string, alpha: number): string {
+  const hex = paintColor(color).replace("#", "");
+  const full =
+    hex.length === 3
+      ? hex
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : hex.slice(0, 6);
+  const r = parseInt(full.slice(0, 2), 16) || 0;
+  const g = parseInt(full.slice(2, 4), 16) || 0;
+  const b = parseInt(full.slice(4, 6), 16) || 0;
+  const a = isTransparent(color) ? 0 : Math.min(1, Math.max(0, alpha));
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
 
 /** text-anchor + text-offset (in ems) for the chosen placement. */
 export function labelAnchorOffset(spec: LabelSpec): {
