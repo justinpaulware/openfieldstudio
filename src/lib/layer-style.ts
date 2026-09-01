@@ -708,8 +708,28 @@ export function activeLabels(style: LayerStyle): LabelSpec | null {
 /** MapLibre text-field expression for a label spec. */
 export function labelTextExpression(spec: LabelSpec): unknown[] {
   const value: unknown[] = ["to-string", ["get", spec.field]];
-  return spec.uppercase ? ["upcase", value] : value;
+  if (spec.textTransform === "upper") return ["upcase", value];
+  if (spec.textTransform === "lower") return ["downcase", value];
+  return value;
 }
+
+/** Hex color + 0-1 alpha as an rgba() string MapLibre accepts. */
+export function withAlpha(color: string, alpha: number): string {
+  const hex = paintColor(color).replace("#", "");
+  const full =
+    hex.length === 3
+      ? hex
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : hex.slice(0, 6);
+  const r = parseInt(full.slice(0, 2), 16) || 0;
+  const g = parseInt(full.slice(2, 4), 16) || 0;
+  const b = parseInt(full.slice(4, 6), 16) || 0;
+  const a = isTransparent(color) ? 0 : Math.min(1, Math.max(0, alpha));
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
 
 /** text-anchor + text-offset (in ems) for the chosen placement. */
 export function labelAnchorOffset(spec: LabelSpec): {
