@@ -199,17 +199,24 @@ export const DEFAULT_LABELS: LabelSpec = {
   size: 12,
   bold: false,
   color: "#1b1d22",
+  textOpacity: 1,
   haloColor: "#ffffff",
   haloWidth: 1.2,
+  haloOpacity: 1,
   placement: "center",
   offset: 0.9,
   linePlacement: "line",
   allowOverlap: false,
   minZoom: 0,
   maxZoom: 22,
-  uppercase: false,
+  textTransform: "none",
   maxWidth: 10,
+  bgEnabled: false,
+  bgColor: "#ffffff",
+  bgOpacity: 1,
+  bgPadding: 3,
 };
+
 
 export const DEFAULT_POPUP: PopupSpec = {
   enabled: true,
