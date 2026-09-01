@@ -1,62 +1,104 @@
-# Planning review: Tabs 13-16
+# Tab 16 Phase 1 (labels), then Tab 13 (comment export)
 
-No build this round. This is the sequencing and scoping pass for comment export (13), engagement (14), basemaps (15), and advanced labels (16), grounded in what the code already supports.
+Order confirmed: labels → comment export → basemaps (scoped down) → engagement.
 
-## What the code already gives us
+## 1. Tab 16 Phase 1 — Label typography and background (build now)
 
-- `comments` already stores a real GeoJSON `geometry` jsonb column alongside `lng`/`lat`, plus `category`, `status`, `attributes jsonb`. Tab 13's "geometry as source of truth" model is already half-built; no migration is needed for point export, and lines/polygons need only a `geometry_type` column plus a drawing UI.
-- Basemaps are a 4-item hardcoded list (`positron`, `bright`, `dark`, `liberty`) pointing at OpenFreeMap style URLs. There is no style-cloning layer, no project default beyond the stored id, and no view-level basemap.
-- `LabelSpec` already has field, size, bold, color, halo color/width, placement, offset, overlap, min/max zoom, uppercase, max width. Tab 16 Phase 1 mostly means: replace `bold` with a weight scale, replace `uppercase` with a transform enum, and add a background block. No background, no text opacity, no halo opacity today.
+No schema change; `label_config` is jsonb and unknown keys are parsed with fallbacks already.
 
-## Recommended build order
+New controls in the Labels section of the layer editor:
 
-Cheapest-to-highest-value first, and each one ships alone.
+- **Text transform**: Original / UPPERCASE / lowercase / Title Case. Replaces the existing `uppercase` boolean, migrated on read (`uppercase: true` → `UPPERCASE`).
+- **Font weight**: Light / Regular / Medium / Bold. Replaces `bold`, migrated on read.
+- **Text opacity**: 0-100%.
+- **Halo opacity**: 0-100% (currently halo has color and width only).
+- **Background**: enable toggle, fill color, opacity, padding 0-10px. Solid fill only — no border, no frame.
 
-### 1. Tab 16 Phase 1 — Label background and typography (build next)
-Highest visual payoff per unit of work, no schema change (`label_config` is jsonb).
+Live preview on the map as with every other style control, debounce-saved to `layer_styles.label_config`.
 
-- `textTransform`: original / UPPERCASE / lowercase / Title Case (replaces the `uppercase` boolean, migrated on read).
-- `fontWeight`: light / regular / medium / bold (replaces `bold`, migrated on read).
-- Label background: enable toggle, color, opacity, padding 0-10px, rectangle only.
-- `textOpacity`.
+### The background technique, and whether it is safe
 
-Technical note: MapLibre has no native text background. The rectangle comes from a 1x1 white SDF-tintable image used as `icon-image` with `icon-text-fit: both` and `icon-text-fit-padding`, tinted by `icon-color`/`icon-opacity`, drawn in the same symbol layer as the text so it moves and collides with the label. Borders (Phase 2) need a second stretched image with a border baked in, or a second symbol layer beneath — worth prototyping before promising it.
+MapLibre has no `text-background-*` paint property. The standard, widely used
+workaround is to draw a stretchable image behind the text in the *same* symbol
+layer:
 
-### 2. Tab 13 — Comment export (build after)
-Small, self-contained, immediately useful.
+- Register a tiny white image once per map (`map.addImage`, SDF so it can be tinted).
+- On the label layer set `icon-image` to that image, `icon-text-fit: "both"`, and
+  `icon-text-fit-padding` from the padding control.
+- Tint with `icon-color` and `icon-opacity` from the background color/opacity controls.
 
-- Export menu in the project Comments tab: CSV and GeoJSON.
-- Filters carried from the current table view: status, categories, date range.
-- Fields: comment id, project id/name, view, body, category, status, author name, email (owner only), created/updated, lng/lat. GeoJSON uses the stored `geometry` directly, all other fields as properties.
-- Generated in a `requireSupabaseAuth` server function so email is never exposed client-side to non-owners; returned as a download.
-- Add `geometry_type` to `comments` now (defaulting to `Point`) so line/polygon feedback later needs no migration, and export WKT for non-point rows in CSV.
+Because the icon lives in the same symbol layer as the text, it moves with the
+label, participates in the same collision detection, and can never drift out of
+register with the text. This is the technique Mapbox/MapLibre styles themselves
+use for shields and callouts, so it is well-trodden rather than a hack.
 
-### 3. Tab 15 — Basemap system (medium)
-Turn the hardcoded list into a registry.
+Honest caveats, all of which we can live with or handle:
 
-- A `src/lib/basemaps.ts` registry: id, label, group (Vector / Satellite / Terrain), base style URL, and an optional style transform function.
-- Open Field Light and Open Field Light (No Labels) are produced by fetching the OpenFreeMap style JSON once and filtering/recoloring layers — label suppression is just dropping symbol layers whose source-layer is place/poi/transportation_name. Open Field Dark same approach. This keeps one provider and no tile costs.
-- Project-level default basemap (already stored), then view-level override reusing the existing view-settings resolver.
-- Publish setting "Allow viewer basemap switching" and a viewer control: later, once the registry exists.
+- **Along-line labels.** With `symbol-placement: "line"`, glyphs curve along the
+  geometry and a fitted rectangle cannot follow that curve. Behaviour there is
+  poor. Handling: when a layer uses along-line placement, the background control
+  is disabled with a short note ("Backgrounds require horizontal labels"), or
+  enabling the background switches that layer to horizontal placement. I lean
+  toward disabling with the note — less surprising.
+- **Point markers already use `icon-image`.** They are on a separate symbol
+  layer from labels in `map-canvas.tsx`, so there is no collision between the two
+  uses. Verified in the code.
+- **Multi-line labels** (the existing max-width control) are fine —
+  `icon-text-fit: both` sizes to the full wrapped text block.
+- **Load cost** is one 1×1 image added at map init; no network request, no
+  per-layer asset, nothing to lazy-load.
+- **Halo + background together** can look muddy. Not a bug, but when a background
+  is enabled the default halo width drops to 0 so the out-of-the-box result is the
+  clean whiteout look you described.
 
-Open question for this tab: whether Basemap becomes its own project tab or a "Map settings" panel inside the editor. Recommendation is a panel in the editor — a whole tab for one setting is heavy, and view-level overrides belong next to the view switcher.
+So: comfortable with the approach, with the along-line case explicitly handled
+rather than left to misbehave. Verification includes a point layer, a polygon
+layer, a wrapped multi-line label, and a line layer in both placements.
 
-### 4. Tab 14 — Engagement (direction, not a build)
-Tab 14 is a product thesis rather than a feature spec. The parts that are concretely buildable next, in order:
+## 2. Tab 13 — Comment export (build after)
 
-1. Line and polygon feedback — the drawing UI is the work; the data model is nearly ready.
-2. Sentiment category rollup (counts by category on the Comments tab and optionally on the published map).
-3. Upvoting — one small `comment_votes` table, anonymous-keyed, plus a sort-by-support option.
-4. Priority mapping ("place 3 pins") — a per-project prompt with a submission budget; reuses comments plus a heatmap style that already exists.
-5. Spatial surveys and scenario feedback tied to Views — real projects in their own right; not to be scoped until 1-4 land.
+- Export menu on the project Comments tab: CSV and GeoJSON.
+- Exports exactly the current filtered set (status, categories, date range, search).
+- Fields: comment id, project id and name, view, body, category, status, author
+  name, author email, created, updated, lng, lat. Contact details included by
+  default, since the export is owner-only.
+- GeoJSON uses the stored `geometry` column directly, everything else as
+  properties. CSV writes WKT for any non-point geometry.
+- Generated in a `requireSupabaseAuth` server function and returned as a download,
+  so nothing is exposed to non-owners.
+- Add `geometry_type` to `comments` (default `Point`) in the same migration so
+  line/polygon feedback later needs no schema change.
 
-Explicitly parked: discussion threads, layer/feature-attached feedback, full participatory toolkit.
+## 3. Tab 15 — Basemaps, scoped down
 
-### Also noted from the doc
-Tab X (QML import) stays a V2 item. It slots naturally after Tab 16, because a richer label model plus the existing categorized/graduated specs are what a `.qml` parser would need to map into.
+Dropping the registry/power-user direction. The actual need is one thing: **a
+clean, label-free basemap option**.
 
-## What I'd like your call on
+- Add "Positron (No Labels)" alongside the existing four. Produced by fetching the
+  OpenFreeMap Positron style JSON once and dropping symbol layers sourced from
+  place / poi / transportation_name — no new provider, no tile cost, no new UI
+  surface.
+- It appears in the existing basemap switcher for creators and viewers exactly
+  like the current four. No basemap editor, no per-user customization.
+- Authoring further Open Field standard basemaps stays a developer-side task
+  (code-defined transforms), not a product feature, until there is a reason to
+  expose it.
 
-- Confirm the order above (labels → export → basemaps → engagement), or reshuffle.
-- Basemap as its own tab vs. a map-settings panel in the editor.
-- Whether comment export should include author email by default or behind a "include contact details" checkbox.
+## 4. Tab 14 — Engagement
+
+Unchanged from the previous pass, still direction rather than a build: line and
+polygon feedback first, then sentiment rollup, upvoting, priority mapping,
+then surveys. Threads, feature-attached feedback and the full participatory
+toolkit stay parked.
+
+## Technical notes
+
+- Files touched in step 1: `src/lib/layer-style.ts` (LabelSpec fields, defaults,
+  parser + migration of `bold`/`uppercase`), `src/components/map/style-labels.tsx`
+  (controls), `src/components/map/map-canvas.tsx` (image registration, text
+  transform expression, weight → `text-font` stack, opacity, icon-text-fit).
+- Font weight maps to the glyph stacks available from the current provider; if a
+  requested weight has no glyph stack it falls back to the nearest available one
+  rather than rendering nothing.
+- Step 2 is one migration plus `comments` export server function and a menu in the
+  Comments tab; step 3 is a style-transform helper plus one entry in `BASEMAPS`.
