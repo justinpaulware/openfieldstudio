@@ -102,6 +102,7 @@ export type GraduatedSpec = {
 
 export type LabelPlacement = "center" | "above" | "below" | "left" | "right";
 export type LabelLinePlacement = "line" | "horizontal";
+export type LabelTransform = "none" | "upper" | "lower";
 
 export type LabelSpec = {
   enabled: boolean;
@@ -109,17 +110,25 @@ export type LabelSpec = {
   size: number;
   bold: boolean;
   color: string;
+  textOpacity: number;
   haloColor: string;
   haloWidth: number;
+  haloOpacity: number;
   placement: LabelPlacement;
   offset: number;
   linePlacement: LabelLinePlacement;
   allowOverlap: boolean;
   minZoom: number;
   maxZoom: number;
-  uppercase: boolean;
+  textTransform: LabelTransform;
   maxWidth: number;
+  /** Solid fill drawn behind the text (no border by design). */
+  bgEnabled: boolean;
+  bgColor: string;
+  bgOpacity: number;
+  bgPadding: number;
 };
+
 
 export type PopupTrigger = "click" | "hover";
 export type PopupFieldFormat = "text" | "number" | "date" | "link" | "image";
