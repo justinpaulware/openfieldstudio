@@ -30,7 +30,9 @@ import {
   proportionalFilter,
   heatmapColorExpression,
   heatmapWeightExpression,
+  withAlpha,
 } from "@/lib/layer-style";
+
 import { buildMaskGeometry } from "@/lib/mask-geometry";
 
 
