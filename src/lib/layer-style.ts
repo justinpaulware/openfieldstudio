@@ -476,24 +476,37 @@ function str(value: unknown, fallback: string): string {
 function parseLabels(value: unknown): LabelSpec {
   if (!value || typeof value !== "object") return DEFAULT_LABELS;
   const raw = value as Record<string, unknown>;
+  // Legacy configs stored `uppercase: boolean` before the transform enum existed.
+  const transform = LABEL_TRANSFORMS.includes(raw["textTransform"] as LabelTransform)
+    ? (raw["textTransform"] as LabelTransform)
+    : raw["uppercase"] === true
+      ? "upper"
+      : "none";
   return {
     enabled: raw["enabled"] === true,
     field: str(raw["field"], ""),
     size: num(raw["size"], DEFAULT_LABELS.size),
     bold: raw["bold"] === true,
     color: str(raw["color"], DEFAULT_LABELS.color),
+    textOpacity: num(raw["textOpacity"], DEFAULT_LABELS.textOpacity),
     haloColor: str(raw["haloColor"], DEFAULT_LABELS.haloColor),
     haloWidth: num(raw["haloWidth"], DEFAULT_LABELS.haloWidth),
+    haloOpacity: num(raw["haloOpacity"], DEFAULT_LABELS.haloOpacity),
     placement: pick(raw["placement"], LABEL_PLACEMENTS, DEFAULT_LABELS.placement),
     offset: num(raw["offset"], DEFAULT_LABELS.offset),
     linePlacement: pick(raw["linePlacement"], LINE_PLACEMENTS, DEFAULT_LABELS.linePlacement),
     allowOverlap: raw["allowOverlap"] === true,
     minZoom: num(raw["minZoom"], DEFAULT_LABELS.minZoom),
     maxZoom: num(raw["maxZoom"], DEFAULT_LABELS.maxZoom),
-    uppercase: raw["uppercase"] === true,
+    textTransform: transform,
     maxWidth: num(raw["maxWidth"], DEFAULT_LABELS.maxWidth),
+    bgEnabled: raw["bgEnabled"] === true,
+    bgColor: str(raw["bgColor"], DEFAULT_LABELS.bgColor),
+    bgOpacity: num(raw["bgOpacity"], DEFAULT_LABELS.bgOpacity),
+    bgPadding: num(raw["bgPadding"], DEFAULT_LABELS.bgPadding),
   };
 }
+
 
 function parsePopup(value: unknown): PopupSpec {
   if (!value || typeof value !== "object") return DEFAULT_POPUP;
