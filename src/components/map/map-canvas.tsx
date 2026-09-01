@@ -1055,3 +1055,24 @@ function markerImage(style: LayerStyle): ImageData | null {
 
   return ctx.getImageData(0, 0, px, px);
 }
+
+/**
+ * Solid-color image used as the stretched label background. One image per
+ * color, registered lazily and reused across layers.
+ */
+function labelBackgroundImage(map: maplibregl.Map, color: string): string {
+  const hex = paintColor(color).toLowerCase();
+  const id = `of-labelbg-${hex.replace(/[^a-z0-9]/g, "")}`;
+  if (map.hasImage(id)) return id;
+  const size = 8;
+  const data = new Uint8Array(size * size * 4);
+  const rgb = withAlpha(hex, 1).match(/\d+/g) ?? ["255", "255", "255"];
+  for (let i = 0; i < size * size; i += 1) {
+    data[i * 4] = Number(rgb[0]);
+    data[i * 4 + 1] = Number(rgb[1]);
+    data[i * 4 + 2] = Number(rgb[2]);
+    data[i * 4 + 3] = 255;
+  }
+  map.addImage(id, { width: size, height: size, data }, { pixelRatio: 1 });
+  return id;
+}
