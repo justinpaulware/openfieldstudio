@@ -988,9 +988,32 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
     map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
     map.setPaintProperty(labelId, "text-color", paintColor(spec.color));
-    map.setPaintProperty(labelId, "text-halo-color", paintColor(spec.haloColor));
+    map.setPaintProperty(labelId, "text-opacity", spec.textOpacity);
+    map.setPaintProperty(labelId, "text-halo-color", withAlpha(spec.haloColor, spec.haloOpacity));
     map.setPaintProperty(labelId, "text-halo-width", spec.haloWidth);
+
+    // Label background: a solid image stretched behind the text in the same
+    // symbol layer, so it collides and moves with the label. Curved along-line
+    // labels can't carry a fitted rectangle, so it's skipped there.
+    const wantsBg = spec.bgEnabled && !alongLine && !isTransparent(spec.bgColor);
+    if (wantsBg) {
+      const bgIconId = labelBackgroundImage(map, spec.bgColor);
+      map.setLayoutProperty(labelId, "icon-image", bgIconId);
+      map.setLayoutProperty(labelId, "icon-text-fit", "both");
+      map.setLayoutProperty(labelId, "icon-text-fit-padding", [
+        spec.bgPadding,
+        spec.bgPadding,
+        spec.bgPadding,
+        spec.bgPadding,
+      ]);
+      map.setLayoutProperty(labelId, "icon-allow-overlap", spec.allowOverlap);
+      map.setLayoutProperty(labelId, "icon-ignore-placement", spec.allowOverlap);
+      map.setPaintProperty(labelId, "icon-opacity", spec.bgOpacity);
+    } else {
+      map.setLayoutProperty(labelId, "icon-image", undefined);
+    }
     map.setLayerZoomRange(labelId, spec.minZoom, Math.max(spec.minZoom + 0.1, spec.maxZoom));
+
   }
 }
 
