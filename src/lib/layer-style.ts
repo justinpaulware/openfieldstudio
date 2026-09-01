@@ -392,6 +392,8 @@ const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
 const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "above", "below", "left", "right"];
 const LINE_PLACEMENTS: LabelLinePlacement[] = ["line", "horizontal"];
+const LABEL_TRANSFORMS: LabelTransform[] = ["none", "upper", "lower"];
+
 const POPUP_TRIGGERS: PopupTrigger[] = ["click", "hover"];
 const POPUP_FORMATS: PopupFieldFormat[] = ["text", "number", "date", "link", "image"];
 const POPUP_DENSITIES: ("compact" | "roomy")[] = ["compact", "roomy"];
