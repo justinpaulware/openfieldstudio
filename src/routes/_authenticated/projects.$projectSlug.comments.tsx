@@ -1,19 +1,31 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Loader2, MessageSquare, Trash2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Download, Eye, EyeOff, Loader2, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
+import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
+
+const STATUS_FILTERS = ["all", "pending", "approved", "hidden", "rejected"] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
   head: () => ({
@@ -124,10 +136,47 @@ function ProjectComments() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (comments ?? []).filter(
+      (c) =>
+        (statusFilter === "all" || c.status === statusFilter) &&
+        (!term || c.body.toLowerCase().includes(term)),
+    );
+  }, [comments, statusFilter, search]);
+
+  const runExport = useServerFn(exportComments);
+  const [exporting, setExporting] = useState(false);
+
+  async function download(format: "csv" | "geojson") {
+    setExporting(true);
+    try {
+      const result = await runExport({
+        data: { projectId, format, status: statusFilter, search },
+      });
+      const blob = new Blob([result.content], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = result.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${result.count} comment${result.count === 1 ? "" : "s"}.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const pins = useMemo(
-    () => (comments ?? []).map((c) => ({ id: c.id, lng: c.lng, lat: c.lat })),
-    [comments],
+    () => filtered.map((c) => ({ id: c.id, lng: c.lng, lat: c.lat })),
+    [filtered],
   );
+
 
   const initialView = {
     center: [project?.map_center?.[0] ?? 0, project?.map_center?.[1] ?? 20] as [number, number],
@@ -145,12 +194,59 @@ function ProjectComments() {
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Comments</h1>
-          <p className="mt-1 font-secondary text-sm text-muted-foreground">
-            Feedback visitors have left on this map.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Comments</h1>
+            <p className="mt-1 font-secondary text-sm text-muted-foreground">
+              Feedback visitors have left on this map.
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={exporting}>
+                {exporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => void download("csv")}>
+                CSV (with contact details)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void download("geojson")}>GeoJSON</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+            {STATUS_FILTERS.map((value) => (
+              <Button
+                key={value}
+                type="button"
+                size="sm"
+                variant={statusFilter === value ? "secondary" : "ghost"}
+                className="h-7 font-secondary text-xs capitalize"
+                onClick={() => setStatusFilter(value)}
+              >
+                {value}
+              </Button>
+            ))}
+          </div>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search comments"
+            className="h-9 max-w-[16rem] flex-1"
+          />
+          <span className="font-secondary text-xs text-muted-foreground">
+            {filtered.length} shown
+          </span>
+        </div>
+
 
         <div className="h-[380px] overflow-hidden rounded-xl border border-border">
           {project ? (
@@ -178,19 +274,23 @@ function ProjectComments() {
           <div className="flex justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : (comments ?? []).length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center">
             <MessageSquare className="mx-auto h-8 w-8 text-muted-foreground" />
-            <h2 className="mt-4 text-lg font-semibold">No comments yet</h2>
+            <h2 className="mt-4 text-lg font-semibold">
+              {(comments ?? []).length > 0 ? "No matching comments" : "No comments yet"}
+            </h2>
             <p className="mx-auto mt-2 max-w-md font-secondary text-sm text-muted-foreground">
-              {commentsEnabled
-                ? "Once visitors drop pins on your published map, they'll show up here."
-                : "Commenting is currently off for this project. Turn it on to collect feedback."}
+              {(comments ?? []).length > 0
+                ? "No comments match the current filters."
+                : commentsEnabled
+                  ? "Once visitors drop pins on your published map, they'll show up here."
+                  : "Commenting is currently off for this project. Turn it on to collect feedback."}
             </p>
           </div>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-            {(comments ?? []).map((comment) => (
+            {filtered.map((comment) => (
               <li
                 key={comment.id}
                 className={cn(
