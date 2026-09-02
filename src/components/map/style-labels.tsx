@@ -277,10 +277,6 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-2">
-            <Label className="text-xs text-muted-foreground">Uppercase</Label>
-            <Switch checked={spec.uppercase} onCheckedChange={(uppercase) => set({ uppercase })} />
-          </div>
 
           <SliderField
             label="Wrap width"
