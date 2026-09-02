@@ -194,12 +194,59 @@ function ProjectComments() {
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Comments</h1>
-          <p className="mt-1 font-secondary text-sm text-muted-foreground">
-            Feedback visitors have left on this map.
-          </p>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold">Comments</h1>
+            <p className="mt-1 font-secondary text-sm text-muted-foreground">
+              Feedback visitors have left on this map.
+            </p>
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" disabled={exporting}>
+                {exporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="mr-2 h-4 w-4" />
+                )}
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => void download("csv")}>
+                CSV (with contact details)
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => void download("geojson")}>GeoJSON</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
+            {STATUS_FILTERS.map((value) => (
+              <Button
+                key={value}
+                type="button"
+                size="sm"
+                variant={statusFilter === value ? "secondary" : "ghost"}
+                className="h-7 font-secondary text-xs capitalize"
+                onClick={() => setStatusFilter(value)}
+              >
+                {value}
+              </Button>
+            ))}
+          </div>
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search comments"
+            className="h-9 max-w-[16rem] flex-1"
+          />
+          <span className="font-secondary text-xs text-muted-foreground">
+            {filtered.length} shown
+          </span>
+        </div>
+
 
         <div className="h-[380px] overflow-hidden rounded-xl border border-border">
           {project ? (
