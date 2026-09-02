@@ -1,19 +1,31 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Loader2, MessageSquare, Trash2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Download, Eye, EyeOff, Loader2, MessageSquare, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
+import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
+
+const STATUS_FILTERS = ["all", "pending", "approved", "hidden", "rejected"] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number];
+
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
   head: () => ({
