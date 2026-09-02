@@ -136,10 +136,47 @@ function ProjectComments() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return (comments ?? []).filter(
+      (c) =>
+        (statusFilter === "all" || c.status === statusFilter) &&
+        (!term || c.body.toLowerCase().includes(term)),
+    );
+  }, [comments, statusFilter, search]);
+
+  const runExport = useServerFn(exportComments);
+  const [exporting, setExporting] = useState(false);
+
+  async function download(format: "csv" | "geojson") {
+    setExporting(true);
+    try {
+      const result = await runExport({
+        data: { projectId, format, status: statusFilter, search },
+      });
+      const blob = new Blob([result.content], { type: result.mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = result.filename;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${result.count} comment${result.count === 1 ? "" : "s"}.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   const pins = useMemo(
-    () => (comments ?? []).map((c) => ({ id: c.id, lng: c.lng, lat: c.lat })),
-    [comments],
+    () => filtered.map((c) => ({ id: c.id, lng: c.lng, lat: c.lat })),
+    [filtered],
   );
+
 
   const initialView = {
     center: [project?.map_center?.[0] ?? 0, project?.map_center?.[1] ?? 20] as [number, number],
