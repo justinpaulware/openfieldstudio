@@ -68,7 +68,7 @@ export const exportComments = createServerFn({ method: "POST" })
 
     const { data: project, error: projectError } = await supabase
       .from("projects")
-      .select("id, name, slug")
+      .select("id, title, slug")
       .eq("id", data.projectId)
       .maybeSingle();
     if (projectError) throw new Error(projectError.message);
@@ -104,7 +104,7 @@ export const exportComments = createServerFn({ method: "POST" })
           properties: {
             id: row.id,
             project_id: row.project_id,
-            project_name: project.name,
+            project_name: project.title,
             body: row.body,
             category: row.category,
             status: row.status,
@@ -132,7 +132,7 @@ export const exportComments = createServerFn({ method: "POST" })
         [
           row.id,
           row.project_id,
-          project.name,
+          project.title,
           row.body,
           row.category,
           row.status,
