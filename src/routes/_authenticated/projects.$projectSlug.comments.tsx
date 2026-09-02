@@ -274,19 +274,23 @@ function ProjectComments() {
           <div className="flex justify-center py-12">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : (comments ?? []).length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center">
             <MessageSquare className="mx-auto h-8 w-8 text-muted-foreground" />
-            <h2 className="mt-4 text-lg font-semibold">No comments yet</h2>
+            <h2 className="mt-4 text-lg font-semibold">
+              {(comments ?? []).length > 0 ? "No matching comments" : "No comments yet"}
+            </h2>
             <p className="mx-auto mt-2 max-w-md font-secondary text-sm text-muted-foreground">
-              {commentsEnabled
-                ? "Once visitors drop pins on your published map, they'll show up here."
-                : "Commenting is currently off for this project. Turn it on to collect feedback."}
+              {(comments ?? []).length > 0
+                ? "No comments match the current filters."
+                : commentsEnabled
+                  ? "Once visitors drop pins on your published map, they'll show up here."
+                  : "Commenting is currently off for this project. Turn it on to collect feedback."}
             </p>
           </div>
         ) : (
           <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
-            {(comments ?? []).map((comment) => (
+            {filtered.map((comment) => (
               <li
                 key={comment.id}
                 className={cn(
