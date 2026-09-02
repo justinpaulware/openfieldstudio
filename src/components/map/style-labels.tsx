@@ -5,6 +5,8 @@ import {
   DEFAULT_LABELS,
   type LabelLinePlacement,
   type LabelPlacement,
+  type LabelTransform,
+
   type LabelSpec,
   type LayerStyle,
   type SimpleKind,
