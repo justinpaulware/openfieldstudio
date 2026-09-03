@@ -1069,7 +1069,10 @@ function labelBackgroundImage(map: maplibregl.Map, color: string): string {
   const hex = paintColor(color).toLowerCase();
   const id = `of-labelbg-${hex.replace(/[^a-z0-9]/g, "")}`;
   if (map.hasImage(id)) return id;
-  const size = 8;
+  // A larger solid image with explicit stretch zones: icon-text-fit then
+  // stretches the interior, keeping the rectangle's opacity perfectly uniform
+  // with hard edges (a tiny unstretched image fades at the extents).
+  const size = 64;
   const data = new Uint8Array(size * size * 4);
   const rgb = withAlpha(hex, 1).match(/\d+/g) ?? ["255", "255", "255"];
   for (let i = 0; i < size * size; i += 1) {
@@ -1078,6 +1081,21 @@ function labelBackgroundImage(map: maplibregl.Map, color: string): string {
     data[i * 4 + 2] = Number(rgb[2]);
     data[i * 4 + 3] = 255;
   }
-  map.addImage(id, { width: size, height: size, data }, { pixelRatio: 1 });
+  map.addImage(
+    id,
+    { width: size, height: size, data },
+    {
+      pixelRatio: 1,
+      stretchX: [
+        [0, size / 2],
+        [size / 2, size],
+      ],
+      stretchY: [
+        [0, size / 2],
+        [size / 2, size],
+      ],
+      content: [0, 0, size, size],
+    },
+  );
   return id;
 }
