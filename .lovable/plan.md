@@ -60,7 +60,10 @@ Note: the optional `geometry_type` column on comments was never added; export de
 - Switch between views and confirm per-view filter/visibility overrides stay separate.
 - Confirm the published viewer honours the active view's filters.
 
-## Questions
+## 8. Add the `geometry_type` column on comments
 
-- Should I use one of your existing projects for these checks, or create a throwaway test project so nothing published gets disturbed? (Publish/unpublish steps briefly change live state.)
-- Do you want the `geometry_type` column added to comments now that the database is reachable, or leave the derived approach?
+Confirmed for build: a migration adding `geometry_type text NOT NULL DEFAULT 'Point'` to `public.comments`, backfilled from the stored geometry, and kept current by the existing comment trigger. The export then reads the column directly instead of deriving it — groundwork for line and polygon feedback (Tab 14).
+
+## Test setup
+
+All checks run against a new throwaway test project (sample point/line/polygon layers, comments enabled), published and unpublished as needed, then deleted at the end. Nothing in your existing projects is touched.
