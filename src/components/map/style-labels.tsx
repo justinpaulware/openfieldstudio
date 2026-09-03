@@ -133,11 +133,12 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
           <ColorField label="Text color" value={spec.color} onChange={(color) => set({ color })} />
           <SliderField
             label="Text opacity"
-            value={spec.textOpacity}
+            value={Math.round(spec.textOpacity * 100)}
             min={0}
-            max={1}
-            step={0.05}
-            onChange={(textOpacity) => set({ textOpacity })}
+            max={100}
+            step={1}
+            suffix="%"
+            onChange={(value) => set({ textOpacity: value / 100 })}
           />
 
           <div className="space-y-3 rounded-md border border-border p-2.5">
@@ -160,18 +161,19 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
                 />
                 <SliderField
                   label="Background opacity"
-                  value={spec.bgOpacity}
+                  value={Math.round(spec.bgOpacity * 100)}
                   min={0}
-                  max={1}
-                  step={0.05}
-                  onChange={(bgOpacity) => set({ bgOpacity })}
+                  max={100}
+                  step={1}
+                  suffix="%"
+                  onChange={(value) => set({ bgOpacity: value / 100 })}
                 />
                 <SliderField
                   label="Padding"
                   value={spec.bgPadding}
                   min={0}
                   max={10}
-                  step={1}
+                  step={0.25}
                   suffix="px"
                   onChange={(bgPadding) => set({ bgPadding })}
                 />
@@ -200,11 +202,12 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
           />
           <SliderField
             label="Halo opacity"
-            value={spec.haloOpacity}
+            value={Math.round(spec.haloOpacity * 100)}
             min={0}
-            max={1}
-            step={0.05}
-            onChange={(haloOpacity) => set({ haloOpacity })}
+            max={100}
+            step={1}
+            suffix="%"
+            onChange={(value) => set({ haloOpacity: value / 100 })}
           />
 
 
