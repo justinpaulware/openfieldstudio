@@ -24,6 +24,7 @@ type Row = {
   lng: number;
   lat: number;
   geometry: unknown;
+  geometry_type: string;
 };
 
 function csvCell(value: unknown): string {
@@ -77,7 +78,7 @@ export const exportComments = createServerFn({ method: "POST" })
     let query = supabase
       .from("comments")
       .select(
-        "id, project_id, body, category, status, author_name, author_email, created_at, updated_at, lng, lat, geometry",
+        "id, project_id, body, category, status, author_name, author_email, created_at, updated_at, lng, lat, geometry, geometry_type",
       )
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
@@ -112,6 +113,7 @@ export const exportComments = createServerFn({ method: "POST" })
             author_email: row.author_email,
             created_at: row.created_at,
             updated_at: row.updated_at,
+            geometry_type: row.geometry_type,
             lng: row.lng,
             lat: row.lat,
           },
@@ -127,7 +129,7 @@ export const exportComments = createServerFn({ method: "POST" })
 
     const lines = [HEADERS.join(",")];
     for (const row of comments) {
-      const geomType = (row.geometry as { type?: string } | null)?.type ?? "Point";
+      const geomType = row.geometry_type || (row.geometry as { type?: string } | null)?.type || "Point";
       lines.push(
         [
           row.id,
