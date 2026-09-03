@@ -27,6 +27,7 @@ import { Route as AuthenticatedProjectsProjectSlugMapRouteImport } from './route
 import { Route as AuthenticatedProjectsProjectSlugPublishRouteImport } from './routes/_authenticated/projects.$projectSlug.publish'
 import { Route as AuthenticatedProjectsProjectSlugPublishingRouteImport } from './routes/_authenticated/projects.$projectSlug.publishing'
 import { Route as AuthenticatedProjectsProjectSlugStylingRouteImport } from './routes/_authenticated/projects.$projectSlug.styling'
+import { Route as ApiPublicStylesPositronNolabelsRouteImport } from './routes/api/public/styles/positron-nolabels'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -126,6 +127,12 @@ const AuthenticatedProjectsProjectSlugStylingRoute =
     path: '/styling',
     getParentRoute: () => AuthenticatedProjectsProjectSlugRoute,
   } as any)
+const ApiPublicStylesPositronNolabelsRoute =
+  ApiPublicStylesPositronNolabelsRouteImport.update({
+    id: '/api/public/styles/positron-nolabels',
+    path: '/api/public/styles/positron-nolabels',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/projects/$projectSlug/publish': typeof AuthenticatedProjectsProjectSlugPublishRoute
   '/projects/$projectSlug/publishing': typeof AuthenticatedProjectsProjectSlugPublishingRoute
   '/projects/$projectSlug/styling': typeof AuthenticatedProjectsProjectSlugStylingRoute
+  '/api/public/styles/positron-nolabels': typeof ApiPublicStylesPositronNolabelsRoute
   '/projects/$projectSlug/': typeof AuthenticatedProjectsProjectSlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
   '/projects/$projectSlug/publish': typeof AuthenticatedProjectsProjectSlugPublishRoute
   '/projects/$projectSlug/publishing': typeof AuthenticatedProjectsProjectSlugPublishingRoute
   '/projects/$projectSlug/styling': typeof AuthenticatedProjectsProjectSlugStylingRoute
+  '/api/public/styles/positron-nolabels': typeof ApiPublicStylesPositronNolabelsRoute
   '/projects/$projectSlug': typeof AuthenticatedProjectsProjectSlugIndexRoute
 }
 export interface FileRoutesById {
@@ -183,6 +192,7 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectSlug/publish': typeof AuthenticatedProjectsProjectSlugPublishRoute
   '/_authenticated/projects/$projectSlug/publishing': typeof AuthenticatedProjectsProjectSlugPublishingRoute
   '/_authenticated/projects/$projectSlug/styling': typeof AuthenticatedProjectsProjectSlugStylingRoute
+  '/api/public/styles/positron-nolabels': typeof ApiPublicStylesPositronNolabelsRoute
   '/_authenticated/projects/$projectSlug/': typeof AuthenticatedProjectsProjectSlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/projects/$projectSlug/publish'
     | '/projects/$projectSlug/publishing'
     | '/projects/$projectSlug/styling'
+    | '/api/public/styles/positron-nolabels'
     | '/projects/$projectSlug/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -222,6 +233,7 @@ export interface FileRouteTypes {
     | '/projects/$projectSlug/publish'
     | '/projects/$projectSlug/publishing'
     | '/projects/$projectSlug/styling'
+    | '/api/public/styles/positron-nolabels'
     | '/projects/$projectSlug'
   id:
     | '__root__'
@@ -242,6 +254,7 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectSlug/publish'
     | '/_authenticated/projects/$projectSlug/publishing'
     | '/_authenticated/projects/$projectSlug/styling'
+    | '/api/public/styles/positron-nolabels'
     | '/_authenticated/projects/$projectSlug/'
   fileRoutesById: FileRoutesById
 }
@@ -251,6 +264,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   UsernameMapSlugRoute: typeof UsernameMapSlugRouteWithChildren
+  ApiPublicStylesPositronNolabelsRoute: typeof ApiPublicStylesPositronNolabelsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -381,6 +395,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjectsProjectSlugStylingRouteImport
       parentRoute: typeof AuthenticatedProjectsProjectSlugRoute
     }
+    '/api/public/styles/positron-nolabels': {
+      id: '/api/public/styles/positron-nolabels'
+      path: '/api/public/styles/positron-nolabels'
+      fullPath: '/api/public/styles/positron-nolabels'
+      preLoaderRoute: typeof ApiPublicStylesPositronNolabelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -455,6 +476,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   UsernameMapSlugRoute: UsernameMapSlugRouteWithChildren,
+  ApiPublicStylesPositronNolabelsRoute: ApiPublicStylesPositronNolabelsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

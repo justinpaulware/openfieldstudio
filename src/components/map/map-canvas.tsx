@@ -64,6 +64,7 @@ export type MapHandle = {
 
 export const BASEMAPS = [
   { id: "positron", label: "Positron (minimal)" },
+  { id: "positron-nolabels", label: "Positron (no labels)" },
   { id: "bright", label: "Bright (light)" },
   { id: "dark", label: "Dark" },
   { id: "liberty", label: "Liberty (detailed)" },
@@ -73,6 +74,10 @@ export type BasemapId = (typeof BASEMAPS)[number]["id"];
 
 export function basemapUrl(id: string) {
   const known = BASEMAPS.some((b) => b.id === id) ? id : "positron";
+  // The no-labels variant is a transformed OpenFreeMap Positron style served
+  // by a public server route (label symbol layers stripped). All other
+  // basemaps load directly from OpenFreeMap.
+  if (known === "positron-nolabels") return "/api/public/styles/positron-nolabels";
   return `https://tiles.openfreemap.org/styles/${known}`;
 }
 
