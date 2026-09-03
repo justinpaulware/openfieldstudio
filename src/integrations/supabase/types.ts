@@ -23,6 +23,7 @@ export type Database = {
           category: string | null
           created_at: string
           geometry: Json
+          geometry_type: string
           id: string
           lat: number
           lng: number
@@ -38,6 +39,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           geometry?: Json
+          geometry_type?: string
           id?: string
           lat: number
           lng: number
@@ -53,6 +55,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           geometry?: Json
+          geometry_type?: string
           id?: string
           lat?: number
           lng?: number
