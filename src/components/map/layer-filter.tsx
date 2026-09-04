@@ -157,7 +157,7 @@ export function LayerFilter({
             <div className="flex items-center gap-1.5">
               {index > 0 && (
                 <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
-                  and
+                  {config.combinator}
                 </span>
               )}
               <Select value={rule.field} onValueChange={(field) => setRule(index, { field })}>
