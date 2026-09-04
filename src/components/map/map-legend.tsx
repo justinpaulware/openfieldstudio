@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
+import { Check, Eye, EyeOff, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand-mark";
+import { MapCardHeader } from "@/components/map/map-card-header";
 
 
 import type { HeatmapSpec, LayerStyle, ProportionalSpec, SimpleKind } from "@/lib/layer-style";
@@ -335,21 +336,16 @@ export function MapLegend({
   return (
     <div
       className={cn(
-        "w-56 overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "w-56 overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-soft)]",
         className,
       )}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold hover:bg-black/5"
-      >
-        <span className="flex items-center gap-1.5">
-          <List className="h-3.5 w-3.5" />
-          Legend
-        </span>
-        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-      </button>
+      <MapCardHeader
+        icon={List}
+        title="Legend"
+        open={open}
+        onToggle={() => setOpen((value) => !value)}
+      />
       {open && (
         <div className="max-h-[60vh] space-y-2 overflow-y-auto border-t border-map-overlay-border px-3 py-2">
           {visible.map((group) => (
@@ -510,7 +506,7 @@ export function MapTitleCard({
   return (
     <div
       className={cn(
-        "w-fit min-w-56 max-w-[min(50vw,26rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "w-fit min-w-56 max-w-[min(50vw,26rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-soft)]",
         className,
       )}
     >
