@@ -14,5 +14,5 @@
 - [x] Slice 0 — rename Comments tab to "Engagement"
 - [x] Slice 0 — breadcrumb status badge updates immediately after publishing
 - [ ] Slice 1 — `comments_allow_shapes` setting + server-side geometry acceptance
-- [ ] Slice 2 — Point / Line / Area drawing in the public viewer
-- [ ] Slice 3 — shape rendering, geometry chips, moderation polish
+- [x] Slice 2 — Point / Line / Area drawing in the public viewer
+- [x] Slice 3 (chips + shape rendering) — shape rendering, geometry chips, moderation polish
