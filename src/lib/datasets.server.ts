@@ -190,7 +190,9 @@ export function classifyArcgisUrl(rawUrl: string): ArcgisEndpoint {
 type ArcgisLayerMeta = {
   name?: string;
   type?: string;
+  description?: string;
   geometryType?: string;
+
   capabilities?: string;
   drawingInfo?: unknown;
   error?: { message?: string; details?: string[] };
