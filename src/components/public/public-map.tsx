@@ -5,7 +5,11 @@ import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { PendingPin } from "@/components/comments/comment-composer";
-import { CommentPanel, type PublicComment } from "@/components/comments/comment-panel";
+import {
+  CommentPanel,
+  type CommentDrawMode,
+  type PublicComment,
+} from "@/components/comments/comment-panel";
 import { getPublishedLayerData, listApprovedComments } from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import { filterCollection, parseFilterConfig } from "@/lib/layer-filter";
