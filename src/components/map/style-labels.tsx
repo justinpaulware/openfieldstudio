@@ -279,15 +279,26 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
           </div>
 
 
-          <SliderField
-            label="Wrap width"
-            value={spec.maxWidth}
-            min={4}
-            max={30}
-            step={1}
-            suffix=" chars"
-            onChange={(maxWidth) => set({ maxWidth })}
-          />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs text-muted-foreground">Wrap long labels</Label>
+              <Switch
+                checked={spec.wrapEnabled}
+                onCheckedChange={(wrapEnabled) => set({ wrapEnabled })}
+              />
+            </div>
+            {spec.wrapEnabled && (
+              <SliderField
+                label="Wrap width"
+                value={spec.maxWidth}
+                min={4}
+                max={80}
+                step={1}
+                suffix=" chars"
+                onChange={(maxWidth) => set({ maxWidth })}
+              />
+            )}
+          </div>
         </>
       )}
     </div>
