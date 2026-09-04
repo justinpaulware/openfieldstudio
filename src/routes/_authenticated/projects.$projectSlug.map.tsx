@@ -987,7 +987,7 @@ function MapEditor() {
                   setViewLayer.mutate({ layerId: layer.id, patch: { visible: !layer.visible } })
                 }
                 onRename={(layer, name) => updateLayer.mutate({ id: layer.id, patch: { name } })}
-                onZoomTo={(layer) => zoomTo(layer.bbox as Bbox | null)}
+                onZoomTo={(layer) => zoomToLayer(layer as LayerWithStyle)}
                 onDelete={(layer) => deleteLayer.mutate(layer)}
                 onDuplicate={(layer) => duplicateLayer.mutate(layer)}
                 onReorder={(ids) => reorder.mutate(ids)}
