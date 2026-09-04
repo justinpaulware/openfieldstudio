@@ -180,13 +180,14 @@ export async function submitPublicComment(input: {
   category?: string | null;
   authorName?: string | null;
   authorEmail?: string | null;
+  geometry?: { type: "Point" | "LineString" | "Polygon"; coordinates: unknown } | null;
 }) {
   const supabase = publicClient();
   const ownerId = await resolveOwner(supabase, input.username);
   const { data: project } = ownerId
     ? await supabase
         .from("projects")
-        .select("id, comments_enabled, comment_categories")
+        .select("id, comments_enabled, comment_categories, comments_allow_shapes")
         .eq("owner_id", ownerId)
         .eq("published_slug", input.slug)
         .eq("status", "published")
@@ -197,6 +198,15 @@ export async function submitPublicComment(input: {
     return { ok: false as const, error: "Comments are turned off for this map." };
   }
 
+  const geometry = input.geometry ?? null;
+  const geometryType = geometry?.type ?? "Point";
+  if (geometryType !== "Point" && !project.comments_allow_shapes) {
+    return {
+      ok: false as const,
+      error: "This map only accepts pinned comments.",
+    };
+  }
+
   const category =
     input.category && project.comment_categories.includes(input.category) ? input.category : null;
 
@@ -204,14 +214,20 @@ export async function submitPublicComment(input: {
     project_id: project.id,
     lng: input.lng,
     lat: input.lat,
+    geometry:
+      geometryType === "Point"
+        ? { type: "Point", coordinates: [input.lng, input.lat] }
+        : (geometry as unknown as import("@/integrations/supabase/types").Json),
     body: input.body.trim().slice(0, MAX_BODY),
     category,
     author_name: input.authorName?.trim() || null,
     author_email: input.authorEmail?.trim() || null,
+    geometry_type: geometryType,
   });
   if (error) return { ok: false as const, error: "Your comment could not be saved." };
   return { ok: true as const };
 }
+
 
 /** Approved comments for a published map. */
 export async function loadApprovedComments(username: string, slug: string) {
@@ -228,7 +244,7 @@ export async function loadApprovedComments(username: string, slug: string) {
   if (!project) return [];
   const { data } = await supabase
     .from("comments")
-    .select("id, lng, lat, body, category, author_name, created_at")
+    .select("id, lng, lat, body, category, author_name, created_at, geometry, geometry_type")
     .eq("project_id", project.id)
     .eq("status", "approved")
     .order("created_at", { ascending: false })

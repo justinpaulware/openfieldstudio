@@ -31,6 +31,17 @@ export const getPublishedLayerData = createServerFn({ method: "POST" })
     return loadPublishedLayerData(data.username, data.slug, data.layerId);
   });
 
+const position = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);
+
+const geometrySchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("Point"), coordinates: position }),
+  z.object({ type: z.literal("LineString"), coordinates: z.array(position).min(2).max(500) }),
+  z.object({
+    type: z.literal("Polygon"),
+    coordinates: z.array(z.array(position).min(4).max(500)).min(1).max(1),
+  }),
+]);
+
 export const submitComment = createServerFn({ method: "POST" })
   .inputValidator((data) =>
     z
@@ -43,6 +54,7 @@ export const submitComment = createServerFn({ method: "POST" })
         category: z.string().max(80).nullish(),
         authorName: z.string().trim().max(120).nullish(),
         authorEmail: z.string().trim().email().max(255).nullish().or(z.literal("")),
+        geometry: geometrySchema.nullish(),
       })
       .parse(data),
   )
@@ -57,6 +69,7 @@ export const submitComment = createServerFn({ method: "POST" })
       category: data.category ?? null,
       authorName: data.authorName ?? null,
       authorEmail: data.authorEmail || null,
+      geometry: data.geometry ?? null,
     });
   });
 

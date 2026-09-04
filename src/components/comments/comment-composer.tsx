@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { submitComment } from "@/lib/publish.functions";
+import type { CommentGeometry } from "@/components/map/map-canvas";
 
 export type PendingPin = { lng: number; lat: number };
 
@@ -20,6 +21,7 @@ export function CommentComposer({
   username,
   slug,
   pin,
+  geometry,
   categories,
   inline = false,
   onClose,
@@ -27,7 +29,10 @@ export function CommentComposer({
 }: {
   username: string;
   slug: string;
+  /** Anchor point: the pin itself, or the centroid of a drawn shape. */
   pin: PendingPin;
+  /** Full geometry when the visitor drew a line or an area. */
+  geometry?: CommentGeometry | null;
   categories: string[];
   /** Rendered inside another card: no chrome, no header. */
   inline?: boolean;
@@ -64,6 +69,7 @@ export function CommentComposer({
           category: category || null,
           authorName: name.trim() || null,
           authorEmail: email.trim() || null,
+          geometry: geometry ?? null,
         },
       });
       if (!result.ok) {
@@ -78,6 +84,7 @@ export function CommentComposer({
       setSending(false);
     }
   };
+
 
   return (
     <div

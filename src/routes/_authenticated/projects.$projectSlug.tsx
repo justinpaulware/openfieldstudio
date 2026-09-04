@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_authenticated/projects/$projectSlug")({
 const TABS = [
   { to: "/projects/$projectSlug/map", label: "Map Editor" },
   { to: "/projects/$projectSlug/publish", label: "Publish" },
-  { to: "/projects/$projectSlug/comments", label: "Comments" },
+  { to: "/projects/$projectSlug/comments", label: "Engagement" },
 ] as const;
 
 function ProjectLayout() {

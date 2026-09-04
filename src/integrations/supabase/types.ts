@@ -405,6 +405,7 @@ export type Database = {
           author: string | null
           basemap: string
           comment_categories: string[]
+          comments_allow_shapes: boolean
           comments_enabled: boolean
           comments_require_approval: boolean
           created_at: string
@@ -435,6 +436,7 @@ export type Database = {
           author?: string | null
           basemap?: string
           comment_categories?: string[]
+          comments_allow_shapes?: boolean
           comments_enabled?: boolean
           comments_require_approval?: boolean
           created_at?: string
@@ -465,6 +467,7 @@ export type Database = {
           author?: string | null
           basemap?: string
           comment_categories?: string[]
+          comments_allow_shapes?: boolean
           comments_enabled?: boolean
           comments_require_approval?: boolean
           created_at?: string

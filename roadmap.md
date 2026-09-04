@@ -10,9 +10,9 @@
 - [x] Publish tab views cleanup (clean header, per-row Open/Publish/Unpublish, Main sync)
 - [x] Layer filters persist across reload
 
-## Known minor issue
-- [ ] Breadcrumb status badge still reads "Draft" immediately after publishing (corrects on reload) — project query not invalidated by the publish mutation
-
-
-## Next
-- [ ] Tab 14 — Engagement: line & polygon feedback, owner-enabled per project
+## Engagement (line & polygon feedback) — in progress
+- [x] Slice 0 — rename Comments tab to "Engagement"
+- [x] Slice 0 — breadcrumb status badge updates immediately after publishing
+- [x] Slice 1 — `comments_allow_shapes` setting + server-side geometry acceptance
+- [x] Slice 2 — Point / Line / Area drawing in the public viewer
+- [x] Slice 3 (chips + shape rendering) — shape rendering, geometry chips, moderation polish
