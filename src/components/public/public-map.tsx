@@ -87,6 +87,11 @@ export function PublicMapViewer({
   const project = loaderData.project;
   const layers = loaderData.layers as unknown as ViewerLayer[];
   const folders = loaderData.folders as unknown as ViewerFolder[];
+  const navigate = useNavigate();
+
+  const views = loaderData.views ?? [];
+  const activeViewSlug = loaderData.view?.slug ?? null;
+  const showViews = search.views !== false && Boolean(loaderData.viewNav) && views.length > 1;
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [commentMode, setCommentMode] = useState(false);
