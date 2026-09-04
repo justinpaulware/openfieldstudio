@@ -212,6 +212,7 @@ export const DEFAULT_LABELS: LabelSpec = {
   minZoom: 0,
   maxZoom: 22,
   textTransform: "none",
+  wrapEnabled: false,
   maxWidth: 10,
   bgEnabled: false,
   bgColor: "#ffffff",
