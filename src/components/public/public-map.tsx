@@ -256,7 +256,9 @@ export function PublicMapViewer({
         geometryType: layer.geometry_type,
         data: dataById[layer.id] ?? null,
         style: renderStyleFor(layer),
+        raster: rasterSpecFor(layer),
       })),
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [ordered, dataById, renderStyleFor, hidden],
   );
