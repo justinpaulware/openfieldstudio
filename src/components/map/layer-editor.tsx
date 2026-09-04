@@ -160,7 +160,12 @@ export function LayerEditor({
     <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-card/40 lg:flex">
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
-          {rows.length ? (
+          {raster ? (
+            <span
+              aria-hidden
+              className="h-4 w-4 shrink-0 rounded-sm border border-border bg-gradient-to-br from-muted-foreground/70 to-muted-foreground/20"
+            />
+          ) : rows.length ? (
             <CategoryChip colors={rows.map((row) => row.color)} />
           ) : (
             <LegendSwatch kind={kind} style={style} />
@@ -168,17 +173,21 @@ export function LayerEditor({
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">{layerName}</h2>
             <p className="font-secondary text-[11px] capitalize text-muted-foreground">
-              {kind} ·{" "}
-              {categorized
-                ? "categories"
-                : graduated
-                  ? "graduated"
-                  : masked
-                    ? "mask layer"
-                    : "single symbol"}
+              {raster
+                ? "raster · imagery"
+                : `${kind} · ${
+                    categorized
+                      ? "categories"
+                      : graduated
+                        ? "graduated"
+                        : masked
+                          ? "mask layer"
+                          : "single symbol"
+                  }`}
             </p>
           </div>
         </div>
+
         <button
           type="button"
           onClick={onClose}
