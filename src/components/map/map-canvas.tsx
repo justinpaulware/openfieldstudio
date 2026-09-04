@@ -1204,7 +1204,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     map.setLayoutProperty(labelId, "text-size", spec.size);
     map.setLayoutProperty(labelId, "text-anchor", alongLine ? "center" : anchor);
     map.setLayoutProperty(labelId, "text-offset", alongLine ? [0, 0] : offset);
-    map.setLayoutProperty(labelId, "text-max-width", spec.maxWidth);
+    map.setLayoutProperty(labelId, "text-max-width", spec.wrapEnabled ? spec.maxWidth : 512);
     map.setLayoutProperty(labelId, "text-allow-overlap", spec.allowOverlap);
     map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
     map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
@@ -1295,20 +1295,17 @@ function labelBackgroundImage(map: maplibregl.Map, color: string): string {
     data[i * 4 + 2] = Number(rgb[2]);
     data[i * 4 + 3] = 255;
   }
+  // Stretch only a narrow interior band. The edges stay 1:1 solid pixels, so
+  // texture filtering never samples past them and the ends render hard.
+  const mid = size / 2;
   map.addImage(
     id,
     { width: size, height: size, data },
     {
       pixelRatio: 1,
-      stretchX: [
-        [0, size / 2],
-        [size / 2, size],
-      ],
-      stretchY: [
-        [0, size / 2],
-        [size / 2, size],
-      ],
-      content: [0, 0, size, size],
+      stretchX: [[mid - 1, mid + 1]],
+      stretchY: [[mid - 1, mid + 1]],
+      content: [1, 1, size - 1, size - 1],
     },
   );
   return id;

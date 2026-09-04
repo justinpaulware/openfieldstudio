@@ -121,6 +121,8 @@ export type LabelSpec = {
   minZoom: number;
   maxZoom: number;
   textTransform: LabelTransform;
+  /** When false, labels render on a single line regardless of length. */
+  wrapEnabled: boolean;
   maxWidth: number;
   /** Solid fill drawn behind the text (no border by design). */
   bgEnabled: boolean;
@@ -210,6 +212,7 @@ export const DEFAULT_LABELS: LabelSpec = {
   minZoom: 0,
   maxZoom: 22,
   textTransform: "none",
+  wrapEnabled: false,
   maxWidth: 10,
   bgEnabled: false,
   bgColor: "#ffffff",
@@ -501,6 +504,7 @@ function parseLabels(value: unknown): LabelSpec {
     minZoom: num(raw["minZoom"], DEFAULT_LABELS.minZoom),
     maxZoom: num(raw["maxZoom"], DEFAULT_LABELS.maxZoom),
     textTransform: transform,
+    wrapEnabled: raw["wrapEnabled"] === true,
     maxWidth: num(raw["maxWidth"], DEFAULT_LABELS.maxWidth),
     bgEnabled: raw["bgEnabled"] === true,
     bgColor: str(raw["bgColor"], DEFAULT_LABELS.bgColor),

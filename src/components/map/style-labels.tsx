@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { cn } from "@/lib/utils";
+
 import {
   DEFAULT_LABELS,
   type LabelLinePlacement,
@@ -41,21 +41,17 @@ function Choice<T extends string>({
   return (
     <div className="space-y-1.5">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <div className="flex flex-wrap gap-1">
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value as T)}
+        className="h-8 w-full rounded-md border border-border bg-background px-2 text-xs"
+      >
         {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "flex-1 rounded-md border border-border px-2 py-1 text-xs transition-colors hover:bg-muted",
-              option.value === value && "border-primary/60 bg-primary/15 text-foreground",
-            )}
-          >
+          <option key={option.value} value={option.value}>
             {option.label}
-          </button>
+          </option>
         ))}
-      </div>
+      </select>
     </div>
   );
 }
@@ -283,15 +279,26 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
           </div>
 
 
-          <SliderField
-            label="Wrap width"
-            value={spec.maxWidth}
-            min={4}
-            max={30}
-            step={1}
-            suffix=" chars"
-            onChange={(maxWidth) => set({ maxWidth })}
-          />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs text-muted-foreground">Wrap long labels</Label>
+              <Switch
+                checked={spec.wrapEnabled}
+                onCheckedChange={(wrapEnabled) => set({ wrapEnabled })}
+              />
+            </div>
+            {spec.wrapEnabled && (
+              <SliderField
+                label="Wrap width"
+                value={spec.maxWidth}
+                min={4}
+                max={80}
+                step={1}
+                suffix=" chars"
+                onChange={(maxWidth) => set({ maxWidth })}
+              />
+            )}
+          </div>
         </>
       )}
     </div>
