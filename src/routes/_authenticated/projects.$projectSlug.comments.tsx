@@ -30,12 +30,12 @@ type StatusFilter = (typeof STATUS_FILTERS)[number];
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
   head: () => ({
     meta: [
-      { title: "Comments — Open Field" },
+      { title: "Engagement — Open Field" },
       {
         name: "description",
-        content: "Review, hide and delete the pinned feedback visitors leave on your map.",
+        content: "Review, hide and delete the feedback visitors leave on your map.",
       },
-      { property: "og:title", content: "Comments — Open Field" },
+      { property: "og:title", content: "Engagement — Open Field" },
       { property: "og:description", content: "Moderate feedback on your Open Field map." },
     ],
   }),
@@ -86,11 +86,13 @@ function ProjectComments() {
   });
 
   const [commentsEnabled, setCommentsEnabled] = useState(false);
+  const [allowShapes, setAllowShapes] = useState(false);
   const [categories, setCategories] = useState("");
 
   useEffect(() => {
     if (!project) return;
     setCommentsEnabled(project.comments_enabled);
+    setAllowShapes(project.comments_allow_shapes);
     setCategories((project.comment_categories ?? []).join(", "));
   }, [project]);
 
@@ -100,6 +102,7 @@ function ProjectComments() {
         .from("projects")
         .update({
           comments_enabled: commentsEnabled,
+          comments_allow_shapes: allowShapes,
           comment_categories: categories
             .split(",")
             .map((c) => c.trim())
@@ -196,7 +199,7 @@ function ProjectComments() {
       <div className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-semibold">Comments</h1>
+            <h1 className="text-2xl font-semibold">Engagement</h1>
             <p className="mt-1 font-secondary text-sm text-muted-foreground">
               Feedback visitors have left on this map.
             </p>
@@ -378,6 +381,16 @@ function ProjectComments() {
             id="comments-enabled"
             checked={commentsEnabled}
             onCheckedChange={setCommentsEnabled}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="comments-allow-shapes" className="font-secondary text-xs">
+            Allow drawn lines and areas
+          </Label>
+          <Switch
+            id="comments-allow-shapes"
+            checked={allowShapes}
+            onCheckedChange={setAllowShapes}
           />
         </div>
         <div className="space-y-2">

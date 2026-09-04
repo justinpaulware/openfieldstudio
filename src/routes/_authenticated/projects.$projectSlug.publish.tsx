@@ -130,6 +130,7 @@ function ViewsSection({
         patch: { status, published_at: publishedAt },
       });
       queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-by-slug"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success(status === "published" ? "View published." : "View unpublished.");
     } catch (error) {
@@ -237,6 +238,7 @@ function ProjectPublish() {
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+    queryClient.invalidateQueries({ queryKey: ["project-by-slug"] });
     queryClient.invalidateQueries({ queryKey: ["projects"] });
   };
 

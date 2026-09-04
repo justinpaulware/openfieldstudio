@@ -83,6 +83,13 @@ export function basemapUrl(id: string) {
 
 export type ScaleUnits = "imperial" | "metric";
 
+/** Comment geometry accepted from visitors: a pin, a line or a single-ring area. */
+export type CommentGeometry =
+  | { type: "Point"; coordinates: [number, number] }
+  | { type: "LineString"; coordinates: [number, number][] }
+  | { type: "Polygon"; coordinates: [number, number][][] };
+
+
 type Props = {
   basemap: string;
   layers: RenderLayer[];
@@ -101,6 +108,11 @@ type Props = {
   pin?: [number, number] | null;
   /** Approved comments drawn as their own markers. */
   commentPins?: { id: string; lng: number; lat: number }[];
+  /** Approved line/area comments drawn as a GeoJSON overlay. */
+  commentShapes?: { id: string; geometry: CommentGeometry }[];
+  /** Shape currently being drawn (live preview) plus its vertices. */
+  draftShape?: CommentGeometry | null;
+  draftVertices?: [number, number][];
   selectedCommentId?: string | null;
   onCommentClick?: (id: string) => void;
   /** Extra cards stacked under the info popup in the top-right column. */
@@ -123,6 +135,9 @@ export default function MapCanvas({
   onPick,
   pin = null,
   commentPins,
+  commentShapes,
+  draftShape = null,
+  draftVertices,
   selectedCommentId = null,
   onCommentClick,
   rightSlot,
@@ -231,6 +246,163 @@ export default function MapCanvas({
       commentMarkersRef.current = [];
     };
   }, [commentPins, selectedCommentId, mapLoaded]);
+
+  // Approved line/area comments plus the shape currently being drawn. Both live
+  // in their own GeoJSON sources so they survive basemap style swaps.
+  const shapesRef = useRef({ commentShapes, draftShape, draftVertices, selectedCommentId });
+  shapesRef.current = { commentShapes, draftShape, draftVertices, selectedCommentId };
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const render = () => {
+      if (!map.isStyleLoaded()) return;
+      const state = shapesRef.current;
+
+      const approved = {
+        type: "FeatureCollection" as const,
+        features: (state.commentShapes ?? []).map((item) => ({
+          type: "Feature" as const,
+          id: item.id,
+          properties: { id: item.id, selected: item.id === state.selectedCommentId },
+          geometry: item.geometry,
+        })),
+      };
+
+      const draftFeatures = [];
+      if (state.draftShape) {
+        draftFeatures.push({
+          type: "Feature" as const,
+          properties: {},
+          geometry: state.draftShape,
+        });
+      }
+      for (const vertex of state.draftVertices ?? []) {
+        draftFeatures.push({
+          type: "Feature" as const,
+          properties: { vertex: true },
+          geometry: { type: "Point" as const, coordinates: vertex },
+        });
+      }
+      const draft = { type: "FeatureCollection" as const, features: draftFeatures };
+
+      const setData = (id: string, data: unknown) => {
+        const source = map.getSource(id) as maplibregl.GeoJSONSource | undefined;
+        if (source) source.setData(data as never);
+        else map.addSource(id, { type: "geojson", data: data as never });
+      };
+
+      setData("of-comment-shapes", approved);
+      setData("of-comment-draft", draft);
+
+      if (!map.getLayer("of-comment-shapes-fill")) {
+        map.addLayer({
+          id: "of-comment-shapes-fill",
+          type: "fill",
+          source: "of-comment-shapes",
+          filter: ["==", ["geometry-type"], "Polygon"],
+          paint: { "fill-color": "#8b5cf6", "fill-opacity": 0.2 },
+        });
+      }
+      if (!map.getLayer("of-comment-shapes-line")) {
+        map.addLayer({
+          id: "of-comment-shapes-line",
+          type: "line",
+          source: "of-comment-shapes",
+          paint: {
+            "line-color": ["case", ["get", "selected"], "#6d28d9", "#8b5cf6"],
+            "line-width": ["case", ["get", "selected"], 5, 3],
+            "line-opacity": 0.95,
+          },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+      }
+      if (!map.getLayer("of-comment-draft-fill")) {
+        map.addLayer({
+          id: "of-comment-draft-fill",
+          type: "fill",
+          source: "of-comment-draft",
+          filter: ["==", ["geometry-type"], "Polygon"],
+          paint: { "fill-color": "#8b5cf6", "fill-opacity": 0.15 },
+        });
+      }
+      if (!map.getLayer("of-comment-draft-line")) {
+        map.addLayer({
+          id: "of-comment-draft-line",
+          type: "line",
+          source: "of-comment-draft",
+          paint: { "line-color": "#6d28d9", "line-width": 2.5, "line-dasharray": [2, 1] },
+          layout: { "line-cap": "round", "line-join": "round" },
+        });
+      }
+      if (!map.getLayer("of-comment-draft-point")) {
+        map.addLayer({
+          id: "of-comment-draft-point",
+          type: "circle",
+          source: "of-comment-draft",
+          filter: ["==", ["geometry-type"], "Point"],
+          paint: {
+            "circle-radius": 4,
+            "circle-color": "#ffffff",
+            "circle-stroke-color": "#6d28d9",
+            "circle-stroke-width": 2,
+          },
+        });
+      }
+    };
+
+    render();
+    map.on("styledata", render);
+
+    const onShapeClick = (event: maplibregl.MapLayerMouseEvent) => {
+      if (pickModeRef.current) return;
+      const id = event.features?.[0]?.properties?.["id"];
+      if (typeof id === "string") {
+        event.originalEvent.stopPropagation();
+        onCommentClickRef.current?.(id);
+      }
+    };
+    map.on("click", "of-comment-shapes-fill", onShapeClick);
+    map.on("click", "of-comment-shapes-line", onShapeClick);
+
+    return () => {
+      map.off("styledata", render);
+      map.off("click", "of-comment-shapes-fill", onShapeClick);
+      map.off("click", "of-comment-shapes-line", onShapeClick);
+    };
+  }, [mapLoaded]);
+
+  // Re-render the shape overlays whenever their inputs change.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !map.isStyleLoaded()) return;
+    const approved = {
+      type: "FeatureCollection" as const,
+      features: (commentShapes ?? []).map((item) => ({
+        type: "Feature" as const,
+        id: item.id,
+        properties: { id: item.id, selected: item.id === selectedCommentId },
+        geometry: item.geometry,
+      })),
+    };
+    const draftFeatures: unknown[] = [];
+    if (draftShape) draftFeatures.push({ type: "Feature", properties: {}, geometry: draftShape });
+    for (const vertex of draftVertices ?? []) {
+      draftFeatures.push({
+        type: "Feature",
+        properties: { vertex: true },
+        geometry: { type: "Point", coordinates: vertex },
+      });
+    }
+    (map.getSource("of-comment-shapes") as maplibregl.GeoJSONSource | undefined)?.setData(
+      approved as never,
+    );
+    (map.getSource("of-comment-draft") as maplibregl.GeoJSONSource | undefined)?.setData({
+      type: "FeatureCollection",
+      features: draftFeatures,
+    } as never);
+  }, [commentShapes, draftShape, draftVertices, selectedCommentId, mapLoaded]);
 
 
   // Crosshair while placing a comment.
