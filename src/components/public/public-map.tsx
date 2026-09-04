@@ -77,11 +77,16 @@ export function PublicMapViewer({
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [commentMode, setCommentMode] = useState(false);
   const [pin, setPin] = useState<PendingPin | null>(null);
+  const [drawMode, setDrawMode] = useState<CommentDrawMode>("point");
+  const [vertices, setVertices] = useState<[number, number][]>([]);
   const [commentsVisible, setCommentsVisible] = useState(true);
   const [selectedComment, setSelectedComment] = useState<string | null>(null);
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
+  const allowShapes = Boolean(
+    (project as { comments_allow_shapes?: boolean }).comments_allow_shapes,
+  );
 
   const commentsQuery = useQuery({
     queryKey: ["approved-comments", username, slug],
@@ -90,17 +95,60 @@ export function PublicMapViewer({
   });
   const comments = (commentsQuery.data ?? []) as PublicComment[];
 
+  // Approved lines and areas render as a GeoJSON overlay; pins keep their markers.
+  const commentShapes = commentsEnabled && commentsVisible
+    ? comments.flatMap((comment) => {
+        const geometry = (comment as { geometry?: CommentGeometry | null }).geometry;
+        if (!geometry || geometry.type === "Point") return [];
+        return [{ id: comment.id, geometry }];
+      })
+    : [];
+  const commentMarkers = commentsEnabled && commentsVisible
+    ? comments.filter((comment) => {
+        const type = (comment as { geometry_type?: string | null }).geometry_type;
+        return !type || type === "Point";
+      })
+    : [];
+
+  // Completed geometry for the shape being drawn, plus a live preview.
+  const draftShape: CommentGeometry | null =
+    drawMode === "line" && vertices.length >= 2
+      ? { type: "LineString", coordinates: vertices }
+      : drawMode === "area" && vertices.length >= 3
+        ? { type: "Polygon", coordinates: [[...vertices, vertices[0]!]] }
+        : drawMode !== "point" && vertices.length === 2
+          ? { type: "LineString", coordinates: vertices }
+          : null;
+  const readyGeometry: CommentGeometry | null =
+    drawMode === "line" && vertices.length >= 2
+      ? { type: "LineString", coordinates: vertices }
+      : drawMode === "area" && vertices.length >= 3
+        ? { type: "Polygon", coordinates: [[...vertices, vertices[0]!]] }
+        : null;
+  const centroid = vertices.length
+    ? ({
+        lng: vertices.reduce((sum, v) => sum + v[0], 0) / vertices.length,
+        lat: vertices.reduce((sum, v) => sum + v[1], 0) / vertices.length,
+      } as PendingPin)
+    : null;
+
+  const resetDraft = () => {
+    setPin(null);
+    setVertices([]);
+  };
+
   useEffect(() => {
     if (!commentMode) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setCommentMode(false);
-        setPin(null);
+        resetDraft();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [commentMode]);
+
 
   // Credit sits right after the scale bar, so it shifts as the scale bar resizes.
   const [creditLeft, setCreditLeft] = useState(150);
