@@ -126,6 +126,7 @@ export function LayerEditor({
   numericFields,
   numbersFor,
   initialSection = "symbology",
+  raster = null,
   onChange,
   onFilterChange,
   onRename,
@@ -133,8 +134,11 @@ export function LayerEditor({
   onReset,
   onClose,
 }: Props) {
-  const [openSection, setOpenSection] = useState<EditorSection | null>(initialSection);
-  useEffect(() => setOpenSection(initialSection), [initialSection, layerName]);
+  const startSection: EditorSection =
+    raster && initialSection !== "data" ? "raster" : initialSection;
+  const [openSection, setOpenSection] = useState<EditorSection | null>(startSection);
+  useEffect(() => setOpenSection(startSection), [startSection, layerName]);
+
 
   const [nameDraft, setNameDraft] = useState(layerName);
   useEffect(() => setNameDraft(layerName), [layerName]);
