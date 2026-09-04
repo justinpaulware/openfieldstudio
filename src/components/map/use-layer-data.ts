@@ -1,4 +1,4 @@
-import { useQueries } from "@tanstack/react-query";
+import { keepPreviousData, useQueries } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { loadArcgisLayer, loadCsvLayer } from "@/lib/datasets.functions";
 import { parseLayerFields, toFeatureCollection, type FeatureCollection } from "@/lib/geo";
