@@ -182,14 +182,18 @@ export function PublicMapViewer({
   const results = useQueries({
     queries: ordered.map((layer) => ({
       queryKey: ["published-layer-data", username, slug, layer.id, layer.updated_at],
+      // Raster layers stream tiles from their service — there is nothing to fetch.
       queryFn: () =>
-        getPublishedLayerData({ data: { username, slug, layerId: layer.id } }) as Promise<
-          FeatureCollection | null
-        >,
+        isRasterLayer(layer)
+          ? Promise.resolve(null)
+          : (getPublishedLayerData({ data: { username, slug, layerId: layer.id } }) as Promise<
+              FeatureCollection | null
+            >),
       staleTime: 5 * 60 * 1000,
       retry: 0,
     })),
   });
+
 
   const dataById = useMemo(() => {
     const map: Record<string, FeatureCollection | null> = {};
