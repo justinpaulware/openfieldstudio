@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronUp, Eye, EyeOff, List } from "lucide-react";
+import { Check, Eye, EyeOff, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BrandMark } from "@/components/brand-mark";
+import { MapCardHeader } from "@/components/map/map-card-header";
 
 
 import type { HeatmapSpec, LayerStyle, ProportionalSpec, SimpleKind } from "@/lib/layer-style";
@@ -505,7 +506,7 @@ export function MapTitleCard({
   return (
     <div
       className={cn(
-        "w-fit min-w-56 max-w-[min(50vw,26rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "w-fit min-w-56 max-w-[min(50vw,26rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-soft)]",
         className,
       )}
     >
