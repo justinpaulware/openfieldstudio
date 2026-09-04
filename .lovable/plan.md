@@ -59,7 +59,7 @@ save and the shapes appear.
 - The owner's Comments tab map shows shapes too, and selecting a row zooms to
   the shape rather than a single point.
 
-Check: the shapes are visible, clickable, and moderatable from the Comments tab.
+Check: the shapes are visible, clickable, and moderatable from the Engagement tab.
 
 ## Technical notes
 
@@ -67,13 +67,11 @@ Check: the shapes are visible, clickable, and moderatable from the Comments tab.
   (`submitComment`), `src/components/comments/comment-composer.tsx`,
   `src/components/comments/comment-panel.tsx`,
   `src/components/public/public-map.tsx`, `src/components/map/map-canvas.tsx`
-  (approved-shape source), and the Comments route sidebar.
+  (approved-shape source), the Engagement route sidebar, the project tab list
+  in `projects.$projectSlug.tsx`, and the publish mutation's cache
+  invalidation.
 - No new npm packages; MapLibre has no built-in draw tool and a draw library is
   heavy for three geometry types.
 - Existing rows are all Points, so no backfill.
+- `roadmap.md` gets the rename and breadcrumb fix recorded as tasks.
 
-## Also queued (not in this plan)
-
-- Breadcrumb status badge reads "Draft" for a moment after publishing — a
-  one-line query-invalidation fix I can fold into any of the slices above if
-  you want it cleared out first.
