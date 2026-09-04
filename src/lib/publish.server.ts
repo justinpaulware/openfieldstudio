@@ -70,16 +70,21 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
   if (layersResult.error) throw layersResult.error;
   if (foldersResult.error) throw foldersResult.error;
 
-  // Resolve the requested view (or the Main view) and apply its overrides.
-  const viewQuery = supabase
+  // All published views of this project, ordered (Main first) — powers the switcher.
+  const { data: publishedViews } = await supabase
     .from("project_views")
     .select("*")
     .eq("project_id", project.id)
-    .eq("status", "published");
-  const { data: view } = await (viewSlug
-    ? viewQuery.eq("slug", viewSlug)
-    : viewQuery.eq("is_main", true)
-  ).maybeSingle();
+    .eq("status", "published")
+    .order("is_main", { ascending: false })
+    .order("sort_order", { ascending: true })
+    .order("created_at", { ascending: true });
+  const views = publishedViews ?? [];
+
+  // Resolve the requested view: explicit slug, else the project's default, else Main.
+  const view = viewSlug
+    ? views.find((v) => v.slug === viewSlug)
+    : (views.find((v) => v.id === project.default_view_id) ?? views.find((v) => v.is_main));
   if (!view) return null;
 
   const { data: viewLayers } = await supabase
@@ -117,6 +122,13 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
       scale_units: view.scale_units,
     } as PublishedProject,
     view: { id: view.id, name: view.name, slug: view.slug, is_main: view.is_main },
+    views: views.map((v) => ({
+      id: v.id,
+      name: v.name,
+      slug: v.slug,
+      is_main: v.is_main,
+    })),
+    viewNav: project.view_nav_enabled && view.show_view_nav && views.length > 1,
     layers,
     folders: (foldersResult.data ?? []) as PublishedFolder[],
   };
