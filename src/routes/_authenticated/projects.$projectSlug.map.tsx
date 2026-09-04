@@ -737,6 +737,25 @@ function MapEditor() {
     mapHandle.current?.fitBbox(bbox);
   };
 
+  /** Zoom to what's actually shown: filtered extent when a filter is active. */
+  const zoomToLayer = (layer: LayerWithStyle) => {
+    if (isFilterActive(filterFor(layer))) {
+      const data = filteredById[layer.id];
+      if (data) {
+        if (!data.features.length) {
+          toast.info("No visible features to zoom to.");
+          return;
+        }
+        const bbox = computeBbox(data);
+        if (bbox) {
+          mapHandle.current?.fitBbox(bbox);
+          return;
+        }
+      }
+    }
+    zoomTo(layer.bbox as Bbox | null);
+  };
+
   /** Union extent of every layer that has coordinates. */
   const allLayersBbox = useMemo<Bbox | null>(() => {
     let out: Bbox | null = null;
