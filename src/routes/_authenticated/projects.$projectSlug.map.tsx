@@ -536,6 +536,38 @@ function MapEditor() {
     [projectId, queryClient, activeView],
   );
 
+  /** Raster appearance saves immediately; per-view where a named view is open. */
+  const persistRaster = useCallback(
+    (layerId: string, style: RasterStyle) => {
+      void (async () => {
+        if (activeView) {
+          const { error } = await supabase.from("view_layers").upsert(
+            { view_id: activeView.id, layer_id: layerId, raster_style: style },
+            { onConflict: "view_id,layer_id" },
+          );
+          if (error) {
+            toast.error(`Appearance was not saved: ${error.message}`);
+            return;
+          }
+        }
+        if (!activeView || activeView.is_main) {
+          const { error } = await supabase
+            .from("layers")
+            .update({ raster_style: style })
+            .eq("id", layerId);
+          if (error) {
+            toast.error(`Appearance was not saved: ${error.message}`);
+            return;
+          }
+        }
+        await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+        await queryClient.invalidateQueries({ queryKey: ["view-layers", activeView?.id] });
+      })();
+    },
+    [projectId, queryClient, activeView],
+  );
+
+
 
   const styleFor = useCallback(
     (layer: LayerWithStyle): LayerStyle =>
