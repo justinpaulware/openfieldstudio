@@ -21,7 +21,9 @@ export type ViewOverride = {
   opacity: number;
   sort_order: number;
   filter_config: unknown;
+  raster_style: unknown;
 };
+
 
 export function useProjectViews(projectId: string) {
   return useQuery({
@@ -65,10 +67,15 @@ export function overrideMap(rows: ViewLayer[] | undefined): Record<string, ViewO
       opacity: row.opacity,
       sort_order: row.sort_order,
       filter_config: row.filter_config,
+      raster_style: row.raster_style,
     };
   }
   return out;
 }
+
+/** True when a stored jsonb override actually carries settings. */
+const hasSettings = (value: unknown) =>
+  !!value && typeof value === "object" && Object.keys(value as object).length > 0;
 
 /** Apply a view's per-layer overrides on top of the project's layer rows. */
 export function applyViewOverrides<
@@ -78,15 +85,23 @@ export function applyViewOverrides<
     opacity: number;
     sort_order: number;
     filter_config: unknown;
+    raster_style?: unknown;
   },
 >(layers: T[], overrides: Record<string, ViewOverride>): T[] {
   return layers
     .map((layer) => {
       const override = overrides[layer.id];
-      return override ? { ...layer, ...override } : layer;
+      if (!override) return layer;
+      const { raster_style, ...rest } = override;
+      return {
+        ...layer,
+        ...rest,
+        ...(hasSettings(raster_style) ? { raster_style } : {}),
+      };
     })
     .sort((a, b) => a.sort_order - b.sort_order);
 }
+
 
 /** Unique, url-safe slug for a new view inside one project. */
 export function uniqueViewSlug(name: string, existing: ProjectView[]): string {
@@ -147,6 +162,7 @@ export function useCreateView(projectId: string) {
         opacity: number;
         sort_order: number;
         filter_config: unknown;
+        raster_style?: unknown;
         style_override?: unknown;
       }[] = [];
 
@@ -161,6 +177,7 @@ export function useCreateView(projectId: string) {
           opacity: row.opacity,
           sort_order: row.sort_order,
           filter_config: row.filter_config,
+          raster_style: row.raster_style,
           style_override: row.style_override,
         }));
       }
@@ -168,7 +185,7 @@ export function useCreateView(projectId: string) {
       if (!seed.length) {
         const { data: layers } = await supabase
           .from("layers")
-          .select("id, visible, opacity, sort_order, filter_config")
+          .select("id, visible, opacity, sort_order, filter_config, raster_style")
           .eq("project_id", projectId);
         seed = (layers ?? []).map((layer) => ({
           layer_id: layer.id,
@@ -176,8 +193,10 @@ export function useCreateView(projectId: string) {
           opacity: layer.opacity,
           sort_order: layer.sort_order,
           filter_config: layer.filter_config,
+          raster_style: layer.raster_style,
         }));
       }
+
 
       if (seed.length) {
         const { error: seedError } = await supabase

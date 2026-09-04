@@ -34,6 +34,8 @@ import {
 } from "@/lib/layer-style";
 
 import { buildMaskGeometry } from "@/lib/mask-geometry";
+import { rasterPaint, type RasterStyle } from "@/lib/raster-style";
+
 
 
 export type RenderLayer = {
@@ -41,10 +43,13 @@ export type RenderLayer = {
   name: string;
   visible: boolean;
   opacity: number;
-  geometryType: SimpleGeometryType;
+  geometryType: SimpleGeometryType | "raster";
   data: FeatureCollection | null;
   style: LayerStyle;
+  /** Set for raster layers: tile template plus raster appearance. */
+  raster?: { tileUrl: string; style: RasterStyle } | null;
 };
+
 
 
 export type MapHandle = {
@@ -868,14 +873,27 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     return;
   }
 
-  const keep = new Set(layers.filter((l) => l.data).map((l) => l.id));
+  const keep = new Set(layers.filter((l) => l.data || l.raster).map((l) => l.id));
+  const keepRaster = new Set(layers.filter((l) => l.raster).map((l) => l.id));
 
   // Drop anything we own that no longer belongs.
   for (const layer of map.getStyle().layers ?? []) {
+    const rasterMatch = /^of-raster-(.+)$/.exec(layer.id);
+    if (rasterMatch) {
+      if (!keepRaster.has(rasterMatch[1] as string)) removeLayerIfPresent(map, layer.id);
+      continue;
+    }
     const match = /^of-(fill|line|circle|outline|symbol|label|maskfill|heat)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
+    const rasterMatch = /^of-raster-src-(.+)$/.exec(sourceId);
+    if (rasterMatch) {
+      if (!keepRaster.has(rasterMatch[1] as string) && map.getSource(sourceId)) {
+        map.removeSource(sourceId);
+      }
+      continue;
+    }
     const match = /^of-(?:mask-)?src-(.+)$/.exec(sourceId);
     if (match && !keep.has(match[1] as string)) {
       if (map.getSource(sourceId)) map.removeSource(sourceId);
@@ -887,7 +905,31 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
   // Add / update in draw order (first item on top => add in reverse).
   for (const layer of [...layers].reverse()) {
+    // Raster layers: imagery tiles straight from the service.
+    if (layer.raster) {
+      const rasterSourceId = `of-raster-src-${layer.id}`;
+      const rasterLayerId = `of-raster-${layer.id}`;
+      if (!map.getSource(rasterSourceId)) {
+        map.addSource(rasterSourceId, {
+          type: "raster",
+          tiles: [layer.raster.tileUrl],
+          tileSize: 512,
+        });
+      }
+      if (!map.getLayer(rasterLayerId)) {
+        map.addLayer({ id: rasterLayerId, type: "raster", source: rasterSourceId });
+      } else {
+        map.moveLayer(rasterLayerId);
+      }
+      map.setLayoutProperty(rasterLayerId, "visibility", layer.visible ? "visible" : "none");
+      const paint = rasterPaint(layer.raster.style);
+      for (const [property, value] of Object.entries(paint)) {
+        map.setPaintProperty(rasterLayerId, property as never, value as never);
+      }
+      continue;
+    }
     if (!layer.data) continue;
+
     const sourceId = SRC(layer.id);
     const existing = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
     if (existing) {

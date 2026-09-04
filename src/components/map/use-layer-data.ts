@@ -7,7 +7,11 @@ import type { Tables } from "@/integrations/supabase/types";
 export type LayerRow = Tables<"layers">;
 
 async function fetchLayerData(layer: LayerRow): Promise<FeatureCollection | null> {
+  // Raster layers are drawn straight from the service as tiles — nothing to fetch.
+  if (layer.source_type === "raster_arcgis" || layer.geometry_type === "raster") return null;
+
   if (layer.source_type === "geojson_file") {
+
     if (!layer.storage_path) return null;
     const { data, error } = await supabase.storage
       .from("datasets")

@@ -190,7 +190,9 @@ export function classifyArcgisUrl(rawUrl: string): ArcgisEndpoint {
 type ArcgisLayerMeta = {
   name?: string;
   type?: string;
+  description?: string;
   geometryType?: string;
+
   capabilities?: string;
   drawingInfo?: unknown;
   error?: { message?: string; details?: string[] };
@@ -218,7 +220,13 @@ export type ArcgisDescription =
       kind: "service";
       serverType: ArcgisServerType;
       url: string;
-      layers: { id: number; name: string; geometryType: string | null; url: string }[];
+      layers: {
+        id: number;
+        name: string;
+        geometryType: string | null;
+        url: string;
+        raster: boolean;
+      }[];
     }
   | {
       kind: "layer";
@@ -226,7 +234,12 @@ export type ArcgisDescription =
       url: string;
       name: string;
       geometryType: string | null;
+      /** Imagery rather than features: drawn as map tiles, styled as a raster. */
+      raster: boolean;
+      description: string | null;
+      layerType: string | null;
     };
+
 
 /** Inspect an ArcGIS REST URL: list a service's layers, or describe a single layer. */
 export async function describeArcgis(rawUrl: string): Promise<ArcgisDescription> {
@@ -253,18 +266,33 @@ export async function describeArcgis(rawUrl: string): Promise<ArcgisDescription>
         name: layer.name ?? `Layer ${layer.id}`,
         geometryType: layer.geometryType ?? null,
         url: `${endpoint.url}/${layer.id}`,
+        raster: !layer.geometryType,
       })),
     };
   }
 
-  assertQueryableLayer(meta, endpoint.serverType);
+  // Imagery layers report no geometry type; they're drawn as tiles instead of
+  // being queried for features.
+  const raster = isRasterMeta(meta, endpoint.serverType);
+  if (!raster) assertQueryableLayer(meta, endpoint.serverType);
   return {
     kind: "layer",
     serverType: endpoint.serverType,
     url: endpoint.url,
     name: meta.name ?? `${endpoint.serverType} layer`,
     geometryType: meta.geometryType ?? null,
+    raster,
+    description: meta.description ?? null,
+    layerType: meta.type ?? null,
   };
+}
+
+function isRasterMeta(meta: ArcgisLayerMeta, serverType: ArcgisServerType) {
+  if (meta.geometryType) return false;
+  if (meta.type === "Group Layer") return false;
+  if (meta.layers && meta.layers.length) return false;
+  // Feature services never serve imagery.
+  return serverType === "MapServer";
 }
 
 function assertQueryableLayer(meta: ArcgisLayerMeta, serverType: ArcgisServerType) {
@@ -285,6 +313,7 @@ function assertQueryableLayer(meta: ArcgisLayerMeta, serverType: ArcgisServerTyp
     );
   }
 }
+
 
 type EsriGeometry = {
   x?: number;

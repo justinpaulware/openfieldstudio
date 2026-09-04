@@ -26,7 +26,9 @@ import {
   styleRowFromRelation,
   type StyleRelation,
 } from "@/lib/layer-style";
+import { isRasterLayer, rasterSpecFor } from "@/lib/raster-style";
 import type { Bbox, FeatureCollection } from "@/lib/geo";
+
 import type { Tables } from "@/integrations/supabase/types";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
@@ -182,14 +184,18 @@ export function PublicMapViewer({
   const results = useQueries({
     queries: ordered.map((layer) => ({
       queryKey: ["published-layer-data", username, slug, layer.id, layer.updated_at],
+      // Raster layers stream tiles from their service — there is nothing to fetch.
       queryFn: () =>
-        getPublishedLayerData({ data: { username, slug, layerId: layer.id } }) as Promise<
-          FeatureCollection | null
-        >,
+        isRasterLayer(layer)
+          ? Promise.resolve(null)
+          : (getPublishedLayerData({ data: { username, slug, layerId: layer.id } }) as Promise<
+              FeatureCollection | null
+            >),
       staleTime: 5 * 60 * 1000,
       retry: 0,
     })),
   });
+
 
   const dataById = useMemo(() => {
     const map: Record<string, FeatureCollection | null> = {};
@@ -252,7 +258,9 @@ export function PublicMapViewer({
         geometryType: layer.geometry_type,
         data: dataById[layer.id] ?? null,
         style: renderStyleFor(layer),
+        raster: rasterSpecFor(layer),
       })),
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [ordered, dataById, renderStyleFor, hidden],
   );

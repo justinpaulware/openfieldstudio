@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { arcgisRasterTileUrl } from "@/lib/raster-style";
 import {
   describeArcgisService,
   loadArcgisLayer,
@@ -27,12 +28,19 @@ import {
   previewCsv,
 } from "@/lib/datasets.functions";
 
+
 type ArcgisDescription =
   | {
       kind: "service";
       serverType: string;
       url: string;
-      layers: { id: number; name: string; geometryType: string | null; url: string }[];
+      layers: {
+        id: number;
+        name: string;
+        geometryType: string | null;
+        url: string;
+        raster: boolean;
+      }[];
     }
   | {
       kind: "layer";
@@ -40,7 +48,11 @@ type ArcgisDescription =
       url: string;
       name: string;
       geometryType: string | null;
+      raster: boolean;
+      description: string | null;
+      layerType: string | null;
     };
+
 
 
 import {
@@ -63,16 +75,17 @@ type Props = {
 
 type InsertArgs = {
   name: string;
-  sourceType: "geojson_file" | "csv_url" | "arcgis_rest";
+  sourceType: "geojson_file" | "csv_url" | "arcgis_rest" | "raster_arcgis";
   sourceUrl?: string | null;
   storagePath?: string | null;
-  geometryType: SimpleGeometryType;
+  geometryType: SimpleGeometryType | "raster";
   featureCount: number;
   bbox: Bbox | null;
   fields: FieldDef[];
   latField?: string | null;
   lonField?: string | null;
 };
+
 
 export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, onCreated }: Props) {
   const [busy, setBusy] = useState(false);
@@ -245,6 +258,14 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
     }
   };
 
+  /** The chosen ArcGIS layer serves imagery rather than features. */
+  const selectedArcgisLayer =
+    arcgisInfo?.kind === "service"
+      ? arcgisInfo.layers.find((layer) => layer.url === arcgisLayerUrl)
+      : null;
+  const arcgisIsRaster =
+    arcgisInfo?.kind === "layer" ? arcgisInfo.raster : (selectedArcgisLayer?.raster ?? false);
+
   const handleArcgisAdd = async () => {
     const url = effectiveArcgisUrl;
     if (!url) return;
@@ -253,7 +274,29 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
       `Loading ArcGIS ${arcgisInfo?.serverType ?? "REST"} layer…`,
     );
     try {
+      if (arcgisIsRaster) {
+        if (!arcgisRasterTileUrl(url)) {
+          throw new Error("Raster layers need an ArcGIS MapServer URL, e.g. …/MapServer/0.");
+        }
+        const fallbackName =
+          arcgisInfo?.kind === "layer" ? arcgisInfo.name : (selectedArcgisLayer?.name ?? "Raster layer");
+        await insertLayer({
+          name: arcgisName.trim() || fallbackName,
+          sourceType: "raster_arcgis",
+          sourceUrl: url,
+          geometryType: "raster",
+          featureCount: 0,
+          bbox: null,
+          fields: [],
+        });
+        toast.success("Raster layer added.");
+        reset();
+        onOpenChange(false);
+        onCreated(null);
+        return;
+      }
       const { summary, truncated } = await loadArcgisLayer({ data: { url } });
+
       await insertLayer({
         name: arcgisName.trim() || summary.name,
         sourceType: "arcgis_rest",
@@ -450,7 +493,11 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
                     {arcgisInfo.layers.map((layer) => (
                       <SelectItem key={layer.url} value={layer.url}>
                         {layer.name}
-                        {layer.geometryType ? ` · ${layer.geometryType.replace("esriGeometry", "")}` : ""}
+                        {layer.raster
+                          ? " · Raster"
+                          : layer.geometryType
+                            ? ` · ${layer.geometryType.replace("esriGeometry", "")}`
+                            : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -461,11 +508,14 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
             {arcgisInfo?.kind === "layer" && (
               <p className="font-secondary text-xs text-muted-foreground">
                 {arcgisInfo.serverType} layer · {arcgisInfo.name}
-                {arcgisInfo.geometryType
-                  ? ` · ${arcgisInfo.geometryType.replace("esriGeometry", "")}`
-                  : ""}
+                {arcgisInfo.raster
+                  ? " · Raster imagery"
+                  : arcgisInfo.geometryType
+                    ? ` · ${arcgisInfo.geometryType.replace("esriGeometry", "")}`
+                    : ""}
               </p>
             )}
+
 
             <div className="space-y-2">
               <Label htmlFor="arcgis-name">Layer name (optional)</Label>

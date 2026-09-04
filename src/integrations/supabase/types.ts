@@ -191,6 +191,7 @@ export type Database = {
           name: string
           opacity: number
           project_id: string
+          raster_style: Json
           sort_order: number
           source_type: Database["public"]["Enums"]["layer_source_type"]
           source_url: string | null
@@ -211,6 +212,7 @@ export type Database = {
           name: string
           opacity?: number
           project_id: string
+          raster_style?: Json
           sort_order?: number
           source_type: Database["public"]["Enums"]["layer_source_type"]
           source_url?: string | null
@@ -231,6 +233,7 @@ export type Database = {
           name?: string
           opacity?: number
           project_id?: string
+          raster_style?: Json
           sort_order?: number
           source_type?: Database["public"]["Enums"]["layer_source_type"]
           source_url?: string | null
@@ -510,6 +513,7 @@ export type Database = {
           id: string
           layer_id: string
           opacity: number
+          raster_style: Json | null
           sort_order: number
           style_override: Json | null
           view_id: string
@@ -520,6 +524,7 @@ export type Database = {
           id?: string
           layer_id: string
           opacity?: number
+          raster_style?: Json | null
           sort_order?: number
           style_override?: Json | null
           view_id: string
@@ -530,6 +535,7 @@ export type Database = {
           id?: string
           layer_id?: string
           opacity?: number
+          raster_style?: Json | null
           sort_order?: number
           style_override?: Json | null
           view_id?: string
@@ -561,8 +567,12 @@ export type Database = {
     }
     Enums: {
       comment_status: "pending" | "approved" | "hidden" | "rejected"
-      layer_geometry_type: "point" | "line" | "polygon" | "mixed"
-      layer_source_type: "geojson_file" | "csv_url" | "arcgis_rest"
+      layer_geometry_type: "point" | "line" | "polygon" | "mixed" | "raster"
+      layer_source_type:
+        | "geojson_file"
+        | "csv_url"
+        | "arcgis_rest"
+        | "raster_arcgis"
       project_status: "draft" | "published" | "archived"
     }
     CompositeTypes: {
@@ -692,8 +702,13 @@ export const Constants = {
   public: {
     Enums: {
       comment_status: ["pending", "approved", "hidden", "rejected"],
-      layer_geometry_type: ["point", "line", "polygon", "mixed"],
-      layer_source_type: ["geojson_file", "csv_url", "arcgis_rest"],
+      layer_geometry_type: ["point", "line", "polygon", "mixed", "raster"],
+      layer_source_type: [
+        "geojson_file",
+        "csv_url",
+        "arcgis_rest",
+        "raster_arcgis",
+      ],
       project_status: ["draft", "published", "archived"],
     },
   },

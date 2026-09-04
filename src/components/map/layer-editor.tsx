@@ -17,10 +17,13 @@ import { StyleSymbology, type FieldValue } from "./style-symbology";
 import { StyleLabels } from "./style-labels";
 import { StylePopups } from "./style-popups";
 import { LayerFilter } from "./layer-filter";
+import { StyleRaster } from "./style-raster";
+import type { RasterStyle } from "@/lib/raster-style";
+
 
 export type StyleSaveState = "idle" | "dirty" | "saving" | "saved";
 
-export type EditorSection = "data" | "filter" | "symbology" | "labels" | "popups";
+export type EditorSection = "data" | "filter" | "symbology" | "labels" | "popups" | "raster";
 
 export type LayerSourceInfo = {
   sourceType: string;
@@ -33,7 +36,9 @@ const SOURCE_LABEL: Record<string, string> = {
   geojson_file: "GeoJSON upload",
   csv_url: "CSV",
   arcgis_rest: "ArcGIS REST Service",
+  raster_arcgis: "ArcGIS Raster MapServer",
 };
+
 
 type Props = {
   layerName: string;
@@ -49,6 +54,8 @@ type Props = {
   numericFields: string[];
   numbersFor: (field: string) => number[];
   initialSection?: EditorSection;
+  /** Present for raster layers: replaces every vector styling section. */
+  raster?: { style: RasterStyle; onChange: (patch: Partial<RasterStyle>) => void } | null;
   onChange: (patch: Partial<LayerStyle>) => void;
   onFilterChange: (config: FilterConfig) => void;
   onRename: (name: string) => void;
@@ -56,6 +63,7 @@ type Props = {
   onReset: () => void;
   onClose: () => void;
 };
+
 
 function Section({
   title,
@@ -118,6 +126,7 @@ export function LayerEditor({
   numericFields,
   numbersFor,
   initialSection = "symbology",
+  raster = null,
   onChange,
   onFilterChange,
   onRename,
@@ -125,8 +134,11 @@ export function LayerEditor({
   onReset,
   onClose,
 }: Props) {
-  const [openSection, setOpenSection] = useState<EditorSection | null>(initialSection);
-  useEffect(() => setOpenSection(initialSection), [initialSection, layerName]);
+  const startSection: EditorSection =
+    raster && initialSection !== "data" ? "raster" : initialSection;
+  const [openSection, setOpenSection] = useState<EditorSection | null>(startSection);
+  useEffect(() => setOpenSection(startSection), [startSection, layerName]);
+
 
   const [nameDraft, setNameDraft] = useState(layerName);
   useEffect(() => setNameDraft(layerName), [layerName]);
@@ -148,7 +160,12 @@ export function LayerEditor({
     <aside className="hidden w-72 shrink-0 flex-col border-l border-border bg-card/40 lg:flex">
       <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
-          {rows.length ? (
+          {raster ? (
+            <span
+              aria-hidden
+              className="h-4 w-4 shrink-0 rounded-sm border border-border bg-gradient-to-br from-muted-foreground/70 to-muted-foreground/20"
+            />
+          ) : rows.length ? (
             <CategoryChip colors={rows.map((row) => row.color)} />
           ) : (
             <LegendSwatch kind={kind} style={style} />
@@ -156,17 +173,21 @@ export function LayerEditor({
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold">{layerName}</h2>
             <p className="font-secondary text-[11px] capitalize text-muted-foreground">
-              {kind} ·{" "}
-              {categorized
-                ? "categories"
-                : graduated
-                  ? "graduated"
-                  : masked
-                    ? "mask layer"
-                    : "single symbol"}
+              {raster
+                ? "raster · imagery"
+                : `${kind} · ${
+                    categorized
+                      ? "categories"
+                      : graduated
+                        ? "graduated"
+                        : masked
+                          ? "mask layer"
+                          : "single symbol"
+                  }`}
             </p>
           </div>
         </div>
+
         <button
           type="button"
           onClick={onClose}
@@ -205,99 +226,125 @@ export function LayerEditor({
                 label="Geometry"
                 value={<span className="capitalize">{source.geometryType}</span>}
               />
-              <DataRow
-                label="Features"
-                value={
-                  filtered
-                    ? `${filteredCount.toLocaleString()} of ${featureCount.toLocaleString()}`
-                    : featureCount.toLocaleString()
-                }
-              />
+              {!raster && (
+                <DataRow
+                  label="Features"
+                  value={
+                    filtered
+                      ? `${filteredCount.toLocaleString()} of ${featureCount.toLocaleString()}`
+                      : featureCount.toLocaleString()
+                  }
+                />
+              )}
               <DataRow label="Detail" value={sourceDetail} />
             </div>
           </div>
         </Section>
 
-        <Section
-          title="Filter"
-          hint={filtered ? "On" : undefined}
-          open={openSection === "filter"}
-          onToggle={() => toggle("filter")}
-        >
-          <LayerFilter
-            config={filter}
-            fields={fields}
-            numericFields={numericFields}
-            valuesFor={valuesFor}
-            matched={filteredCount}
-            total={featureCount}
-            onChange={onFilterChange}
-          />
-        </Section>
-
-        <Section
-          title="Symbology"
-          open={openSection === "symbology"}
-          onToggle={() => toggle("symbology")}
-        >
-          <StyleSymbology
-            kind={kind}
-            style={style}
-            fields={fields}
-            valuesFor={valuesFor}
-            numericFields={numericFields}
-            numbersFor={numbersFor}
-            onChange={onChange}
-          />
-        </Section>
-        <Section
-          title="Labels"
-          hint={style.labels?.enabled ? "On" : "Off"}
-          open={openSection === "labels"}
-          onToggle={() => toggle("labels")}
-        >
-          <StyleLabels kind={kind} style={style} fields={fields} onChange={onChange} />
-        </Section>
-        <Section
-          title="Popups"
-          hint={style.popup?.enabled ? "On" : "Off"}
-          open={openSection === "popups"}
-          onToggle={() => toggle("popups")}
-        >
-          <StylePopups style={style} fields={fields} onChange={onChange} />
-        </Section>
-      </div>
-
-      <div className="space-y-1.5 border-t border-border px-4 py-3">
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            className="flex-1"
-            onClick={onSave}
-            disabled={saveState === "saving" || saveState === "idle" || saveState === "saved"}
+        {raster && (
+          <Section
+            title="Raster appearance"
+            open={openSection === "raster"}
+            onToggle={() => toggle("raster")}
           >
-            {saveState === "saving" ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : saveState === "saved" ? (
-              <Check className="mr-1.5 h-3.5 w-3.5" />
-            ) : (
-              <Save className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            {saveState === "saving" ? "Saving" : saveState === "saved" ? "Saved" : "Save"}
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" onClick={onReset}>
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            Reset to default
-          </Button>
-        </div>
-        <p className="font-secondary text-[11px] text-muted-foreground">
-          {saveState === "dirty"
-            ? "Unsaved changes"
-            : saveState === "saving"
-              ? "Saving changes…"
-              : "All changes saved"}
-        </p>
+            <StyleRaster style={raster.style} onChange={raster.onChange} />
+          </Section>
+        )}
+
+
+        {!raster && (
+          <>
+            <Section
+              title="Filter"
+              hint={filtered ? "On" : undefined}
+              open={openSection === "filter"}
+              onToggle={() => toggle("filter")}
+            >
+              <LayerFilter
+                config={filter}
+                fields={fields}
+                numericFields={numericFields}
+                valuesFor={valuesFor}
+                matched={filteredCount}
+                total={featureCount}
+                onChange={onFilterChange}
+              />
+            </Section>
+
+            <Section
+              title="Symbology"
+              open={openSection === "symbology"}
+              onToggle={() => toggle("symbology")}
+            >
+              <StyleSymbology
+                kind={kind}
+                style={style}
+                fields={fields}
+                valuesFor={valuesFor}
+                numericFields={numericFields}
+                numbersFor={numbersFor}
+                onChange={onChange}
+              />
+            </Section>
+            <Section
+              title="Labels"
+              hint={style.labels?.enabled ? "On" : "Off"}
+              open={openSection === "labels"}
+              onToggle={() => toggle("labels")}
+            >
+              <StyleLabels kind={kind} style={style} fields={fields} onChange={onChange} />
+            </Section>
+            <Section
+              title="Popups"
+              hint={style.popup?.enabled ? "On" : "Off"}
+              open={openSection === "popups"}
+              onToggle={() => toggle("popups")}
+            >
+              <StylePopups style={style} fields={fields} onChange={onChange} />
+            </Section>
+          </>
+        )}
       </div>
+
+      {raster ? (
+        <div className="border-t border-border px-4 py-3">
+          <p className="font-secondary text-[11px] text-muted-foreground">
+            Raster appearance saves automatically.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-1.5 border-t border-border px-4 py-3">
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={onSave}
+              disabled={saveState === "saving" || saveState === "idle" || saveState === "saved"}
+            >
+              {saveState === "saving" ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : saveState === "saved" ? (
+                <Check className="mr-1.5 h-3.5 w-3.5" />
+              ) : (
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {saveState === "saving" ? "Saving" : saveState === "saved" ? "Saved" : "Save"}
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" onClick={onReset}>
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              Reset to default
+            </Button>
+          </div>
+          <p className="font-secondary text-[11px] text-muted-foreground">
+            {saveState === "dirty"
+              ? "Unsaved changes"
+              : saveState === "saving"
+                ? "Saving changes…"
+                : "All changes saved"}
+          </p>
+        </div>
+      )}
+
     </aside>
   );
 }

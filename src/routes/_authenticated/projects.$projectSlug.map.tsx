@@ -45,6 +45,13 @@ import {
   type LayerStyle,
   type StyleRelation,
 } from "@/lib/layer-style";
+import {
+  isRasterLayer,
+  rasterSpecFor,
+  resolveRasterStyle,
+  type RasterStyle,
+} from "@/lib/raster-style";
+
 import type { Bbox, FeatureCollection } from "@/lib/geo";
 import {
   filterCollection,
@@ -536,6 +543,38 @@ function MapEditor() {
     [projectId, queryClient, activeView],
   );
 
+  /** Raster appearance saves immediately; per-view where a named view is open. */
+  const persistRaster = useCallback(
+    (layerId: string, style: RasterStyle) => {
+      void (async () => {
+        if (activeView) {
+          const { error } = await supabase.from("view_layers").upsert(
+            { view_id: activeView.id, layer_id: layerId, raster_style: style },
+            { onConflict: "view_id,layer_id" },
+          );
+          if (error) {
+            toast.error(`Appearance was not saved: ${error.message}`);
+            return;
+          }
+        }
+        if (!activeView || activeView.is_main) {
+          const { error } = await supabase
+            .from("layers")
+            .update({ raster_style: style })
+            .eq("id", layerId);
+          if (error) {
+            toast.error(`Appearance was not saved: ${error.message}`);
+            return;
+          }
+        }
+        await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
+        await queryClient.invalidateQueries({ queryKey: ["view-layers", activeView?.id] });
+      })();
+    },
+    [projectId, queryClient, activeView],
+  );
+
+
 
   const styleFor = useCallback(
     (layer: LayerWithStyle): LayerStyle =>
@@ -645,9 +684,11 @@ function MapEditor() {
         geometryType: layer.geometry_type,
         data: filteredById[layer.id] ?? null,
         style: styleFor(layer),
+        raster: rasterSpecFor(layer),
       })),
     [orderedLayers, filteredById, styleFor],
   );
+
 
   const legendGroups: LegendGroup[] = useMemo(() => {
     const toEntry = (layer: LayerWithStyle): LegendEntry => ({
@@ -1016,7 +1057,20 @@ function MapEditor() {
             kind={geometryKind(styleLayer.geometry_type)}
             style={styleFor(styleLayer)}
             filter={filterFor(styleLayer)}
+            raster={
+              isRasterLayer(styleLayer)
+                ? {
+                    style: resolveRasterStyle(styleLayer.raster_style),
+                    onChange: (patch) =>
+                      persistRaster(styleLayer.id, {
+                        ...resolveRasterStyle(styleLayer.raster_style),
+                        ...patch,
+                      }),
+                  }
+                : null
+            }
             source={{
+
               sourceType: styleLayer.source_type,
               geometryType: styleLayer.geometry_type,
               storagePath: styleLayer.storage_path,
