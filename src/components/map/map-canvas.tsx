@@ -41,10 +41,13 @@ export type RenderLayer = {
   name: string;
   visible: boolean;
   opacity: number;
-  geometryType: SimpleGeometryType;
+  geometryType: SimpleGeometryType | "raster";
   data: FeatureCollection | null;
   style: LayerStyle;
+  /** Set for raster layers: tile template plus raster appearance. */
+  raster?: { tileUrl: string; style: RasterStyle } | null;
 };
+
 
 
 export type MapHandle = {
