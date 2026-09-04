@@ -645,9 +645,11 @@ function MapEditor() {
         geometryType: layer.geometry_type,
         data: filteredById[layer.id] ?? null,
         style: styleFor(layer),
+        raster: rasterSpecFor(layer),
       })),
     [orderedLayers, filteredById, styleFor],
   );
+
 
   const legendGroups: LegendGroup[] = useMemo(() => {
     const toEntry = (layer: LayerWithStyle): LegendEntry => ({
