@@ -36,15 +36,30 @@ async function fetchLayerData(layer: LayerRow): Promise<FeatureCollection | null
   return result.featureCollection as FeatureCollection;
 }
 
+/** Only source-defining fields belong in the key: style/filter edits must not refetch. */
+function sourceKey(layer: LayerRow) {
+  const fields = parseLayerFields(layer.fields);
+  return {
+    sourceType: layer.source_type,
+    storagePath: layer.storage_path ?? null,
+    sourceUrl: layer.source_url ?? null,
+    latField: fields.latField ?? null,
+    lonField: fields.lonField ?? null,
+    lastRefreshedAt: layer.last_refreshed_at ?? null,
+  };
+}
+
 export function useLayerData(layers: LayerRow[]) {
   const results = useQueries({
     queries: layers.map((layer) => ({
-      queryKey: ["layer-data", layer.id, layer.updated_at],
+      queryKey: ["layer-data", layer.id, sourceKey(layer)],
       queryFn: () => fetchLayerData(layer),
       staleTime: 5 * 60 * 1000,
+      placeholderData: keepPreviousData,
       retry: 0,
     })),
   });
+
 
   const byId: Record<string, FeatureCollection | null> = {};
   const loading: Record<string, boolean> = {};
