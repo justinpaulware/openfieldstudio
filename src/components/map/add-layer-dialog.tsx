@@ -493,7 +493,11 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
                     {arcgisInfo.layers.map((layer) => (
                       <SelectItem key={layer.url} value={layer.url}>
                         {layer.name}
-                        {layer.geometryType ? ` · ${layer.geometryType.replace("esriGeometry", "")}` : ""}
+                        {layer.raster
+                          ? " · Raster"
+                          : layer.geometryType
+                            ? ` · ${layer.geometryType.replace("esriGeometry", "")}`
+                            : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -504,11 +508,14 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
             {arcgisInfo?.kind === "layer" && (
               <p className="font-secondary text-xs text-muted-foreground">
                 {arcgisInfo.serverType} layer · {arcgisInfo.name}
-                {arcgisInfo.geometryType
-                  ? ` · ${arcgisInfo.geometryType.replace("esriGeometry", "")}`
-                  : ""}
+                {arcgisInfo.raster
+                  ? " · Raster imagery"
+                  : arcgisInfo.geometryType
+                    ? ` · ${arcgisInfo.geometryType.replace("esriGeometry", "")}`
+                    : ""}
               </p>
             )}
+
 
             <div className="space-y-2">
               <Label htmlFor="arcgis-name">Layer name (optional)</Label>
