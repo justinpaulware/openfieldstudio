@@ -129,7 +129,9 @@ export function matchesFilter(
   const rules = activeRules(config);
   if (!rules.length) return true;
   const properties = props ?? {};
-  return rules.every((rule) => matchesRule(properties, rule));
+  return config?.combinator === "or"
+    ? rules.some((rule) => matchesRule(properties, rule))
+    : rules.every((rule) => matchesRule(properties, rule));
 }
 
 /** Returns the same collection reference when no rule is active. */
