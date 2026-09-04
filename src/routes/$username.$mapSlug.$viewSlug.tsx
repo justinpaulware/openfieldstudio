@@ -1,12 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 
-import {
-  PublicMapViewer,
-  ViewerMessage,
-  off,
-  type PublishedMapData,
-  type ViewerSearch,
-} from "@/components/public/public-map";
+import { ViewerMessage, off, type ViewerSearch } from "@/components/public/public-map";
 import { getPublishedMap } from "@/lib/publish.functions";
 
 const SITE = "https://openfield.nu";
@@ -15,6 +9,7 @@ export const Route = createFileRoute("/$username/$mapSlug/$viewSlug")({
   validateSearch: (search: Record<string, unknown>): ViewerSearch => ({
     ...(off(search["legend"]) ? { legend: false as const } : {}),
     ...(off(search["title"]) ? { title: false as const } : {}),
+    ...(off(search["views"]) ? { views: false as const } : {}),
   }),
   loader: async ({ params }) => {
     const data = await getPublishedMap({
@@ -46,12 +41,8 @@ export const Route = createFileRoute("/$username/$mapSlug/$viewSlug")({
   },
   errorComponent: () => <ViewerMessage title="This view could not be loaded." />,
   notFoundComponent: () => <ViewerMessage title="This view is not published." />,
-  component: NamedViewRoute,
+  // The viewer itself is rendered once by the parent route with this route's
+  // loader payload, so the map never remounts when switching views.
+  component: () => null,
 });
 
-function NamedViewRoute() {
-  const { username, mapSlug } = Route.useParams();
-  const search = Route.useSearch();
-  const data = Route.useLoaderData() as PublishedMapData;
-  return <PublicMapViewer username={username} slug={mapSlug} search={search} data={data} />;
-}
