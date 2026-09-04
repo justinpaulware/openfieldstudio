@@ -504,6 +504,7 @@ function parseLabels(value: unknown): LabelSpec {
     minZoom: num(raw["minZoom"], DEFAULT_LABELS.minZoom),
     maxZoom: num(raw["maxZoom"], DEFAULT_LABELS.maxZoom),
     textTransform: transform,
+    wrapEnabled: raw["wrapEnabled"] === true,
     maxWidth: num(raw["maxWidth"], DEFAULT_LABELS.maxWidth),
     bgEnabled: raw["bgEnabled"] === true,
     bgColor: str(raw["bgColor"], DEFAULT_LABELS.bgColor),
