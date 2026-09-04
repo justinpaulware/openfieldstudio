@@ -51,6 +51,7 @@ type CommentRow = {
   lng: number;
   lat: number;
   status: "pending" | "approved" | "hidden" | "rejected";
+  geometry_type: string | null;
 };
 
 function ProjectComments() {
@@ -77,7 +78,7 @@ function ProjectComments() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
-        .select("id, body, category, author_name, created_at, lng, lat, status")
+        .select("id, body, category, author_name, created_at, lng, lat, status, geometry_type")
         .eq("project_id", projectId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -314,6 +315,11 @@ function ProjectComments() {
                     {comment.category && (
                       <span className="rounded-full bg-muted px-1.5 py-0.5 font-secondary text-[10px]">
                         {comment.category}
+                      </span>
+                    )}
+                    {geometryLabel(comment.geometry_type) && (
+                      <span className="rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                        {geometryLabel(comment.geometry_type)}
                       </span>
                     )}
                     {comment.status === "hidden" && (
