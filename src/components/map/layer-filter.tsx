@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,48 @@ type Props = {
 
 /** Text fields with a small, tidy set of values get a picker instead of free text. */
 const PICKER_LIMIT = 40;
+
+/** Typed values commit on a short pause so the map recalculates once, not per keystroke. */
+function DebouncedInput({
+  value,
+  onCommit,
+  ...rest
+}: {
+  value: string;
+  onCommit: (value: string) => void;
+} & Omit<React.ComponentProps<typeof Input>, "value" | "onChange">) {
+  const [draft, setDraft] = useState(value);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focused = useRef(false);
+
+  useEffect(() => {
+    if (!focused.current) setDraft(value);
+  }, [value]);
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
+
+  const commit = (next: string) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+    onCommit(next);
+  };
+
+  return (
+    <Input
+      {...rest}
+      value={draft}
+      onFocus={() => { focused.current = true; }}
+      onChange={(event) => {
+        const next = event.target.value;
+        setDraft(next);
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = setTimeout(() => commit(next), 350);
+      }}
+      onBlur={() => { focused.current = false; commit(draft); }}
+      onKeyDown={(event) => { if (event.key === "Enter") commit(draft); }}
+    />
+  );
+}
 
 export function LayerFilter({
   config,
@@ -152,20 +195,20 @@ export function LayerFilter({
                 </Select>
               ) : (
                 <div className="flex items-center gap-1.5">
-                  <Input
+                  <DebouncedInput
                     className="h-8 text-xs"
                     type={isNumeric ? "number" : "text"}
                     value={rule.value}
                     placeholder={arity === 2 ? "Min" : "Value"}
-                    onChange={(event) => setRule(index, { value: event.target.value })}
+                    onCommit={(value) => setRule(index, { value })}
                   />
                   {arity === 2 && (
-                    <Input
+                    <DebouncedInput
                       className="h-8 text-xs"
                       type="number"
                       value={rule.value2}
                       placeholder="Max"
-                      onChange={(event) => setRule(index, { value2: event.target.value })}
+                      onCommit={(value2) => setRule(index, { value2 })}
                     />
                   )}
                 </div>
