@@ -38,12 +38,16 @@ export const SITE = "https://openfield.nu";
 type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
 
-export type ViewerSearch = { legend?: false; title?: false };
+export type ViewerSearch = { legend?: false; title?: false; views?: false };
 
 /** Shape returned by the published-map loader. */
 export type PublishedMapData = {
   project: Tables<"projects">;
   view?: { id: string; name: string; slug: string; is_main: boolean };
+  /** Every published view of this project, Main first. */
+  views?: SwitcherView[];
+  /** True when the project wants the view switcher shown on this view. */
+  viewNav?: boolean;
   layers: unknown[];
   folders: unknown[];
 };
