@@ -1202,8 +1202,18 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       spec.bold ? "Noto Sans Bold" : "Noto Sans Regular",
     ]);
     map.setLayoutProperty(labelId, "text-size", spec.size);
-    map.setLayoutProperty(labelId, "text-anchor", alongLine ? "center" : anchor);
-    map.setLayoutProperty(labelId, "text-offset", alongLine ? [0, 0] : offset);
+    // "Around" lets MapLibre pick whichever anchor is free, fitting far more
+    // labels; every other placement pins a fixed anchor and offset.
+    const variable = spec.placement === "around" && !alongLine;
+    map.setLayoutProperty(
+      labelId,
+      "text-variable-anchor",
+      variable ? ["center", "top", "bottom", "left", "right"] : undefined,
+    );
+    map.setLayoutProperty(labelId, "text-radial-offset", variable ? spec.offset : 0);
+    map.setLayoutProperty(labelId, "text-justify", variable ? "auto" : "center");
+    map.setLayoutProperty(labelId, "text-anchor", alongLine || variable ? "center" : anchor);
+    map.setLayoutProperty(labelId, "text-offset", alongLine || variable ? [0, 0] : offset);
     map.setLayoutProperty(labelId, "text-max-width", spec.wrapEnabled ? spec.maxWidth : 512);
     map.setLayoutProperty(labelId, "text-allow-overlap", spec.allowOverlap);
     map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
@@ -1281,12 +1291,14 @@ function markerImage(style: LayerStyle): ImageData | null {
  */
 function labelBackgroundImage(map: maplibregl.Map, color: string): string {
   const hex = paintColor(color).toLowerCase();
-  const id = `of-labelbg-${hex.replace(/[^a-z0-9]/g, "")}`;
+  // MapLibre falls back to smoothed (LINEAR) icon sampling whenever an image's
+  // pixelRatio differs from the tile bucket's, and that smoothing bleeds the
+  // atlas' transparent padding into the rectangle's edges — the fade. Matching
+  // the map's pixel ratio keeps sampling exact, so the edges stay hard.
+  const ratio = typeof map.getPixelRatio === "function" ? map.getPixelRatio() : 1;
+  const id = `of-labelbg-${hex.replace(/[^a-z0-9]/g, "")}-${String(ratio).replace(/\./g, "_")}`;
   if (map.hasImage(id)) return id;
-  // A larger solid image with explicit stretch zones: icon-text-fit then
-  // stretches the interior, keeping the rectangle's opacity perfectly uniform
-  // with hard edges (a tiny unstretched image fades at the extents).
-  const size = 64;
+  const size = Math.max(8, Math.round(16 * ratio));
   const data = new Uint8Array(size * size * 4);
   const rgb = withAlpha(hex, 1).match(/\d+/g) ?? ["255", "255", "255"];
   for (let i = 0; i < size * size; i += 1) {
@@ -1295,14 +1307,13 @@ function labelBackgroundImage(map: maplibregl.Map, color: string): string {
     data[i * 4 + 2] = Number(rgb[2]);
     data[i * 4 + 3] = 255;
   }
-  // Stretch only a narrow interior band. The edges stay 1:1 solid pixels, so
-  // texture filtering never samples past them and the ends render hard.
-  const mid = size / 2;
+  // Stretch only a narrow interior band so the outer pixels are never scaled.
+  const mid = Math.floor(size / 2);
   map.addImage(
     id,
     { width: size, height: size, data },
     {
-      pixelRatio: 1,
+      pixelRatio: ratio,
       stretchX: [[mid - 1, mid + 1]],
       stretchY: [[mid - 1, mid + 1]],
       content: [1, 1, size - 1, size - 1],

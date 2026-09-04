@@ -100,7 +100,7 @@ export type GraduatedSpec = {
   maxRadius: number;
 };
 
-export type LabelPlacement = "center" | "above" | "below" | "left" | "right";
+export type LabelPlacement = "center" | "around" | "above" | "below" | "left" | "right";
 export type LabelLinePlacement = "line" | "horizontal";
 export type LabelTransform = "none" | "upper" | "lower";
 
@@ -393,7 +393,7 @@ export function activeMask(style: LayerStyle): MaskSpec | null {
 }
 const CATEGORY_TARGETS: CategoryTarget[] = ["fill", "stroke", "both"];
 const CLASSIFY_METHODS: ClassifyMethod[] = ["quantile", "equal", "jenks", "manual"];
-const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "above", "below", "left", "right"];
+const LABEL_PLACEMENTS: LabelPlacement[] = ["center", "around", "above", "below", "left", "right"];
 const LINE_PLACEMENTS: LabelLinePlacement[] = ["line", "horizontal"];
 const LABEL_TRANSFORMS: LabelTransform[] = ["none", "upper", "lower"];
 
