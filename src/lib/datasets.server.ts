@@ -218,7 +218,13 @@ export type ArcgisDescription =
       kind: "service";
       serverType: ArcgisServerType;
       url: string;
-      layers: { id: number; name: string; geometryType: string | null; url: string }[];
+      layers: {
+        id: number;
+        name: string;
+        geometryType: string | null;
+        url: string;
+        raster: boolean;
+      }[];
     }
   | {
       kind: "layer";
@@ -226,7 +232,12 @@ export type ArcgisDescription =
       url: string;
       name: string;
       geometryType: string | null;
+      /** Imagery rather than features: drawn as map tiles, styled as a raster. */
+      raster: boolean;
+      description: string | null;
+      layerType: string | null;
     };
+
 
 /** Inspect an ArcGIS REST URL: list a service's layers, or describe a single layer. */
 export async function describeArcgis(rawUrl: string): Promise<ArcgisDescription> {
