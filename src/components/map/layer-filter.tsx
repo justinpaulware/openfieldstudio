@@ -125,6 +125,26 @@ export function LayerFilter({
         )}
       </div>
 
+      {config.rules.length > 1 && (
+        <div className="flex items-center gap-1 rounded-lg border border-border p-1">
+          {(["and", "or"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onChange({ ...config, combinator: value })}
+              className={
+                "flex-1 rounded-md px-2 py-1 font-secondary text-[11px] transition-colors " +
+                (config.combinator === value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground")
+              }
+            >
+              {value === "and" ? "Match all" : "Match any"}
+            </button>
+          ))}
+        </div>
+      )}
+
       {config.rules.map((rule, index) => {
         const isNumeric = numericFields.includes(rule.field);
         const arity = operatorArity(rule.op);
