@@ -19,7 +19,7 @@ import {
   type LegendEntry,
   type LegendGroup,
 } from "@/components/map/map-legend";
-import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
+import type { CommentGeometry, MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
 import {
   geometryKind,
   resolveLayerStyle,
