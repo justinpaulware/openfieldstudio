@@ -52,7 +52,7 @@ import {
   type RasterStyle,
 } from "@/lib/raster-style";
 
-import type { Bbox, FeatureCollection } from "@/lib/geo";
+import { computeBbox, type Bbox, type FeatureCollection } from "@/lib/geo";
 import {
   filterCollection,
   isFilterActive,
@@ -737,6 +737,25 @@ function MapEditor() {
     mapHandle.current?.fitBbox(bbox);
   };
 
+  /** Zoom to what's actually shown: filtered extent when a filter is active. */
+  const zoomToLayer = (layer: LayerWithStyle) => {
+    if (isFilterActive(filterFor(layer))) {
+      const data = filteredById[layer.id];
+      if (data) {
+        if (!data.features.length) {
+          toast.info("No visible features to zoom to.");
+          return;
+        }
+        const bbox = computeBbox(data);
+        if (bbox) {
+          mapHandle.current?.fitBbox(bbox);
+          return;
+        }
+      }
+    }
+    zoomTo(layer.bbox as Bbox | null);
+  };
+
   /** Union extent of every layer that has coordinates. */
   const allLayersBbox = useMemo<Bbox | null>(() => {
     let out: Bbox | null = null;
@@ -968,7 +987,7 @@ function MapEditor() {
                   setViewLayer.mutate({ layerId: layer.id, patch: { visible: !layer.visible } })
                 }
                 onRename={(layer, name) => updateLayer.mutate({ id: layer.id, patch: { name } })}
-                onZoomTo={(layer) => zoomTo(layer.bbox as Bbox | null)}
+                onZoomTo={(layer) => zoomToLayer(layer as LayerWithStyle)}
                 onDelete={(layer) => deleteLayer.mutate(layer)}
                 onDuplicate={(layer) => duplicateLayer.mutate(layer)}
                 onReorder={(ids) => reorder.mutate(ids)}
