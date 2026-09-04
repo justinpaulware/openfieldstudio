@@ -335,21 +335,16 @@ export function MapLegend({
   return (
     <div
       className={cn(
-        "w-56 overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]",
+        "w-56 overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-soft)]",
         className,
       )}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
-        className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-xs font-semibold hover:bg-black/5"
-      >
-        <span className="flex items-center gap-1.5">
-          <List className="h-3.5 w-3.5" />
-          Legend
-        </span>
-        {open ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-      </button>
+      <MapCardHeader
+        icon={List}
+        title="Legend"
+        open={open}
+        onToggle={() => setOpen((value) => !value)}
+      />
       {open && (
         <div className="max-h-[60vh] space-y-2 overflow-y-auto border-t border-map-overlay-border px-3 py-2">
           {visible.map((group) => (
