@@ -536,8 +536,26 @@ function MapEditor() {
             return;
           }
         }
-        await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
-        await queryClient.invalidateQueries({ queryKey: ["view-layers", activeView?.id] });
+        // Patch the caches in place — refetching here re-mounts the panel mid-edit.
+        queryClient.setQueryData(
+          ["layers", projectId],
+          (rows: LayerWithStyle[] | undefined) =>
+            rows?.map((row) =>
+              row.id === layerId ? { ...row, filter_config: config } : row,
+            ),
+        );
+        if (activeView) {
+          queryClient.setQueryData(
+            ["view-layers", activeView.id],
+            (rows: ViewLayer[] | undefined) =>
+              rows?.some((row) => row.layer_id === layerId)
+                ? rows.map((row) =>
+                    row.layer_id === layerId ? { ...row, filter_config: config } : row,
+                  )
+                : rows,
+          );
+        }
+
       }, 400);
     },
     [projectId, queryClient, activeView],
