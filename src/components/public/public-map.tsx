@@ -1,6 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ClientOnly, Link } from "@tanstack/react-router";
+import { ClientOnly, Link, useNavigate } from "@tanstack/react-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
+import {
+  ViewSwitcherCard,
+  type SwitcherView,
+} from "@/components/public/view-switcher-card";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
