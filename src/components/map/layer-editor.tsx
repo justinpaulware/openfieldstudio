@@ -226,18 +226,31 @@ export function LayerEditor({
                 label="Geometry"
                 value={<span className="capitalize">{source.geometryType}</span>}
               />
-              <DataRow
-                label="Features"
-                value={
-                  filtered
-                    ? `${filteredCount.toLocaleString()} of ${featureCount.toLocaleString()}`
-                    : featureCount.toLocaleString()
-                }
-              />
+              {!raster && (
+                <DataRow
+                  label="Features"
+                  value={
+                    filtered
+                      ? `${filteredCount.toLocaleString()} of ${featureCount.toLocaleString()}`
+                      : featureCount.toLocaleString()
+                  }
+                />
+              )}
               <DataRow label="Detail" value={sourceDetail} />
             </div>
           </div>
         </Section>
+
+        {raster && (
+          <Section
+            title="Raster appearance"
+            open={openSection === "raster"}
+            onToggle={() => toggle("raster")}
+          >
+            <StyleRaster style={raster.style} onChange={raster.onChange} />
+          </Section>
+        )}
+
 
         <Section
           title="Filter"
