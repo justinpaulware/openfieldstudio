@@ -32,7 +32,13 @@ type ArcgisDescription =
       kind: "service";
       serverType: string;
       url: string;
-      layers: { id: number; name: string; geometryType: string | null; url: string }[];
+      layers: {
+        id: number;
+        name: string;
+        geometryType: string | null;
+        url: string;
+        raster: boolean;
+      }[];
     }
   | {
       kind: "layer";
@@ -40,7 +46,11 @@ type ArcgisDescription =
       url: string;
       name: string;
       geometryType: string | null;
+      raster: boolean;
+      description: string | null;
+      layerType: string | null;
     };
+
 
 
 import {
