@@ -312,7 +312,7 @@ export function PublicMapViewer({
           </Suspense>
         </ClientOnly>
 
-        <div className="pointer-events-auto absolute left-4 top-4 z-10 flex max-h-[calc(100%-32px)] flex-col items-start gap-2 overflow-y-auto">
+        <div className="pointer-events-auto absolute left-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] flex-col items-start gap-2 overflow-y-auto">
           {showTitle && <MapTitleCard title={project.title} description={project.description} />}
           {showLegend && (
             <MapLegend
@@ -346,7 +346,7 @@ export function PublicMapViewer({
 
 
         {loading && (
-          <div className="absolute bottom-12 left-4 z-10 flex items-center gap-2 rounded-md bg-map-overlay px-3 py-1.5 text-xs text-map-overlay-foreground shadow-[var(--shadow-lift)]">
+          <div className="absolute bottom-12 left-2.5 z-10 flex items-center gap-2 rounded-md bg-map-overlay px-3 py-1.5 text-xs text-map-overlay-foreground shadow-[var(--shadow-lift)]">
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
             Loading data
           </div>
