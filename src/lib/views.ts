@@ -21,7 +21,9 @@ export type ViewOverride = {
   opacity: number;
   sort_order: number;
   filter_config: unknown;
+  raster_style: unknown;
 };
+
 
 export function useProjectViews(projectId: string) {
   return useQuery({
