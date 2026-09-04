@@ -193,7 +193,7 @@ export function CommentPanel({
         </div>
       )}
 
-      {comments.length > 0 && (
+      {bodyOpen && comments.length > 0 && (
         <ul className="max-h-[40vh] overflow-y-auto border-t border-map-overlay-border">
           {comments.map((comment) => {
             const shape = geometryLabel(comment.geometry_type);
@@ -239,7 +239,7 @@ export function CommentPanel({
         </ul>
       )}
 
-      {comments.length === 0 && !adding && (
+      {bodyOpen && comments.length === 0 && !adding && (
         <p className="border-t border-map-overlay-border p-3 font-secondary text-xs opacity-70">
           No comments yet. Use + to add the first one.
         </p>
