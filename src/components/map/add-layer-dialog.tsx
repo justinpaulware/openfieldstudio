@@ -73,16 +73,17 @@ type Props = {
 
 type InsertArgs = {
   name: string;
-  sourceType: "geojson_file" | "csv_url" | "arcgis_rest";
+  sourceType: "geojson_file" | "csv_url" | "arcgis_rest" | "raster_arcgis";
   sourceUrl?: string | null;
   storagePath?: string | null;
-  geometryType: SimpleGeometryType;
+  geometryType: SimpleGeometryType | "raster";
   featureCount: number;
   bbox: Bbox | null;
   fields: FieldDef[];
   latField?: string | null;
   lonField?: string | null;
 };
+
 
 export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, onCreated }: Props) {
   const [busy, setBusy] = useState(false);
