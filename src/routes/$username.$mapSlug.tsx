@@ -15,6 +15,7 @@ export const Route = createFileRoute("/$username/$mapSlug")({
   validateSearch: (search: Record<string, unknown>): ViewerSearch => ({
     ...(off(search["legend"]) ? { legend: false as const } : {}),
     ...(off(search["title"]) ? { title: false as const } : {}),
+    ...(off(search["views"]) ? { views: false as const } : {}),
   }),
   loader: async ({ params }) => {
     const data = await getPublishedMap({
