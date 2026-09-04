@@ -23,8 +23,10 @@ export type FilterRule = {
   value2: string;
 };
 
+export type FilterCombinator = "and" | "or";
+
 export type FilterConfig = {
-  combinator: "and";
+  combinator: FilterCombinator;
   rules: FilterRule[];
 };
 
