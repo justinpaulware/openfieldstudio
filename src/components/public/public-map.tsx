@@ -332,6 +332,26 @@ export function PublicMapViewer({
     bearing: project.map_bearing ?? 0,
   };
 
+
+  // Switching views: move the camera to the new framing and clear session-only UI state.
+  const firstView = useRef(true);
+  useEffect(() => {
+    if (firstView.current) {
+      firstView.current = false;
+      return;
+    }
+    setHidden({});
+    setCategoryHidden({});
+    setSelectedComment(null);
+    mapRef.current?.setView({
+      center: [project.map_center?.[0] ?? 0, project.map_center?.[1] ?? 20],
+      zoom: project.map_zoom,
+      pitch: project.map_pitch,
+      bearing: project.map_bearing,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeViewSlug]);
+
   const showLegend = search.legend !== false && project.show_legend;
   const showTitle = search.title !== false;
 
