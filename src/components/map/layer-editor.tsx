@@ -17,6 +17,9 @@ import { StyleSymbology, type FieldValue } from "./style-symbology";
 import { StyleLabels } from "./style-labels";
 import { StylePopups } from "./style-popups";
 import { LayerFilter } from "./layer-filter";
+import { StyleRaster } from "./style-raster";
+import type { RasterStyle } from "@/lib/raster-style";
+
 
 export type StyleSaveState = "idle" | "dirty" | "saving" | "saved";
 
