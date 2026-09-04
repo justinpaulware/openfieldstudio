@@ -1202,15 +1202,20 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       spec.bold ? "Noto Sans Bold" : "Noto Sans Regular",
     ]);
     map.setLayoutProperty(labelId, "text-size", spec.size);
-    // "Around" lets MapLibre pick whichever anchor is free, fitting far more
-    // labels; every other placement pins a fixed anchor and offset.
+    // "Around" lets MapLibre pick whichever side is free — never centered on
+    // the feature; every other placement pins a fixed anchor and offset.
     const variable = spec.placement === "around" && !alongLine;
     map.setLayoutProperty(
       labelId,
       "text-variable-anchor",
-      variable ? ["center", "top", "bottom", "left", "right"] : undefined,
+      variable ? ["left", "right", "bottom", "top"] : undefined,
     );
-    map.setLayoutProperty(labelId, "text-radial-offset", variable ? spec.offset : 0);
+    map.setLayoutProperty(
+      labelId,
+      "text-radial-offset",
+      variable ? Math.max(spec.offset, 0.6) : 0,
+    );
+
     map.setLayoutProperty(labelId, "text-justify", variable ? "auto" : "center");
     map.setLayoutProperty(labelId, "text-anchor", alongLine || variable ? "center" : anchor);
     map.setLayoutProperty(labelId, "text-offset", alongLine || variable ? [0, 0] : offset);
