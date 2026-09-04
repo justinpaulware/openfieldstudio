@@ -62,6 +62,9 @@ function MainViewRoute() {
   const matches = useMatches();
   const child = matches.find((match) => match.routeId === "/$username/$mapSlug/$viewSlug");
   const active = (child?.loaderData as PublishedMapData | undefined) ?? data;
+  // A missing/unpublished view slug renders the child's message on its own.
+  if (child && !child.loaderData) return <Outlet />;
+
 
   return (
     <>
