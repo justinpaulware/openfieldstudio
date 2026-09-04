@@ -547,16 +547,19 @@ function MapEditor() {
             ),
         );
         if (activeView) {
-          queryClient.setQueryData(
-            ["view-layers", activeView.id],
-            (rows: ViewLayer[] | undefined) =>
-              rows?.some((row) => row.layer_id === layerId)
-                ? rows.map((row) =>
-                    row.layer_id === layerId ? { ...row, filter_config: config } : row,
-                  )
-                : rows,
-          );
+          const cached = queryClient.getQueryData<ViewLayer[]>(["view-layers", activeView.id]);
+          if (cached?.some((row) => row.layer_id === layerId)) {
+            queryClient.setQueryData(["view-layers", activeView.id], (rows: ViewLayer[] | undefined) =>
+              rows?.map((row) =>
+                row.layer_id === layerId ? { ...row, filter_config: config } : row,
+              ),
+            );
+          } else {
+            // First write for this layer in this view: pick up the new row.
+            void queryClient.invalidateQueries({ queryKey: ["view-layers", activeView.id] });
+          }
         }
+
 
       }, 400);
     },
