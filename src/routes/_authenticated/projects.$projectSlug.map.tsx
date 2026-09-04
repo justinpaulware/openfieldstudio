@@ -1001,7 +1001,7 @@ function MapEditor() {
           </ClientOnly>
 
           {/* Printed-map overlay stack: title above the legend, top-left of the map. */}
-          <div className="pointer-events-auto absolute left-4 top-4 z-10 flex flex-col items-start gap-2">
+          <div className="pointer-events-auto absolute left-2.5 top-2.5 z-10 flex flex-col items-start gap-2">
             <MapTitleCard title={project?.title ?? ""} />
             {showLegend && <MapLegend groups={legendGroups} />}
           </div>
