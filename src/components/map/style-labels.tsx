@@ -225,6 +225,7 @@ export function StyleLabels({ kind, style, fields, onChange }: Props) {
                 onChange={(placement) => set({ placement })}
                 options={[
                   { value: "center", label: "Center" },
+                  { value: "around", label: "Around (auto-fit)" },
                   { value: "above", label: "Above" },
                   { value: "below", label: "Below" },
                   { value: "left", label: "Left" },
