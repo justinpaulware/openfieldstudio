@@ -51,6 +51,8 @@ type Props = {
   numericFields: string[];
   numbersFor: (field: string) => number[];
   initialSection?: EditorSection;
+  /** Present for raster layers: replaces every vector styling section. */
+  raster?: { style: RasterStyle; onChange: (patch: Partial<RasterStyle>) => void } | null;
   onChange: (patch: Partial<LayerStyle>) => void;
   onFilterChange: (config: FilterConfig) => void;
   onRename: (name: string) => void;
@@ -58,6 +60,7 @@ type Props = {
   onReset: () => void;
   onClose: () => void;
 };
+
 
 function Section({
   title,
