@@ -162,6 +162,7 @@ export function useCreateView(projectId: string) {
         opacity: number;
         sort_order: number;
         filter_config: unknown;
+        raster_style?: unknown;
         style_override?: unknown;
       }[] = [];
 
@@ -176,6 +177,7 @@ export function useCreateView(projectId: string) {
           opacity: row.opacity,
           sort_order: row.sort_order,
           filter_config: row.filter_config,
+          raster_style: row.raster_style,
           style_override: row.style_override,
         }));
       }
@@ -183,7 +185,7 @@ export function useCreateView(projectId: string) {
       if (!seed.length) {
         const { data: layers } = await supabase
           .from("layers")
-          .select("id, visible, opacity, sort_order, filter_config")
+          .select("id, visible, opacity, sort_order, filter_config, raster_style")
           .eq("project_id", projectId);
         seed = (layers ?? []).map((layer) => ({
           layer_id: layer.id,
@@ -191,8 +193,10 @@ export function useCreateView(projectId: string) {
           opacity: layer.opacity,
           sort_order: layer.sort_order,
           filter_config: layer.filter_config,
+          raster_style: layer.raster_style,
         }));
       }
+
 
       if (seed.length) {
         const { error: seedError } = await supabase
