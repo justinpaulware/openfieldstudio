@@ -32,7 +32,9 @@ import {
   overrideMap,
   useProjectViews,
   useViewLayers,
+  type ViewLayer,
 } from "@/lib/views";
+
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
 import { captureProjectThumbnail } from "@/lib/thumbnails";
