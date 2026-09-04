@@ -50,14 +50,23 @@ export const Route = createFileRoute("/$username/$mapSlug")({
   component: MainViewRoute,
 });
 
-/** Renders the Main view, or defers to a named-view child route. */
+/**
+ * Single mount point for the public viewer. When a named-view child route is
+ * matched we render the same viewer with the child's payload, so MapLibre is
+ * never torn down while switching views.
+ */
 function MainViewRoute() {
   const { username, mapSlug } = Route.useParams();
   const search = Route.useSearch();
   const data = Route.useLoaderData() as PublishedMapData;
   const matches = useMatches();
-  const hasChild = matches.some((match) => match.routeId === "/$username/$mapSlug/$viewSlug");
+  const child = matches.find((match) => match.routeId === "/$username/$mapSlug/$viewSlug");
+  const active = (child?.loaderData as PublishedMapData | undefined) ?? data;
 
-  if (hasChild) return <Outlet />;
-  return <PublicMapViewer username={username} slug={mapSlug} search={search} data={data} />;
+  return (
+    <>
+      <Outlet />
+      <PublicMapViewer username={username} slug={mapSlug} search={search} data={active} />
+    </>
+  );
 }
