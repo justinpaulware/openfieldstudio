@@ -32,7 +32,9 @@ import {
   overrideMap,
   useProjectViews,
   useViewLayers,
+  type ViewLayer,
 } from "@/lib/views";
+
 import { useLayerData, type LayerRow } from "@/components/map/use-layer-data";
 import type { MapHandle, RenderLayer, ScaleUnits } from "@/components/map/map-canvas";
 import { captureProjectThumbnail } from "@/lib/thumbnails";
@@ -71,6 +73,8 @@ function attributeFields(data: FeatureCollection | null | undefined): string[] {
   }
   return [...names].sort((a, b) => a.localeCompare(b));
 }
+
+type FieldValueEntry = { value: string; count: number };
 
 /** Unique values for a field, most common first. */
 function fieldValues(
@@ -536,8 +540,29 @@ function MapEditor() {
             return;
           }
         }
-        await queryClient.invalidateQueries({ queryKey: ["layers", projectId] });
-        await queryClient.invalidateQueries({ queryKey: ["view-layers", activeView?.id] });
+        // Patch the caches in place — refetching here re-mounts the panel mid-edit.
+        queryClient.setQueryData(
+          ["layers", projectId],
+          (rows: LayerWithStyle[] | undefined) =>
+            rows?.map((row) =>
+              row.id === layerId ? { ...row, filter_config: config } : row,
+            ),
+        );
+        if (activeView) {
+          const cached = queryClient.getQueryData<ViewLayer[]>(["view-layers", activeView.id]);
+          if (cached?.some((row) => row.layer_id === layerId)) {
+            queryClient.setQueryData(["view-layers", activeView.id], (rows: ViewLayer[] | undefined) =>
+              rows?.map((row) =>
+                row.layer_id === layerId ? { ...row, filter_config: config } : row,
+              ),
+            );
+          } else {
+            // First write for this layer in this view: pick up the new row.
+            void queryClient.invalidateQueries({ queryKey: ["view-layers", activeView.id] });
+          }
+        }
+
+
       }, 400);
     },
     [projectId, queryClient, activeView],
@@ -818,6 +843,31 @@ function MapEditor() {
   const tableLayer = layers.find((l) => l.id === tableLayerId) ?? null;
   const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
   const styleLayer = layers.find((l) => l.id === styleLayerId) ?? null;
+
+  /** Attribute lists come from the unfiltered data so editor controls stay put. */
+  const styleLayerData = styleLayer ? (byId[styleLayer.id] ?? null) : null;
+  const editorFields = useMemo(() => attributeFields(styleLayerData), [styleLayerData]);
+  const editorNumericFields = useMemo(() => numericFields(styleLayerData), [styleLayerData]);
+  const editorValueCache = useRef<Map<FeatureCollection | null, Map<string, FieldValueEntry[]>>>(
+    new Map(),
+  );
+  const editorValuesFor = useCallback(
+    (field: string): FieldValueEntry[] => {
+      let perData = editorValueCache.current.get(styleLayerData);
+      if (!perData) {
+        editorValueCache.current = new Map([[styleLayerData, new Map()]]);
+        perData = editorValueCache.current.get(styleLayerData)!;
+      }
+      const hit = perData.get(field);
+      if (hit) return hit;
+      const values = fieldValues(styleLayerData, field);
+      perData.set(field, values);
+      return values;
+    },
+    [styleLayerData],
+  );
+
+
 
   const toggleStyleEditor = () => {
     if (styleLayerId) {
@@ -1102,9 +1152,9 @@ function MapEditor() {
               styleLayer.feature_count
             }
             saveState={saveState[styleLayer.id] ?? "idle"}
-            fields={attributeFields(byId[styleLayer.id])}
-            valuesFor={(field) => fieldValues(byId[styleLayer.id], field)}
-            numericFields={numericFields(byId[styleLayer.id])}
+            fields={editorFields}
+            valuesFor={editorValuesFor}
+            numericFields={editorNumericFields}
             numbersFor={(field) => numberValues(byId[styleLayer.id], field)}
             initialSection={editorSection}
             onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
