@@ -55,7 +55,9 @@ export function parseFilterConfig(raw: unknown): FilterConfig {
       value2: rule.value2 === undefined || rule.value2 === null ? "" : String(rule.value2),
     });
   }
-  return { combinator: "and", rules: parsed };
+  const combinator: FilterCombinator =
+    (raw as { combinator?: unknown }).combinator === "or" ? "or" : "and";
+  return { combinator, rules: parsed };
 }
 
 /** A rule only filters once it is complete enough to mean something. */
