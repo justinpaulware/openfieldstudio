@@ -45,6 +45,13 @@ import {
   type LayerStyle,
   type StyleRelation,
 } from "@/lib/layer-style";
+import {
+  isRasterLayer,
+  rasterSpecFor,
+  resolveRasterStyle,
+  type RasterStyle,
+} from "@/lib/raster-style";
+
 import type { Bbox, FeatureCollection } from "@/lib/geo";
 import {
   filterCollection,
