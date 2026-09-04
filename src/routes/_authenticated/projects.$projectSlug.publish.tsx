@@ -115,7 +115,7 @@ function ViewsSection({
 
   const publishedViews = views.filter((view) => view.status === "published");
 
-  const saveProject = async (patch: Record<string, unknown>) => {
+  const saveProject = async (patch: { view_nav_enabled?: boolean; default_view_id?: string | null }) => {
     const { error } = await supabase.from("projects").update(patch).eq("id", projectId);
     if (error) {
       toast.error(error.message);
