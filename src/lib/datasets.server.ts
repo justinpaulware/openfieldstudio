@@ -264,18 +264,33 @@ export async function describeArcgis(rawUrl: string): Promise<ArcgisDescription>
         name: layer.name ?? `Layer ${layer.id}`,
         geometryType: layer.geometryType ?? null,
         url: `${endpoint.url}/${layer.id}`,
+        raster: !layer.geometryType,
       })),
     };
   }
 
-  assertQueryableLayer(meta, endpoint.serverType);
+  // Imagery layers report no geometry type; they're drawn as tiles instead of
+  // being queried for features.
+  const raster = isRasterMeta(meta, endpoint.serverType);
+  if (!raster) assertQueryableLayer(meta, endpoint.serverType);
   return {
     kind: "layer",
     serverType: endpoint.serverType,
     url: endpoint.url,
     name: meta.name ?? `${endpoint.serverType} layer`,
     geometryType: meta.geometryType ?? null,
+    raster,
+    description: meta.description ?? null,
+    layerType: meta.type ?? null,
   };
+}
+
+function isRasterMeta(meta: ArcgisLayerMeta, serverType: ArcgisServerType) {
+  if (meta.geometryType) return false;
+  if (meta.type === "Group Layer") return false;
+  if (meta.layers && meta.layers.length) return false;
+  // Feature services never serve imagery.
+  return serverType === "MapServer";
 }
 
 function assertQueryableLayer(meta: ArcgisLayerMeta, serverType: ArcgisServerType) {
@@ -296,6 +311,7 @@ function assertQueryableLayer(meta: ArcgisLayerMeta, serverType: ArcgisServerTyp
     );
   }
 }
+
 
 type EsriGeometry = {
   x?: number;
