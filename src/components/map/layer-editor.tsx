@@ -252,86 +252,99 @@ export function LayerEditor({
         )}
 
 
-        <Section
-          title="Filter"
-          hint={filtered ? "On" : undefined}
-          open={openSection === "filter"}
-          onToggle={() => toggle("filter")}
-        >
-          <LayerFilter
-            config={filter}
-            fields={fields}
-            numericFields={numericFields}
-            valuesFor={valuesFor}
-            matched={filteredCount}
-            total={featureCount}
-            onChange={onFilterChange}
-          />
-        </Section>
+        {!raster && (
+          <>
+            <Section
+              title="Filter"
+              hint={filtered ? "On" : undefined}
+              open={openSection === "filter"}
+              onToggle={() => toggle("filter")}
+            >
+              <LayerFilter
+                config={filter}
+                fields={fields}
+                numericFields={numericFields}
+                valuesFor={valuesFor}
+                matched={filteredCount}
+                total={featureCount}
+                onChange={onFilterChange}
+              />
+            </Section>
 
-        <Section
-          title="Symbology"
-          open={openSection === "symbology"}
-          onToggle={() => toggle("symbology")}
-        >
-          <StyleSymbology
-            kind={kind}
-            style={style}
-            fields={fields}
-            valuesFor={valuesFor}
-            numericFields={numericFields}
-            numbersFor={numbersFor}
-            onChange={onChange}
-          />
-        </Section>
-        <Section
-          title="Labels"
-          hint={style.labels?.enabled ? "On" : "Off"}
-          open={openSection === "labels"}
-          onToggle={() => toggle("labels")}
-        >
-          <StyleLabels kind={kind} style={style} fields={fields} onChange={onChange} />
-        </Section>
-        <Section
-          title="Popups"
-          hint={style.popup?.enabled ? "On" : "Off"}
-          open={openSection === "popups"}
-          onToggle={() => toggle("popups")}
-        >
-          <StylePopups style={style} fields={fields} onChange={onChange} />
-        </Section>
+            <Section
+              title="Symbology"
+              open={openSection === "symbology"}
+              onToggle={() => toggle("symbology")}
+            >
+              <StyleSymbology
+                kind={kind}
+                style={style}
+                fields={fields}
+                valuesFor={valuesFor}
+                numericFields={numericFields}
+                numbersFor={numbersFor}
+                onChange={onChange}
+              />
+            </Section>
+            <Section
+              title="Labels"
+              hint={style.labels?.enabled ? "On" : "Off"}
+              open={openSection === "labels"}
+              onToggle={() => toggle("labels")}
+            >
+              <StyleLabels kind={kind} style={style} fields={fields} onChange={onChange} />
+            </Section>
+            <Section
+              title="Popups"
+              hint={style.popup?.enabled ? "On" : "Off"}
+              open={openSection === "popups"}
+              onToggle={() => toggle("popups")}
+            >
+              <StylePopups style={style} fields={fields} onChange={onChange} />
+            </Section>
+          </>
+        )}
       </div>
 
-      <div className="space-y-1.5 border-t border-border px-4 py-3">
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            className="flex-1"
-            onClick={onSave}
-            disabled={saveState === "saving" || saveState === "idle" || saveState === "saved"}
-          >
-            {saveState === "saving" ? (
-              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-            ) : saveState === "saved" ? (
-              <Check className="mr-1.5 h-3.5 w-3.5" />
-            ) : (
-              <Save className="mr-1.5 h-3.5 w-3.5" />
-            )}
-            {saveState === "saving" ? "Saving" : saveState === "saved" ? "Saved" : "Save"}
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" onClick={onReset}>
-            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            Reset to default
-          </Button>
+      {raster ? (
+        <div className="border-t border-border px-4 py-3">
+          <p className="font-secondary text-[11px] text-muted-foreground">
+            Raster appearance saves automatically.
+          </p>
         </div>
-        <p className="font-secondary text-[11px] text-muted-foreground">
-          {saveState === "dirty"
-            ? "Unsaved changes"
-            : saveState === "saving"
-              ? "Saving changes…"
-              : "All changes saved"}
-        </p>
-      </div>
+      ) : (
+        <div className="space-y-1.5 border-t border-border px-4 py-3">
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={onSave}
+              disabled={saveState === "saving" || saveState === "idle" || saveState === "saved"}
+            >
+              {saveState === "saving" ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : saveState === "saved" ? (
+                <Check className="mr-1.5 h-3.5 w-3.5" />
+              ) : (
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+              )}
+              {saveState === "saving" ? "Saving" : saveState === "saved" ? "Saved" : "Save"}
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1" onClick={onReset}>
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              Reset to default
+            </Button>
+          </div>
+          <p className="font-secondary text-[11px] text-muted-foreground">
+            {saveState === "dirty"
+              ? "Unsaved changes"
+              : saveState === "saving"
+                ? "Saving changes…"
+                : "All changes saved"}
+          </p>
+        </div>
+      )}
+
     </aside>
   );
 }
