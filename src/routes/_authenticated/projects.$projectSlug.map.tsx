@@ -842,6 +842,31 @@ function MapEditor() {
   const sourceLayer = layers.find((l) => l.id === sourceLayerId) ?? null;
   const styleLayer = layers.find((l) => l.id === styleLayerId) ?? null;
 
+  /** Attribute lists come from the unfiltered data so editor controls stay put. */
+  const styleLayerData = styleLayer ? (byId[styleLayer.id] ?? null) : null;
+  const editorFields = useMemo(() => attributeFields(styleLayerData), [styleLayerData]);
+  const editorNumericFields = useMemo(() => numericFields(styleLayerData), [styleLayerData]);
+  const editorValueCache = useRef<Map<FeatureCollection | null, Map<string, FieldValue[]>>>(
+    new Map(),
+  );
+  const editorValuesFor = useCallback(
+    (field: string): FieldValue[] => {
+      let perData = editorValueCache.current.get(styleLayerData);
+      if (!perData) {
+        editorValueCache.current = new Map([[styleLayerData, new Map()]]);
+        perData = editorValueCache.current.get(styleLayerData)!;
+      }
+      const hit = perData.get(field);
+      if (hit) return hit;
+      const values = fieldValues(styleLayerData, field);
+      perData.set(field, values);
+      return values;
+    },
+    [styleLayerData],
+  );
+
+
+
   const toggleStyleEditor = () => {
     if (styleLayerId) {
       setStyleLayerId(null);
