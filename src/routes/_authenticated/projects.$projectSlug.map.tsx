@@ -74,6 +74,8 @@ function attributeFields(data: FeatureCollection | null | undefined): string[] {
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 
+type FieldValueEntry = { value: string; count: number };
+
 /** Unique values for a field, most common first. */
 function fieldValues(
   data: FeatureCollection | null | undefined,
@@ -846,11 +848,11 @@ function MapEditor() {
   const styleLayerData = styleLayer ? (byId[styleLayer.id] ?? null) : null;
   const editorFields = useMemo(() => attributeFields(styleLayerData), [styleLayerData]);
   const editorNumericFields = useMemo(() => numericFields(styleLayerData), [styleLayerData]);
-  const editorValueCache = useRef<Map<FeatureCollection | null, Map<string, FieldValue[]>>>(
+  const editorValueCache = useRef<Map<FeatureCollection | null, Map<string, FieldValueEntry[]>>>(
     new Map(),
   );
   const editorValuesFor = useCallback(
-    (field: string): FieldValue[] => {
+    (field: string): FieldValueEntry[] => {
       let perData = editorValueCache.current.get(styleLayerData);
       if (!perData) {
         editorValueCache.current = new Map([[styleLayerData, new Map()]]);
@@ -1150,9 +1152,9 @@ function MapEditor() {
               styleLayer.feature_count
             }
             saveState={saveState[styleLayer.id] ?? "idle"}
-            fields={attributeFields(byId[styleLayer.id])}
-            valuesFor={(field) => fieldValues(byId[styleLayer.id], field)}
-            numericFields={numericFields(byId[styleLayer.id])}
+            fields={editorFields}
+            valuesFor={editorValuesFor}
+            numericFields={editorNumericFields}
             numbersFor={(field) => numberValues(byId[styleLayer.id], field)}
             initialSection={editorSection}
             onChange={(patch) => applyStyle(styleLayer.id, styleFor(styleLayer), patch)}
