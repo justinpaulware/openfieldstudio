@@ -569,7 +569,7 @@ export default function MapCanvas({
         )}
       </div>
 
-      <div className="pointer-events-none absolute right-4 top-4 z-10 flex max-h-[calc(100%-32px)] w-80 max-w-[calc(100vw-2rem)] flex-col items-stretch gap-2">
+      <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] w-80 max-w-[calc(100vw-20px)] flex-col items-stretch gap-2">
         {popupHit && (
           <div className="pointer-events-auto max-h-[60%] min-h-0 w-full overflow-y-auto rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]">
             <div className="mb-1.5 flex items-start justify-between gap-2">
@@ -665,7 +665,7 @@ export default function MapCanvas({
 
 
       {mapError ? (
-        <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center">
+        <div className="pointer-events-none absolute inset-x-0 top-2.5 z-10 flex justify-center">
           <div className="pointer-events-auto flex items-center gap-3 rounded-md border border-destructive/40 bg-card/95 px-3 py-2 text-sm text-foreground shadow-lg">
             <span>Basemap failed to load. {mapError}</span>
             <button
