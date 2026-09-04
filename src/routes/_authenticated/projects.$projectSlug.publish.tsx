@@ -98,10 +98,14 @@ function ViewsSection({
   projectId,
   username,
   publicSlug,
+  viewNavEnabled,
+  defaultViewId,
 }: {
   projectId: string;
   username: string | null;
   publicSlug: string;
+  viewNavEnabled: boolean;
+  defaultViewId: string | null;
 }) {
   const { data: views = [] } = useProjectViews(projectId);
   const updateView = useUpdateView(projectId);
@@ -109,8 +113,20 @@ function ViewsSection({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
+  const publishedViews = views.filter((view) => view.status === "published");
+
+  const saveProject = async (patch: Record<string, unknown>) => {
+    const { error } = await supabase.from("projects").update(patch).eq("id", projectId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+  };
+
   const urlFor = (view: ProjectView) =>
     username ? `${origin}/${username}/${publicSlug}${view.is_main ? "" : `/${view.slug}`}` : "";
+
 
   const toggle = async (view: ProjectView) => {
     const status = view.status === "published" ? "draft" : "published";
