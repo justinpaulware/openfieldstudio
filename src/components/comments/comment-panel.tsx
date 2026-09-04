@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Eye, EyeOff, MessageSquare, Plus, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
+import { MapCardHeader } from "@/components/map/map-card-header";
 import type { CommentGeometry } from "@/components/map/map-canvas";
 
 export type CommentDrawMode = "point" | "line" | "area";
@@ -89,38 +91,46 @@ export function CommentPanel({
         ? "Click along the map to draw a line. Two points or more."
         : "Click around the area you mean. Three points or more.";
 
-  return (
-    <div className="pointer-events-auto w-full overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
-      <div className="flex items-center gap-1.5 p-3">
-        <MessageSquare className="h-4 w-4 opacity-70" />
-        <h3 className="text-sm font-semibold">Comments</h3>
-        <span className="font-secondary text-xs opacity-60">{comments.length}</span>
-        <div className="ml-auto flex items-center gap-0.5">
-          <button
-            type="button"
-            onClick={onToggleVisible}
-            aria-label={visible ? "Hide comments on map" : "Show comments on map"}
-            title={visible ? "Hide comments on map" : "Show comments on map"}
-            className="rounded p-1 opacity-70 hover:bg-black/5 hover:opacity-100"
-          >
-            {visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-          </button>
-          <button
-            type="button"
-            onClick={onToggleAdding}
-            aria-label={adding ? "Cancel new comment" : "Add a comment"}
-            title={adding ? "Cancel new comment" : "Add a comment"}
-            className={cn(
-              "rounded p-1 opacity-70 hover:bg-black/5 hover:opacity-100",
-              adding && "opacity-100",
-            )}
-          >
-            {adding ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
+  const [open, setOpen] = useState(true);
+  // Keep the body visible while composing so the form never hides mid-flow.
+  const bodyOpen = open || adding;
 
-      {adding && (
+  return (
+    <div className="pointer-events-auto w-full overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-soft)]">
+      <MapCardHeader
+        icon={MessageSquare}
+        title="Comments"
+        subtitle={comments.length}
+        open={bodyOpen}
+        onToggle={() => setOpen((value) => !value)}
+        actions={
+          <>
+            <button
+              type="button"
+              onClick={onToggleVisible}
+              aria-label={visible ? "Hide comments on map" : "Show comments on map"}
+              title={visible ? "Hide comments on map" : "Show comments on map"}
+              className="rounded p-0.5 opacity-70 hover:bg-black/5 hover:opacity-100"
+            >
+              {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+            </button>
+            <button
+              type="button"
+              onClick={onToggleAdding}
+              aria-label={adding ? "Cancel new comment" : "Add a comment"}
+              title={adding ? "Cancel new comment" : "Add a comment"}
+              className={cn(
+                "rounded p-0.5 opacity-70 hover:bg-black/5 hover:opacity-100",
+                adding && "opacity-100",
+              )}
+            >
+              {adding ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+            </button>
+          </>
+        }
+      />
+
+      {bodyOpen && adding && (
         <div className="space-y-3 border-t border-map-overlay-border p-3">
           {allowShapes && (
             <div className="flex items-center gap-1 rounded-md border border-map-overlay-border p-0.5">
