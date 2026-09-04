@@ -121,6 +121,8 @@ export type LabelSpec = {
   minZoom: number;
   maxZoom: number;
   textTransform: LabelTransform;
+  /** When false, labels render on a single line regardless of length. */
+  wrapEnabled: boolean;
   maxWidth: number;
   /** Solid fill drawn behind the text (no border by design). */
   bgEnabled: boolean;
