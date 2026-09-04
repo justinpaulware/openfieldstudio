@@ -98,10 +98,14 @@ function ViewsSection({
   projectId,
   username,
   publicSlug,
+  viewNavEnabled,
+  defaultViewId,
 }: {
   projectId: string;
   username: string | null;
   publicSlug: string;
+  viewNavEnabled: boolean;
+  defaultViewId: string | null;
 }) {
   const { data: views = [] } = useProjectViews(projectId);
   const updateView = useUpdateView(projectId);
@@ -109,8 +113,20 @@ function ViewsSection({
   const [pendingId, setPendingId] = useState<string | null>(null);
   const origin = typeof window === "undefined" ? "" : window.location.origin;
 
+  const publishedViews = views.filter((view) => view.status === "published");
+
+  const saveProject = async (patch: { view_nav_enabled?: boolean; default_view_id?: string | null }) => {
+    const { error } = await supabase.from("projects").update(patch).eq("id", projectId);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+  };
+
   const urlFor = (view: ProjectView) =>
     username ? `${origin}/${username}/${publicSlug}${view.is_main ? "" : `/${view.slug}`}` : "";
+
 
   const toggle = async (view: ProjectView) => {
     const status = view.status === "published" ? "draft" : "published";
@@ -147,6 +163,45 @@ function ViewsSection({
       title="Views"
       description="Each view publishes on its own URL with its own framing and layer visibility."
     >
+      <div className="space-y-3 rounded-lg border border-border px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <Label htmlFor="view-nav" className="text-sm">
+              Enable view navigation
+            </Label>
+            <p className="font-secondary text-xs text-muted-foreground">
+              Shows a "Map views" card on the published map so visitors can switch views.
+            </p>
+          </div>
+          <Switch
+            id="view-nav"
+            checked={viewNavEnabled}
+            onCheckedChange={(checked) => void saveProject({ view_nav_enabled: checked })}
+          />
+        </div>
+        <div className="space-y-2 sm:max-w-sm">
+          <Label htmlFor="default-view">Default view</Label>
+          <select
+            id="default-view"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+            value={defaultViewId ?? ""}
+            onChange={(e) => void saveProject({ default_view_id: e.target.value || null })}
+          >
+            <option value="">Main view</option>
+            {publishedViews
+              .filter((view) => !view.is_main)
+              .map((view) => (
+                <option key={view.id} value={view.id}>
+                  {view.name}
+                </option>
+              ))}
+          </select>
+          <p className="font-secondary text-xs text-muted-foreground">
+            Which view opens at openfield.nu/{username ?? "your-username"}/{publicSlug}.
+          </p>
+        </div>
+      </div>
+
       <ul className="divide-y divide-border rounded-lg border border-border">
         {views.map((view) => (
           <li key={view.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
@@ -164,7 +219,18 @@ function ViewsSection({
                 {urlFor(view) || "Set a username in Settings to get a public link."}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {viewNavEnabled && (
+                <label className="flex items-center gap-2 font-secondary text-xs text-muted-foreground">
+                  <Switch
+                    checked={view.show_view_nav}
+                    onCheckedChange={(checked) =>
+                      updateView.mutate({ id: view.id, patch: { show_view_nav: checked } })
+                    }
+                  />
+                  Show navigation
+                </label>
+              )}
               {view.status === "published" && urlFor(view) && (
                 <Button asChild variant="outline" size="sm">
                   <a href={urlFor(view)} target="_blank" rel="noreferrer">
@@ -318,7 +384,14 @@ function ProjectPublish() {
         <StatusChip status={project.status} />
       </div>
 
-      <ViewsSection projectId={projectId} username={username} publicSlug={publicSlug} />
+      <ViewsSection
+        projectId={projectId}
+        username={username}
+        publicSlug={publicSlug}
+        viewNavEnabled={project.view_nav_enabled}
+        defaultViewId={project.default_view_id}
+      />
+
 
 
       <Section title="Project details" description="Shown on the public map and in your dashboard.">

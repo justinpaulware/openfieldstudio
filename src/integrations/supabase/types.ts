@@ -343,6 +343,7 @@ export type Database = {
           published_at: string | null
           scale_units: string
           show_legend: boolean
+          show_view_nav: boolean
           slug: string
           sort_order: number
           status: Database["public"]["Enums"]["project_status"]
@@ -365,6 +366,7 @@ export type Database = {
           published_at?: string | null
           scale_units?: string
           show_legend?: boolean
+          show_view_nav?: boolean
           slug?: string
           sort_order?: number
           status?: Database["public"]["Enums"]["project_status"]
@@ -387,6 +389,7 @@ export type Database = {
           published_at?: string | null
           scale_units?: string
           show_legend?: boolean
+          show_view_nav?: boolean
           slug?: string
           sort_order?: number
           status?: Database["public"]["Enums"]["project_status"]
@@ -414,6 +417,7 @@ export type Database = {
           created_at: string
           credits: string | null
           data_sources: string | null
+          default_view_id: string | null
           description: string | null
           embed_config: Json
           folder_id: string | null
@@ -434,6 +438,7 @@ export type Database = {
           thumbnail_url: string | null
           title: string
           updated_at: string
+          view_nav_enabled: boolean
         }
         Insert: {
           author?: string | null
@@ -445,6 +450,7 @@ export type Database = {
           created_at?: string
           credits?: string | null
           data_sources?: string | null
+          default_view_id?: string | null
           description?: string | null
           embed_config?: Json
           folder_id?: string | null
@@ -465,6 +471,7 @@ export type Database = {
           thumbnail_url?: string | null
           title: string
           updated_at?: string
+          view_nav_enabled?: boolean
         }
         Update: {
           author?: string | null
@@ -476,6 +483,7 @@ export type Database = {
           created_at?: string
           credits?: string | null
           data_sources?: string | null
+          default_view_id?: string | null
           description?: string | null
           embed_config?: Json
           folder_id?: string | null
@@ -496,8 +504,16 @@ export type Database = {
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
+          view_nav_enabled?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_default_view_id_fkey"
+            columns: ["default_view_id"]
+            isOneToOne: false
+            referencedRelation: "project_views"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_folder_id_fkey"
             columns: ["folder_id"]

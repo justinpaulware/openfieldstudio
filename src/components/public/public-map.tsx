@@ -1,6 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { ClientOnly, Link } from "@tanstack/react-router";
+import { ClientOnly, Link, useNavigate } from "@tanstack/react-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
+import {
+  ViewSwitcherCard,
+  type SwitcherView,
+} from "@/components/public/view-switcher-card";
 import { Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -38,12 +42,16 @@ export const SITE = "https://openfield.nu";
 type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
 
-export type ViewerSearch = { legend?: false; title?: false };
+export type ViewerSearch = { legend?: false; title?: false; views?: false };
 
 /** Shape returned by the published-map loader. */
 export type PublishedMapData = {
   project: Tables<"projects">;
   view?: { id: string; name: string; slug: string; is_main: boolean };
+  /** Every published view of this project, Main first. */
+  views?: SwitcherView[];
+  /** True when the project wants the view switcher shown on this view. */
+  viewNav?: boolean;
   layers: unknown[];
   folders: unknown[];
 };
@@ -79,6 +87,11 @@ export function PublicMapViewer({
   const project = loaderData.project;
   const layers = loaderData.layers as unknown as ViewerLayer[];
   const folders = loaderData.folders as unknown as ViewerFolder[];
+  const navigate = useNavigate();
+
+  const views = loaderData.views ?? [];
+  const activeViewSlug = loaderData.view?.slug ?? null;
+  const showViews = search.views !== false && Boolean(loaderData.viewNav) && views.length > 1;
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [commentMode, setCommentMode] = useState(false);
@@ -319,6 +332,26 @@ export function PublicMapViewer({
     bearing: project.map_bearing ?? 0,
   };
 
+
+  // Switching views: move the camera to the new framing and clear session-only UI state.
+  const firstView = useRef(true);
+  useEffect(() => {
+    if (firstView.current) {
+      firstView.current = false;
+      return;
+    }
+    setHidden({});
+    setCategoryHidden({});
+    setSelectedComment(null);
+    mapRef.current?.setView({
+      center: [project.map_center?.[0] ?? 0, project.map_center?.[1] ?? 20],
+      zoom: project.map_zoom,
+      pitch: project.map_pitch,
+      bearing: project.map_bearing,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeViewSlug]);
+
   const showLegend = search.legend !== false && project.show_legend;
   const showTitle = search.title !== false;
 
@@ -390,6 +423,27 @@ export function PublicMapViewer({
 
         <div className="pointer-events-auto absolute left-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] flex-col items-start gap-2 overflow-y-auto">
           {showTitle && <MapTitleCard title={project.title} description={project.description} />}
+          {showViews && (
+            <ViewSwitcherCard
+              views={views}
+              activeSlug={activeViewSlug}
+              onSelect={(view) => {
+                if (view.is_main) {
+                  void navigate({
+                    to: "/$username/$mapSlug",
+                    params: { username, mapSlug: slug },
+                    search,
+                  });
+                } else {
+                  void navigate({
+                    to: "/$username/$mapSlug/$viewSlug",
+                    params: { username, mapSlug: slug, viewSlug: view.slug },
+                    search,
+                  });
+                }
+              }}
+            />
+          )}
           {showLegend && (
             <MapLegend
               groups={legendGroups}
