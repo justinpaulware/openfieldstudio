@@ -1204,7 +1204,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     map.setLayoutProperty(labelId, "text-size", spec.size);
     map.setLayoutProperty(labelId, "text-anchor", alongLine ? "center" : anchor);
     map.setLayoutProperty(labelId, "text-offset", alongLine ? [0, 0] : offset);
-    map.setLayoutProperty(labelId, "text-max-width", spec.maxWidth);
+    map.setLayoutProperty(labelId, "text-max-width", spec.wrapEnabled ? spec.maxWidth : 512);
     map.setLayoutProperty(labelId, "text-allow-overlap", spec.allowOverlap);
     map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
     map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
