@@ -256,6 +256,14 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
     }
   };
 
+  /** The chosen ArcGIS layer serves imagery rather than features. */
+  const selectedArcgisLayer =
+    arcgisInfo?.kind === "service"
+      ? arcgisInfo.layers.find((layer) => layer.url === arcgisLayerUrl)
+      : null;
+  const arcgisIsRaster =
+    arcgisInfo?.kind === "layer" ? arcgisInfo.raster : (selectedArcgisLayer?.raster ?? false);
+
   const handleArcgisAdd = async () => {
     const url = effectiveArcgisUrl;
     if (!url) return;
@@ -264,7 +272,29 @@ export function AddLayerDialog({ open, onOpenChange, projectId, nextSortOrder, o
       `Loading ArcGIS ${arcgisInfo?.serverType ?? "REST"} layer…`,
     );
     try {
+      if (arcgisIsRaster) {
+        if (!arcgisRasterTileUrl(url)) {
+          throw new Error("Raster layers need an ArcGIS MapServer URL, e.g. …/MapServer/0.");
+        }
+        const fallbackName =
+          arcgisInfo?.kind === "layer" ? arcgisInfo.name : (selectedArcgisLayer?.name ?? "Raster layer");
+        await insertLayer({
+          name: arcgisName.trim() || fallbackName,
+          sourceType: "raster_arcgis",
+          sourceUrl: url,
+          geometryType: "raster",
+          featureCount: 0,
+          bbox: null,
+          fields: [],
+        });
+        toast.success("Raster layer added.");
+        reset();
+        onOpenChange(false);
+        onCreated(null);
+        return;
+      }
       const { summary, truncated } = await loadArcgisLayer({ data: { url } });
+
       await insertLayer({
         name: arcgisName.trim() || summary.name,
         sourceType: "arcgis_rest",
