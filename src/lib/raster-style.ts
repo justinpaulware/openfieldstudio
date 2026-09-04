@@ -80,3 +80,25 @@ export function arcgisRasterTileUrl(sourceUrl: string): string | null {
   // URLSearchParams escapes the braces; MapLibre needs them literal.
   return `${base}/export?${params.toString().replace("%7Bbbox-epsg-3857%7D", "{bbox-epsg-3857}")}`;
 }
+
+/**
+ * Everything the map needs to draw one raster layer, or null when the row
+ * isn't a usable raster. The layer's own opacity multiplies the raster one.
+ */
+export function rasterSpecFor(layer: {
+  geometry_type?: string | null;
+  source_type?: string | null;
+  source_url?: string | null;
+  raster_style?: unknown;
+  opacity?: number | null;
+}): { tileUrl: string; style: RasterStyle } | null {
+  if (!isRasterLayer(layer) || !layer.source_url) return null;
+  const tileUrl = arcgisRasterTileUrl(layer.source_url);
+  if (!tileUrl) return null;
+  const style = resolveRasterStyle(layer.raster_style);
+  return {
+    tileUrl,
+    style: { ...style, opacity: style.opacity * (layer.opacity ?? 1) },
+  };
+}
+
