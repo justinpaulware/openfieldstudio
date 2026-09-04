@@ -1208,7 +1208,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     map.setLayoutProperty(
       labelId,
       "text-variable-anchor",
-      variable ? ["left", "right", "bottom", "top"] : undefined,
+      variable ? ["left", "right"] : undefined,
     );
     map.setLayoutProperty(
       labelId,
