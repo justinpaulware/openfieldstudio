@@ -222,7 +222,7 @@ export const DEFAULT_LABELS: LabelSpec = {
 
 
 export const DEFAULT_POPUP: PopupSpec = {
-  enabled: true,
+  enabled: false,
   trigger: "click",
   titleField: "",
   titleText: "",
