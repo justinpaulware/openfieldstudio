@@ -1,4 +1,4 @@
-# Next step: Tab 14 — line & polygon feedback (incremental)
+# Next step: Engagement — line & polygon feedback (incremental)
 
 The roadmap's only open feature is engagement: letting visitors draw lines and
 areas, not just drop pins. Good news from checking the database — half the
@@ -12,10 +12,20 @@ groundwork already exists:
 So this is mostly a front-end build. To keep credit usage tight, it ships in
 three small slices, each independently checkable in the preview.
 
+## Slice 0 — Rename the tab + breadcrumb fix (quick)
+
+- The "Comments" project tab becomes **Engagement** (label and page heading).
+  The URL stays `/projects/:slug/comments` so existing links keep working —
+  renaming the route file is a bigger, riskier change for no user benefit; say
+  the word if you'd rather have `/engagement` too.
+- Breadcrumb status badge: the publish mutation invalidates the project query
+  so the badge flips to "Published" immediately instead of on reload.
+
 ## Slice 1 — Owner setting + server acceptance (small)
 
 - Migration: add `projects.comments_allow_shapes boolean not null default false`
   (existing table, no new grants needed). Regenerate types.
+
 - `submitComment` accepts an optional `geometry` (GeoJSON Point/LineString/
   Polygon, Zod-validated). If the geometry is not a Point and the project has
   `comments_allow_shapes = false`, reject with a clear message. `lng`/`lat` are
