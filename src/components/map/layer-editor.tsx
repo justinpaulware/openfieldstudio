@@ -20,7 +20,7 @@ import { LayerFilter } from "./layer-filter";
 
 export type StyleSaveState = "idle" | "dirty" | "saving" | "saved";
 
-export type EditorSection = "data" | "filter" | "symbology" | "labels" | "popups";
+export type EditorSection = "data" | "filter" | "symbology" | "labels" | "popups" | "raster";
 
 export type LayerSourceInfo = {
   sourceType: string;
@@ -33,7 +33,9 @@ const SOURCE_LABEL: Record<string, string> = {
   geojson_file: "GeoJSON upload",
   csv_url: "CSV",
   arcgis_rest: "ArcGIS REST Service",
+  raster_arcgis: "ArcGIS Raster MapServer",
 };
+
 
 type Props = {
   layerName: string;
