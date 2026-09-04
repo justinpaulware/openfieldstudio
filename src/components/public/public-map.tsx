@@ -423,6 +423,27 @@ export function PublicMapViewer({
 
         <div className="pointer-events-auto absolute left-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] flex-col items-start gap-2 overflow-y-auto">
           {showTitle && <MapTitleCard title={project.title} description={project.description} />}
+          {showViews && (
+            <ViewSwitcherCard
+              views={views}
+              activeSlug={activeViewSlug}
+              onSelect={(view) => {
+                if (view.is_main) {
+                  void navigate({
+                    to: "/$username/$mapSlug",
+                    params: { username, mapSlug: slug },
+                    search,
+                  });
+                } else {
+                  void navigate({
+                    to: "/$username/$mapSlug/$viewSlug",
+                    params: { username, mapSlug: slug, viewSlug: view.slug },
+                    search,
+                  });
+                }
+              }}
+            />
+          )}
           {showLegend && (
             <MapLegend
               groups={legendGroups}
