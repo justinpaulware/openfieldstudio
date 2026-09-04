@@ -384,7 +384,14 @@ function ProjectPublish() {
         <StatusChip status={project.status} />
       </div>
 
-      <ViewsSection projectId={projectId} username={username} publicSlug={publicSlug} />
+      <ViewsSection
+        projectId={projectId}
+        username={username}
+        publicSlug={publicSlug}
+        viewNavEnabled={project.view_nav_enabled}
+        defaultViewId={project.default_view_id}
+      />
+
 
 
       <Section title="Project details" description="Shown on the public map and in your dashboard.">
