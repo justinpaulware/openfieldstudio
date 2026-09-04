@@ -1,4 +1,4 @@
-# Next step: Tab 14 — line & polygon feedback (incremental)
+# Next step: Engagement — line & polygon feedback (incremental)
 
 The roadmap's only open feature is engagement: letting visitors draw lines and
 areas, not just drop pins. Good news from checking the database — half the
@@ -12,10 +12,20 @@ groundwork already exists:
 So this is mostly a front-end build. To keep credit usage tight, it ships in
 three small slices, each independently checkable in the preview.
 
+## Slice 0 — Rename the tab + breadcrumb fix (quick)
+
+- The "Comments" project tab becomes **Engagement** (label and page heading).
+  The URL stays `/projects/:slug/comments` so existing links keep working —
+  renaming the route file is a bigger, riskier change for no user benefit; say
+  the word if you'd rather have `/engagement` too.
+- Breadcrumb status badge: the publish mutation invalidates the project query
+  so the badge flips to "Published" immediately instead of on reload.
+
 ## Slice 1 — Owner setting + server acceptance (small)
 
 - Migration: add `projects.comments_allow_shapes boolean not null default false`
   (existing table, no new grants needed). Regenerate types.
+
 - `submitComment` accepts an optional `geometry` (GeoJSON Point/LineString/
   Polygon, Zod-validated). If the geometry is not a Point and the project has
   `comments_allow_shapes = false`, reject with a clear message. `lng`/`lat` are
@@ -49,7 +59,7 @@ save and the shapes appear.
 - The owner's Comments tab map shows shapes too, and selecting a row zooms to
   the shape rather than a single point.
 
-Check: the shapes are visible, clickable, and moderatable from the Comments tab.
+Check: the shapes are visible, clickable, and moderatable from the Engagement tab.
 
 ## Technical notes
 
@@ -57,13 +67,11 @@ Check: the shapes are visible, clickable, and moderatable from the Comments tab.
   (`submitComment`), `src/components/comments/comment-composer.tsx`,
   `src/components/comments/comment-panel.tsx`,
   `src/components/public/public-map.tsx`, `src/components/map/map-canvas.tsx`
-  (approved-shape source), and the Comments route sidebar.
+  (approved-shape source), the Engagement route sidebar, the project tab list
+  in `projects.$projectSlug.tsx`, and the publish mutation's cache
+  invalidation.
 - No new npm packages; MapLibre has no built-in draw tool and a draw library is
   heavy for three geometry types.
 - Existing rows are all Points, so no backfill.
+- `roadmap.md` gets the rename and breadcrumb fix recorded as tasks.
 
-## Also queued (not in this plan)
-
-- Breadcrumb status badge reads "Draft" for a moment after publishing — a
-  one-line query-invalidation fix I can fold into any of the slices above if
-  you want it cleared out first.
