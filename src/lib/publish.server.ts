@@ -222,6 +222,7 @@ export async function submitPublicComment(input: {
     category,
     author_name: input.authorName?.trim() || null,
     author_email: input.authorEmail?.trim() || null,
+    geometry_type: geometryType,
   });
   if (error) return { ok: false as const, error: "Your comment could not be saved." };
   return { ok: true as const };
