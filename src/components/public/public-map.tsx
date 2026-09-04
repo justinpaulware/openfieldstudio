@@ -324,10 +324,16 @@ export function PublicMapViewer({
               layers={renderLayers}
               initialView={initialView}
               scaleUnits={(project.scale_units as ScaleUnits) ?? "imperial"}
-              pickMode={commentMode && !pin}
-              onPick={(lng, lat) => setPin({ lng, lat })}
-              pin={pin ? [pin.lng, pin.lat] : null}
-              commentPins={commentsEnabled && commentsVisible ? comments : []}
+              pickMode={commentMode && (drawMode !== "point" || !pin)}
+              onPick={(lng, lat) => {
+                if (drawMode === "point") setPin({ lng, lat });
+                else setVertices((current) => [...current, [lng, lat]]);
+              }}
+              pin={drawMode === "point" && pin ? [pin.lng, pin.lat] : null}
+              commentPins={commentMarkers}
+              commentShapes={commentShapes}
+              draftShape={draftShape}
+              draftVertices={commentMode && drawMode !== "point" ? vertices : []}
               selectedCommentId={selectedComment}
               onCommentClick={(id) => setSelectedComment(id)}
               handleRef={mapRef}
@@ -342,10 +348,19 @@ export function PublicMapViewer({
                     onToggleVisible={() => setCommentsVisible((value) => !value)}
                     adding={commentMode}
                     onToggleAdding={() => {
-                      setPin(null);
+                      resetDraft();
                       setCommentMode((value) => !value);
                     }}
-                    pin={pin}
+                    pin={drawMode === "point" ? pin : centroid}
+                    geometry={drawMode === "point" ? null : readyGeometry}
+                    allowShapes={allowShapes}
+                    mode={drawMode}
+                    onModeChange={(next) => {
+                      setDrawMode(next);
+                      resetDraft();
+                    }}
+                    vertexCount={vertices.length}
+                    onUndo={() => setVertices((current) => current.slice(0, -1))}
                     selectedId={selectedComment}
                     onSelect={(id) => {
                       setSelectedComment(id);
@@ -354,10 +369,11 @@ export function PublicMapViewer({
                     }}
                     onSubmitted={() => {
                       void commentsQuery.refetch();
-                      setPin(null);
+                      resetDraft();
                       setCommentMode(false);
                     }}
                   />
+
                 ) : null
               }
             />
