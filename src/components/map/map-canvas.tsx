@@ -34,6 +34,8 @@ import {
 } from "@/lib/layer-style";
 
 import { buildMaskGeometry } from "@/lib/mask-geometry";
+import { rasterPaint, type RasterStyle } from "@/lib/raster-style";
+
 
 
 export type RenderLayer = {
