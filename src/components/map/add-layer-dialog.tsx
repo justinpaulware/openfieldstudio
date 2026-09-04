@@ -20,12 +20,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
+import { arcgisRasterTileUrl } from "@/lib/raster-style";
 import {
   describeArcgisService,
   loadArcgisLayer,
   loadCsvLayer,
   previewCsv,
 } from "@/lib/datasets.functions";
+
 
 type ArcgisDescription =
   | {
