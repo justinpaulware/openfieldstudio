@@ -1018,6 +1018,20 @@ function MapEditor() {
             kind={geometryKind(styleLayer.geometry_type)}
             style={styleFor(styleLayer)}
             filter={filterFor(styleLayer)}
+            raster={
+              isRasterLayer(styleLayer)
+                ? {
+                    style: resolveRasterStyle(styleLayer.raster_style),
+                    onChange: (patch) =>
+                      persistRaster(styleLayer.id, {
+                        ...resolveRasterStyle(styleLayer.raster_style),
+                        ...patch,
+                      }),
+                  }
+                : null
+            }
+
+            filter={filterFor(styleLayer)}
             source={{
               sourceType: styleLayer.source_type,
               geometryType: styleLayer.geometry_type,
