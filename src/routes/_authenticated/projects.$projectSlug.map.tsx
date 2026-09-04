@@ -1030,9 +1030,8 @@ function MapEditor() {
                   }
                 : null
             }
-
-            filter={filterFor(styleLayer)}
             source={{
+
               sourceType: styleLayer.source_type,
               geometryType: styleLayer.geometry_type,
               storagePath: styleLayer.storage_path,
