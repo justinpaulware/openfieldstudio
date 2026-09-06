@@ -1179,15 +1179,18 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
 
 
   // Labels sit above every data layer, added last in reverse draw order.
+  const liveOverflow = new Set<string>();
   for (const layer of [...layers].reverse()) {
     const labelId = LYR(layer.id, "label");
+    const overflowId = LYR(layer.id, "labeloverflow");
     const spec = layer.data ? activeLabels(layer.style) : null;
     if (!spec) {
       removeLayerIfPresent(map, labelId);
+      removeLayerIfPresent(map, overflowId);
+      overflowRegistry.get(map)?.delete(layer.id);
       continue;
     }
     const sourceId = SRC(layer.id);
-    const { anchor, offset } = labelAnchorOffset(spec);
     const alongLine = layer.geometryType === "line" && spec.linePlacement === "line";
     if (!map.getLayer(labelId)) {
       map.addLayer({ id: labelId, type: "symbol", source: sourceId });
@@ -1196,62 +1199,169 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     }
     const hideFilter = categoryFilter(layer.style);
     map.setFilter(labelId, (hideFilter ?? null) as maplibregl.FilterSpecification | null);
-    map.setLayoutProperty(labelId, "visibility", layer.visible ? "visible" : "none");
-    map.setLayoutProperty(labelId, "text-field", labelTextExpression(spec) as never);
-    map.setLayoutProperty(labelId, "text-font", [
-      spec.bold ? "Noto Sans Bold" : "Noto Sans Regular",
-    ]);
-    map.setLayoutProperty(labelId, "text-size", spec.size);
     // "Around" lets MapLibre pick whichever side is free — never centered on
     // the feature; every other placement pins a fixed anchor and offset.
     const variable = spec.placement === "around" && !alongLine;
-    map.setLayoutProperty(
-      labelId,
-      "text-variable-anchor",
-      variable ? ["left", "right"] : undefined,
-    );
-    map.setLayoutProperty(
-      labelId,
-      "text-radial-offset",
-      variable ? Math.max(spec.offset, 0.6) : 0,
-    );
+    // Auto-fit only works while collision checking is on, so overlap is never
+    // forced on the primary layer here — crowded labels spill to the overflow
+    // layer below instead.
+    applyLabelProps(map, labelId, layer, spec, {
+      variable,
+      alongLine,
+      overlap: variable ? false : spec.allowOverlap,
+      ignorePlacement: variable ? false : spec.allowOverlap,
+    });
 
-    map.setLayoutProperty(labelId, "text-justify", variable ? "auto" : "center");
-    map.setLayoutProperty(labelId, "text-anchor", alongLine || variable ? "center" : anchor);
-    map.setLayoutProperty(labelId, "text-offset", alongLine || variable ? [0, 0] : offset);
-    map.setLayoutProperty(labelId, "text-max-width", spec.wrapEnabled ? spec.maxWidth : 512);
-    map.setLayoutProperty(labelId, "text-allow-overlap", spec.allowOverlap);
-    map.setLayoutProperty(labelId, "text-ignore-placement", spec.allowOverlap);
-    map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
-    map.setPaintProperty(labelId, "text-color", paintColor(spec.color));
-    map.setPaintProperty(labelId, "text-opacity", spec.textOpacity);
-    map.setPaintProperty(labelId, "text-halo-color", withAlpha(spec.haloColor, spec.haloOpacity));
-    map.setPaintProperty(labelId, "text-halo-width", spec.haloWidth);
-
-    // Label background: a solid image stretched behind the text in the same
-    // symbol layer, so it collides and moves with the label. Curved along-line
-    // labels can't carry a fitted rectangle, so it's skipped there.
-    const wantsBg = spec.bgEnabled && !alongLine && !isTransparent(spec.bgColor);
-    if (wantsBg) {
-      const bgIconId = labelBackgroundImage(map, spec.bgColor);
-      map.setLayoutProperty(labelId, "icon-image", bgIconId);
-      map.setLayoutProperty(labelId, "icon-text-fit", "both");
-      map.setLayoutProperty(labelId, "icon-text-fit-padding", [
-        spec.bgPadding,
-        spec.bgPadding,
-        spec.bgPadding,
-        spec.bgPadding,
-      ]);
-      map.setLayoutProperty(labelId, "icon-allow-overlap", spec.allowOverlap);
-      map.setLayoutProperty(labelId, "icon-ignore-placement", spec.allowOverlap);
-      map.setPaintProperty(labelId, "icon-opacity", spec.bgOpacity);
+    // Last-resort overlap: labels that auto-fit could not place anywhere free
+    // are redrawn on a companion layer with collision switched off.
+    if (variable && spec.allowOverlap) {
+      if (!map.getLayer(overflowId)) {
+        map.addLayer({ id: overflowId, type: "symbol", source: sourceId });
+      } else {
+        map.moveLayer(overflowId);
+      }
+      applyLabelProps(map, overflowId, layer, spec, {
+        variable: false,
+        alongLine,
+        overlap: true,
+        ignorePlacement: false,
+      });
+      const registry = overflowRegistry.get(map) ?? new Map();
+      overflowRegistry.set(map, registry);
+      const previous = registry.get(layer.id);
+      registry.set(layer.id, {
+        labelId,
+        overflowId,
+        sourceId,
+        baseFilter: (hideFilter ?? null) as unknown,
+        lastIds: previous?.lastIds ?? "",
+        visible: layer.visible,
+      });
+      if (!previous) map.setFilter(overflowId, NEVER_FILTER as never);
+      liveOverflow.add(layer.id);
     } else {
-      map.setLayoutProperty(labelId, "icon-image", undefined);
+      removeLayerIfPresent(map, overflowId);
+      overflowRegistry.get(map)?.delete(layer.id);
     }
-    map.setLayerZoomRange(labelId, spec.minZoom, Math.max(spec.minZoom + 0.1, spec.maxZoom));
-
+  }
+  const registry = overflowRegistry.get(map);
+  if (registry) {
+    for (const id of [...registry.keys()]) {
+      if (!liveOverflow.has(id)) registry.delete(id);
+    }
   }
 }
+
+/** Matches nothing — the overflow layer starts empty until collision is measured. */
+const NEVER_FILTER = ["==", ["literal", 1], ["literal", 0]];
+
+type OverflowEntry = {
+  labelId: string;
+  overflowId: string;
+  sourceId: string;
+  baseFilter: unknown;
+  lastIds: string;
+  visible: boolean;
+};
+
+const overflowRegistry = new WeakMap<MapLibreMap, Map<string, OverflowEntry>>();
+
+/** Every layout/paint property that defines how a label draws. */
+function applyLabelProps(
+  map: MapLibreMap,
+  labelId: string,
+  layer: RenderLayer,
+  spec: ReturnType<typeof activeLabels> & object,
+  opts: { variable: boolean; alongLine: boolean; overlap: boolean; ignorePlacement: boolean },
+) {
+  const { variable, alongLine, overlap, ignorePlacement } = opts;
+  const { anchor, offset } = labelAnchorOffset(spec);
+  map.setLayoutProperty(labelId, "visibility", layer.visible ? "visible" : "none");
+  map.setLayoutProperty(labelId, "text-field", labelTextExpression(spec) as never);
+  map.setLayoutProperty(labelId, "text-font", [
+    spec.bold ? "Noto Sans Bold" : "Noto Sans Regular",
+  ]);
+  map.setLayoutProperty(labelId, "text-size", spec.size);
+  map.setLayoutProperty(
+    labelId,
+    "text-variable-anchor",
+    // Sides first, then above / below as a second pass.
+    variable ? ["left", "right", "top", "bottom"] : undefined,
+  );
+  map.setLayoutProperty(labelId, "text-radial-offset", Math.max(spec.offset, 0.6));
+  map.setLayoutProperty(labelId, "text-justify", variable ? "auto" : "center");
+  map.setLayoutProperty(labelId, "text-anchor", alongLine || variable ? "center" : anchor);
+  map.setLayoutProperty(labelId, "text-offset", alongLine || variable ? [0, 0] : offset);
+  map.setLayoutProperty(labelId, "text-max-width", spec.wrapEnabled ? spec.maxWidth : 512);
+  map.setLayoutProperty(labelId, "text-allow-overlap", overlap);
+  map.setLayoutProperty(labelId, "text-ignore-placement", ignorePlacement);
+  map.setLayoutProperty(labelId, "symbol-placement", alongLine ? "line" : "point");
+  map.setPaintProperty(labelId, "text-color", paintColor(spec.color));
+  map.setPaintProperty(labelId, "text-opacity", spec.textOpacity);
+  map.setPaintProperty(labelId, "text-halo-color", withAlpha(spec.haloColor, spec.haloOpacity));
+  map.setPaintProperty(labelId, "text-halo-width", spec.haloWidth);
+
+  // Label background: a solid image stretched behind the text in the same
+  // symbol layer, so it collides and moves with the label. Curved along-line
+  // labels can't carry a fitted rectangle, so it's skipped there.
+  const wantsBg = spec.bgEnabled && !alongLine && !isTransparent(spec.bgColor);
+  if (wantsBg) {
+    const bgIconId = labelBackgroundImage(map, spec.bgColor);
+    map.setLayoutProperty(labelId, "icon-image", bgIconId);
+    map.setLayoutProperty(labelId, "icon-text-fit", "both");
+    map.setLayoutProperty(labelId, "icon-text-fit-padding", [
+      spec.bgPadding,
+      spec.bgPadding,
+      spec.bgPadding,
+      spec.bgPadding,
+    ]);
+    map.setLayoutProperty(labelId, "icon-allow-overlap", overlap);
+    map.setLayoutProperty(labelId, "icon-ignore-placement", ignorePlacement);
+    map.setPaintProperty(labelId, "icon-opacity", spec.bgOpacity);
+  } else {
+    map.setLayoutProperty(labelId, "icon-image", undefined);
+  }
+  map.setLayerZoomRange(labelId, spec.minZoom, Math.max(spec.minZoom + 0.1, spec.maxZoom));
+}
+
+/**
+ * After each render, find the labels collision dropped and hand exactly those
+ * to the overflow layer so they draw on top of their neighbours.
+ */
+function updateLabelOverflow(map: MapLibreMap) {
+  const registry = overflowRegistry.get(map);
+  if (!registry || registry.size === 0) return;
+  for (const entry of registry.values()) {
+    if (!map.getLayer(entry.labelId) || !map.getLayer(entry.overflowId)) continue;
+    if (!entry.visible) continue;
+    const rendered = new Set<string | number>();
+    try {
+      for (const feature of map.queryRenderedFeatures(undefined, { layers: [entry.labelId] })) {
+        if (feature.id !== undefined) rendered.add(feature.id);
+      }
+    } catch {
+      continue;
+    }
+    const hidden: (string | number)[] = [];
+    try {
+      for (const feature of map.querySourceFeatures(entry.sourceId)) {
+        if (feature.id === undefined) continue;
+        if (!rendered.has(feature.id)) hidden.push(feature.id);
+      }
+    } catch {
+      continue;
+    }
+    const key = hidden.join(",");
+    if (key === entry.lastIds) continue;
+    entry.lastIds = key;
+    const idFilter = hidden.length
+      ? ["in", ["id"], ["literal", hidden]]
+      : NEVER_FILTER;
+    const filter = entry.baseFilter ? ["all", entry.baseFilter, idFilter] : idFilter;
+    map.setFilter(entry.overflowId, filter as never);
+  }
+}
+
 
 
 
