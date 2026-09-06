@@ -563,6 +563,7 @@ export default function MapCanvas({
     });
     map.on("idle", () => {
       if (map.areTilesLoaded()) setMapError(null);
+      updateLabelOverflow(map);
     });
     map.on("moveend", () => {
       const c = map.getCenter();
@@ -883,7 +884,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       if (!keepRaster.has(rasterMatch[1] as string)) removeLayerIfPresent(map, layer.id);
       continue;
     }
-    const match = /^of-(fill|line|circle|outline|symbol|label|maskfill|heat)-(.+)$/.exec(layer.id);
+    const match = /^of-(fill|line|circle|outline|symbol|label|labeloverflow|maskfill|heat)-(.+)$/.exec(layer.id);
     if (match && !keep.has(match[2] as string)) removeLayerIfPresent(map, layer.id);
   }
   for (const sourceId of Object.keys(map.getStyle().sources ?? {})) {
@@ -935,7 +936,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     if (existing) {
       existing.setData(layer.data as never);
     } else {
-      map.addSource(sourceId, { type: "geojson", data: layer.data as never });
+      map.addSource(sourceId, { type: "geojson", data: layer.data as never, generateId: true });
     }
 
     const visibility = layer.visible ? "visible" : "none";
@@ -1271,7 +1272,7 @@ function applyLabelProps(
   map: MapLibreMap,
   labelId: string,
   layer: RenderLayer,
-  spec: ReturnType<typeof activeLabels> & object,
+  spec: NonNullable<ReturnType<typeof activeLabels>>,
   opts: { variable: boolean; alongLine: boolean; overlap: boolean; ignorePlacement: boolean },
 ) {
   const { variable, alongLine, overlap, ignorePlacement } = opts;
