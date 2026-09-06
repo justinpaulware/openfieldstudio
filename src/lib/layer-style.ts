@@ -217,7 +217,7 @@ export const DEFAULT_LABELS: LabelSpec = {
   bgEnabled: false,
   bgColor: "#ffffff",
   bgOpacity: 1,
-  bgPadding: 3,
+  bgPadding: 1,
 };
 
 
