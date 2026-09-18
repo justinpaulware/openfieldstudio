@@ -401,6 +401,52 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const duplicate = useMutation({
+    mutationFn: async (project: GalleryProject) => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) throw new Error("Not signed in");
+      const copyTitle = `${project.title} (copy)`;
+      const slug = await uniqueProjectSlug(auth.user.id, copyTitle);
+      const { error } = await supabase.from("projects").insert({
+        owner_id: auth.user.id,
+        title: copyTitle,
+        description: project.description,
+        slug,
+        published_slug: slug,
+        tags: project.tags,
+        folder_id: project.folder_id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Project duplicated.");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const setStatusMutation = useMutation({
+    mutationFn: async ({ id, next }: { id: string; next: GalleryProject["status"] }) => {
+      const { error } = await supabase.from("projects").update({ status: next }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const remove = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("projects").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Project deleted.");
+      invalidate();
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+
   const folderName = (id: string | null) =>
     id ? (allFolders.find((f) => f.id === id)?.name ?? "a folder") : "All projects";
 
