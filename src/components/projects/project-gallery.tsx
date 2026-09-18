@@ -97,6 +97,84 @@ const STATUS_RANK: Record<GalleryProject["status"], number> = {
   archived: 2,
 };
 
+/** Inline rename field: local while typing, saves on Enter or when you click away. */
+function NameEditor({
+  value,
+  editing,
+  onStartEdit,
+  onCommit,
+  onCancel,
+}: {
+  value: string;
+  editing: boolean;
+  onStartEdit: () => void;
+  onCommit: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [draft, setDraft] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const draftRef = useRef(value);
+  draftRef.current = draft;
+
+  const finish = () => {
+    const next = draftRef.current.trim();
+    if (next && next !== value) onCommit(next);
+    else onCancel();
+  };
+  const finishRef = useRef(finish);
+  finishRef.current = finish;
+
+  useEffect(() => {
+    if (!editing) return undefined;
+    setDraft(value);
+    const frame = requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+    const onPointerDown = (event: PointerEvent) => {
+      if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
+        finishRef.current();
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("pointerdown", onPointerDown, true);
+    };
+  }, [editing, value]);
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        title="Click to rename"
+        onClick={(event) => {
+          event.stopPropagation();
+          onStartEdit();
+        }}
+        className="max-w-full truncate rounded px-1 py-0.5 text-left text-sm font-medium outline-none hover:bg-muted/60"
+      >
+        {value}
+      </button>
+    );
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") finishRef.current();
+        if (e.key === "Escape") onCancel();
+      }}
+      className="w-48 rounded border border-input bg-background px-1 py-0.5 text-sm font-medium outline-none ring-1 ring-primary/40"
+    />
+  );
+}
+
 export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const { data: myProfile } = useMyProfile();
   const publicPath = (project: GalleryProject) =>
@@ -139,6 +217,7 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const [dropTarget, setDropTarget] = useState<string | null>(null);
   const [dropAt, setDropAt] = useState<DropSpot | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTargetItem | null>(null);
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
 
   const { data: folders } = useQuery({
     queryKey: ["project-folders"],
