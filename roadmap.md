@@ -24,3 +24,9 @@
 - [x] Sort by name / date updated / date created / status / custom order
 - [x] Drag to move into folders and breadcrumbs, reorder in custom order
 - [x] "Move to folder…" command, circular-move guard, Undo toast
+
+## Publish tab hierarchy (Tab 20) — complete (2026-09-18)
+- Page order: Publish + Save changes, Project, Public project URL, Attribution, Views settings, per-view cards, footer.
+- Each view card: editable address, public URL copy/open, navigation toggle, its own embed settings and code, publish/unpublish.
+- Global embed section removed; unsaved-changes warning on page unload.
+- Folder names in the Projects library rename inline (click name, commits on blur/Enter).
