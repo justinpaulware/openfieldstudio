@@ -138,7 +138,7 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const [tags, setTags] = useState("");
   const dragRef = useRef<DragItem | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const [insertBefore, setInsertBefore] = useState<string | null>(null);
+  const [dropAt, setDropAt] = useState<DropSpot | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTargetItem | null>(null);
 
   const { data: folders } = useQuery({
