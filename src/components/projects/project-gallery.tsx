@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   ArrowUpDown,
   ChevronRight,
   Folder,
@@ -80,7 +79,8 @@ export type GalleryFolder = {
 };
 
 type SortKey = "name" | "updated" | "created" | "status" | "custom";
-type DragItem = { kind: "project" | "folder"; id: string; mode: "move" | "reorder" };
+type DragItem = { kind: "project" | "folder"; id: string };
+type DropSpot = { id: string; position: "before" | "after" };
 type MoveTargetItem = { kind: "project" | "folder"; id: string; name: string; parent: string | null };
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -137,7 +137,7 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const [tags, setTags] = useState("");
   const dragRef = useRef<DragItem | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const [insertBefore, setInsertBefore] = useState<string | null>(null);
+  const [dropAt, setDropAt] = useState<DropSpot | null>(null);
   const [moveTarget, setMoveTarget] = useState<MoveTargetItem | null>(null);
 
   const { data: folders } = useQuery({
@@ -468,13 +468,54 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const clearDrag = () => {
     dragRef.current = null;
     setDropTarget(null);
-    setInsertBefore(null);
+    setDropAt(null);
   };
+
+  /** Where the pointer sits inside a row: top edge, bottom edge, or the middle. */
+  const positionFrom = (
+    event: React.DragEvent,
+    allowInside: boolean,
+    axis: "y" | "x" = "y",
+  ): "before" | "after" | "inside" => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offset = axis === "y" ? event.clientY - rect.top : event.clientX - rect.left;
+    const size = axis === "y" ? rect.height : rect.width;
+    if (allowInside) {
+      if (offset < size * 0.3) return "before";
+      if (offset > size * 0.7) return "after";
+      return "inside";
+    }
+    return offset < size / 2 ? "before" : "after";
+  };
+
+  const edgeFrom = (event: React.DragEvent, axis: "y" | "x" = "y"): "before" | "after" => {
+    const pos = positionFrom(event, false, axis);
+    return pos === "after" ? "after" : "before";
+  };
+
+  const DropLine = ({
+    visible,
+    side,
+  }: {
+    visible: boolean;
+    side: "top" | "bottom" | "left" | "right";
+  }) =>
+    visible ? (
+      <div
+        className={cn(
+          "pointer-events-none absolute z-10 rounded-full bg-primary",
+          side === "top" && "-top-px left-1 right-1 h-0.5",
+          side === "bottom" && "-bottom-px left-1 right-1 h-0.5",
+          side === "left" && "-left-1 bottom-1 top-1 w-0.5",
+          side === "right" && "-right-1 bottom-1 top-1 w-0.5",
+        )}
+      />
+    ) : null;
 
   const dropInto = (target: string | null) => {
     const item = dragRef.current;
     clearDrag();
-    if (!item || item.mode !== "move") return;
+    if (!item) return;
     if (item.kind === "project") {
       const project = scoped.find((p) => p.id === item.id);
       if (!project) return;
@@ -494,25 +535,33 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
     applyMove({ kind: "folder", id: folder.id, name: folder.name, parent: folder.parent_id }, target);
   };
 
-  const dropReorder = (beforeId: string) => {
+  const dropReorderAt = (targetId: string, position: "before" | "after") => {
     const item = dragRef.current;
     clearDrag();
-    if (!item || item.mode !== "reorder" || item.id === beforeId) return;
-    if (item.kind === "folder") {
-      const ids = visibleFolders.map((f) => f.id).filter((id) => id !== item.id);
-      const at = ids.indexOf(beforeId);
-      ids.splice(at < 0 ? ids.length : at, 0, item.id);
-      reorder.mutate({ table: "project_folders", ids });
-    } else {
-      const ids = visibleProjects.map((p) => p.id).filter((id) => id !== item.id);
-      const at = ids.indexOf(beforeId);
-      ids.splice(at < 0 ? ids.length : at, 0, item.id);
-      reorder.mutate({ table: "projects", ids });
+    if (!item || item.id === targetId) return;
+    if (!canReorder) {
+      toast("Arrange items by hand with Custom order.", {
+        action: { label: "Custom order", onClick: () => goTo({ sort: "custom", dir: "asc" }) },
+      });
+      return;
     }
+    const list =
+      item.kind === "folder"
+        ? visibleFolders.map((f) => f.id)
+        : visibleProjects.map((p) => p.id);
+    if (!list.includes(item.id) || !list.includes(targetId)) return;
+    const ids = list.filter((id) => id !== item.id);
+    let at = ids.indexOf(targetId);
+    if (at < 0) at = ids.length;
+    else if (position === "after") at += 1;
+    ids.splice(at, 0, item.id);
+    reorder.mutate({
+      table: item.kind === "folder" ? "project_folders" : "projects",
+      ids,
+    });
   };
 
   const canReorder = sortKey === "custom" && !searching;
-  const parentId = breadcrumbs[breadcrumbs.length - 1]?.parent_id ?? null;
   const canGoBack = router.history.canGoBack();
 
   return (
@@ -569,16 +618,6 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
             }}
           >
             <ArrowRight className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            aria-label="Up one level"
-            disabled={!folderId}
-            onClick={() => goTo({ folder: parentId })}
-          >
-            <ArrowUp className="h-4 w-4" />
           </Button>
         </div>
 
@@ -691,40 +730,50 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                 key={folder.id}
                 draggable
                 onDragStart={() => {
-                  dragRef.current = { kind: "folder", id: folder.id, mode: "move" };
+                  dragRef.current = { kind: "folder", id: folder.id };
                 }}
                 onDragEnd={clearDrag}
                 onDragOver={(e) => {
+                  const item = dragRef.current;
+                  if (!item) return;
                   e.preventDefault();
-                  if (dragRef.current?.mode === "reorder") setInsertBefore(folder.id);
-                  else setDropTarget(folder.id);
+                  const pos = positionFrom(e, item.id !== folder.id);
+                  if (pos === "inside") {
+                    setDropTarget(folder.id);
+                    setDropAt(null);
+                  } else {
+                    setDropTarget(null);
+                    setDropAt({ id: folder.id, position: pos });
+                  }
                 }}
                 onDragLeave={() => {
                   setDropTarget((v) => (v === folder.id ? null : v));
-                  setInsertBefore((v) => (v === folder.id ? null : v));
+                  setDropAt((v) => (v?.id === folder.id ? null : v));
                 }}
-                onDrop={() =>
-                  dragRef.current?.mode === "reorder" ? dropReorder(folder.id) : dropInto(folder.id)
-                }
+                onDrop={(e) => {
+                  const item = dragRef.current;
+                  if (!item) return;
+                  e.preventDefault();
+                  const pos = positionFrom(e, item.id !== folder.id);
+                  if (pos === "inside") dropInto(folder.id);
+                  else dropReorderAt(folder.id, pos);
+                }}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-2.5",
+                  "relative flex items-center gap-3 px-4 py-2.5",
                   dropTarget === folder.id && "bg-primary/10 ring-1 ring-inset ring-primary",
-                  insertBefore === folder.id && "border-t-2 border-t-primary",
                 )}
               >
-                {canReorder && (
-                  <span
-                    draggable
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      dragRef.current = { kind: "folder", id: folder.id, mode: "reorder" };
-                    }}
-                    className="cursor-grab text-muted-foreground"
-                    aria-hidden
-                  >
-                    <GripVertical className="h-4 w-4" />
-                  </span>
-                )}
+                <DropLine
+                  visible={dropAt?.id === folder.id && dropAt.position === "before"}
+                  side="top"
+                />
+                <DropLine
+                  visible={dropAt?.id === folder.id && dropAt.position === "after"}
+                  side="bottom"
+                />
+                <span className="cursor-grab text-muted-foreground/60" aria-hidden>
+                  <GripVertical className="h-4 w-4" />
+                </span>
                 <button
                   type="button"
                   onClick={() => goTo({ folder: folder.id })}
@@ -833,22 +882,34 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                 key={project.id}
                 draggable
                 onDragStart={() => {
-                  dragRef.current = { kind: "project", id: project.id, mode: "move" };
+                  dragRef.current = { kind: "project", id: project.id };
                 }}
                 onDragEnd={clearDrag}
                 onDragOver={(e) => {
-                  if (dragRef.current?.mode !== "reorder") return;
+                  const item = dragRef.current;
+                  if (!item || item.id === project.id) return;
                   e.preventDefault();
-                  setInsertBefore(project.id);
+                  setDropAt({ id: project.id, position: edgeFrom(e, "x") });
                 }}
-                onDrop={() => {
-                  if (dragRef.current?.mode === "reorder") dropReorder(project.id);
+                onDragLeave={() => setDropAt((v) => (v?.id === project.id ? null : v))}
+                onDrop={(e) => {
+                  const item = dragRef.current;
+                  if (!item) return;
+                  e.preventDefault();
+                  dropReorderAt(project.id, edgeFrom(e, "x"));
                 }}
                 className={cn(
-                  "group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]",
-                  insertBefore === project.id && "ring-2 ring-primary",
+                  "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]",
                 )}
               >
+                <DropLine
+                  visible={dropAt?.id === project.id && dropAt.position === "before"}
+                  side="left"
+                />
+                <DropLine
+                  visible={dropAt?.id === project.id && dropAt.position === "after"}
+                  side="right"
+                />
                 <Link
                   to="/projects/$projectSlug"
                   params={{ projectSlug: project.slug }}
@@ -868,19 +929,9 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                 <div className="flex flex-1 flex-col p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-start gap-2">
-                      {canReorder && (
-                        <span
-                          draggable
-                          onDragStart={(e) => {
-                            e.stopPropagation();
-                            dragRef.current = { kind: "project", id: project.id, mode: "reorder" };
-                          }}
-                          className="mt-0.5 cursor-grab text-muted-foreground"
-                          aria-hidden
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </span>
-                      )}
+                      <span className="mt-0.5 cursor-grab text-muted-foreground/60" aria-hidden>
+                        <GripVertical className="h-4 w-4" />
+                      </span>
                       <Link
                         to="/projects/$projectSlug"
                         params={{ projectSlug: project.slug }}
