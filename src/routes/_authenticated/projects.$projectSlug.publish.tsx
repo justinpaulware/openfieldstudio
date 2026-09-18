@@ -468,16 +468,16 @@ function ProjectPublish() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
-      <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold">Publish</h1>
           <StatusChip status={project.status} />
         </div>
         <div className="flex items-center gap-3">
-          {saveButton}
           {dirty && (
             <span className="font-secondary text-xs text-muted-foreground">Unsaved changes</span>
           )}
+          {saveButton}
         </div>
       </div>
 
