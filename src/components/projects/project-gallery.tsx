@@ -512,7 +512,7 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   };
 
   const canReorder = sortKey === "custom" && !searching;
-  const parentId = breadcrumbs.length ? (breadcrumbs[breadcrumbs.length - 1].parent_id ?? null) : null;
+  const parentId = breadcrumbs[breadcrumbs.length - 1]?.parent_id ?? null;
   const canGoBack = router.history.canGoBack();
 
   return (
