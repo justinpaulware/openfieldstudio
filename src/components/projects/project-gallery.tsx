@@ -925,19 +925,9 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                 <div className="flex flex-1 flex-col p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 items-start gap-2">
-                      {canReorder && (
-                        <span
-                          draggable
-                          onDragStart={(e) => {
-                            e.stopPropagation();
-                            dragRef.current = { kind: "project", id: project.id, mode: "reorder" };
-                          }}
-                          className="mt-0.5 cursor-grab text-muted-foreground"
-                          aria-hidden
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </span>
-                      )}
+                      <span className="mt-0.5 cursor-grab text-muted-foreground/60" aria-hidden>
+                        <GripVertical className="h-4 w-4" />
+                      </span>
                       <Link
                         to="/projects/$projectSlug"
                         params={{ projectSlug: project.slug }}
