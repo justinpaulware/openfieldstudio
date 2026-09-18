@@ -853,17 +853,33 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                 <span className="cursor-grab text-muted-foreground/60" aria-hidden>
                   <GripVertical className="h-4 w-4" />
                 </span>
-                <button
-                  type="button"
-                  onClick={() => goTo({ folder: folder.id })}
-                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
-                >
-                  <Folder className="h-4 w-4 shrink-0 text-primary" />
-                  <span className="truncate text-sm font-medium">{folder.name}</span>
-                  <span className="font-secondary text-xs text-muted-foreground">
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                  <button
+                    type="button"
+                    aria-label={`Open ${folder.name}`}
+                    onClick={() => goTo({ folder: folder.id })}
+                    className="shrink-0"
+                  >
+                    <Folder className="h-4 w-4 text-primary" />
+                  </button>
+                  <NameEditor
+                    value={folder.name}
+                    editing={editingFolderId === folder.id}
+                    onStartEdit={() => setEditingFolderId(folder.id)}
+                    onCommit={(name) => {
+                      setEditingFolderId(null);
+                      renameFolder.mutate({ id: folder.id, name });
+                    }}
+                    onCancel={() => setEditingFolderId(null)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => goTo({ folder: folder.id })}
+                    className="min-w-0 flex-1 text-left font-secondary text-xs text-muted-foreground"
+                  >
                     {describeFolder(folder.id)}
-                  </span>
-                </button>
+                  </button>
+                </div>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
@@ -877,10 +893,10 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
-                      onSelect={() => {
-                        const name = prompt("Folder name", folder.name);
-                        if (name?.trim()) renameFolder.mutate({ id: folder.id, name: name.trim() });
-                      }}
+                      onSelect={() =>
+                        // Defer so the menu can close before the field takes focus.
+                        setTimeout(() => setEditingFolderId(folder.id), 0)
+                      }
                     >
                       Rename
                     </DropdownMenuItem>
