@@ -726,40 +726,50 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                 key={folder.id}
                 draggable
                 onDragStart={() => {
-                  dragRef.current = { kind: "folder", id: folder.id, mode: "move" };
+                  dragRef.current = { kind: "folder", id: folder.id };
                 }}
                 onDragEnd={clearDrag}
                 onDragOver={(e) => {
+                  const item = dragRef.current;
+                  if (!item) return;
                   e.preventDefault();
-                  if (dragRef.current?.mode === "reorder") setInsertBefore(folder.id);
-                  else setDropTarget(folder.id);
+                  const pos = positionFrom(e, item.id !== folder.id);
+                  if (pos === "inside") {
+                    setDropTarget(folder.id);
+                    setDropAt(null);
+                  } else {
+                    setDropTarget(null);
+                    setDropAt({ id: folder.id, position: pos });
+                  }
                 }}
                 onDragLeave={() => {
                   setDropTarget((v) => (v === folder.id ? null : v));
-                  setInsertBefore((v) => (v === folder.id ? null : v));
+                  setDropAt((v) => (v?.id === folder.id ? null : v));
                 }}
-                onDrop={() =>
-                  dragRef.current?.mode === "reorder" ? dropReorder(folder.id) : dropInto(folder.id)
-                }
+                onDrop={(e) => {
+                  const item = dragRef.current;
+                  if (!item) return;
+                  e.preventDefault();
+                  const pos = positionFrom(e, item.id !== folder.id);
+                  if (pos === "inside") dropInto(folder.id);
+                  else dropReorderAt(folder.id, pos);
+                }}
                 className={cn(
-                  "flex items-center gap-3 px-4 py-2.5",
+                  "relative flex items-center gap-3 px-4 py-2.5",
                   dropTarget === folder.id && "bg-primary/10 ring-1 ring-inset ring-primary",
-                  insertBefore === folder.id && "border-t-2 border-t-primary",
                 )}
               >
-                {canReorder && (
-                  <span
-                    draggable
-                    onDragStart={(e) => {
-                      e.stopPropagation();
-                      dragRef.current = { kind: "folder", id: folder.id, mode: "reorder" };
-                    }}
-                    className="cursor-grab text-muted-foreground"
-                    aria-hidden
-                  >
-                    <GripVertical className="h-4 w-4" />
-                  </span>
-                )}
+                <DropLine
+                  visible={dropAt?.id === folder.id && dropAt.position === "before"}
+                  side="top"
+                />
+                <DropLine
+                  visible={dropAt?.id === folder.id && dropAt.position === "after"}
+                  side="bottom"
+                />
+                <span className="cursor-grab text-muted-foreground/60" aria-hidden>
+                  <GripVertical className="h-4 w-4" />
+                </span>
                 <button
                   type="button"
                   onClick={() => goTo({ folder: folder.id })}
