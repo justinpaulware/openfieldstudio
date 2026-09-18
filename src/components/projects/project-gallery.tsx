@@ -531,25 +531,33 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
     applyMove({ kind: "folder", id: folder.id, name: folder.name, parent: folder.parent_id }, target);
   };
 
-  const dropReorder = (beforeId: string) => {
+  const dropReorderAt = (targetId: string, position: "before" | "after") => {
     const item = dragRef.current;
     clearDrag();
-    if (!item || item.mode !== "reorder" || item.id === beforeId) return;
-    if (item.kind === "folder") {
-      const ids = visibleFolders.map((f) => f.id).filter((id) => id !== item.id);
-      const at = ids.indexOf(beforeId);
-      ids.splice(at < 0 ? ids.length : at, 0, item.id);
-      reorder.mutate({ table: "project_folders", ids });
-    } else {
-      const ids = visibleProjects.map((p) => p.id).filter((id) => id !== item.id);
-      const at = ids.indexOf(beforeId);
-      ids.splice(at < 0 ? ids.length : at, 0, item.id);
-      reorder.mutate({ table: "projects", ids });
+    if (!item || item.id === targetId) return;
+    if (!canReorder) {
+      toast("Arrange items by hand with Custom order.", {
+        action: { label: "Custom order", onClick: () => goTo({ sort: "custom", dir: "asc" }) },
+      });
+      return;
     }
+    const list =
+      item.kind === "folder"
+        ? visibleFolders.map((f) => f.id)
+        : visibleProjects.map((p) => p.id);
+    if (!list.includes(item.id) || !list.includes(targetId)) return;
+    const ids = list.filter((id) => id !== item.id);
+    let at = ids.indexOf(targetId);
+    if (at < 0) at = ids.length;
+    else if (position === "after") at += 1;
+    ids.splice(at, 0, item.id);
+    reorder.mutate({
+      table: item.kind === "folder" ? "project_folders" : "projects",
+      ids,
+    });
   };
 
   const canReorder = sortKey === "custom" && !searching;
-  const parentId = breadcrumbs[breadcrumbs.length - 1]?.parent_id ?? null;
   const canGoBack = router.history.canGoBack();
 
   return (
