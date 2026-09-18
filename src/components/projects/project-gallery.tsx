@@ -116,23 +116,15 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const sortDir: "asc" | "desc" = search.dir ?? "desc";
   const [forwardDepth, setForwardDepth] = useState(0);
 
-  const goTo = (
-    next: { folder?: string | null; sort?: SortKey; dir?: "asc" | "desc" },
-    replace = false,
-  ) => {
-    if (!replace) setForwardDepth(0);
+  const goTo = (next: { folder?: string | null; sort?: SortKey; dir?: "asc" | "desc" }) => {
+    setForwardDepth(0);
+    const folder = next.folder === undefined ? folderId : next.folder;
     navigate({
       to: "/projects",
-      replace,
-      search: (prev: Record<string, unknown>) => {
-        const folder =
-          next.folder === undefined ? (prev.folder as string | undefined) : (next.folder ?? undefined);
-        return {
-          ...prev,
-          ...(folder ? { folder } : { folder: undefined }),
-          sort: next.sort ?? (prev.sort as SortKey | undefined) ?? "updated",
-          dir: next.dir ?? (prev.dir as "asc" | "desc" | undefined) ?? "desc",
-        };
+      search: {
+        ...(folder ? { folder } : {}),
+        sort: next.sort ?? sortKey,
+        dir: next.dir ?? sortDir,
       },
     });
   };

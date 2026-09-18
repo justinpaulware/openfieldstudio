@@ -6,21 +6,22 @@ export type LibrarySort = "name" | "updated" | "created" | "status" | "custom";
 
 export type LibrarySearch = {
   folder?: string;
-  sort: LibrarySort;
-  dir: "asc" | "desc";
+  sort?: LibrarySort;
+  dir?: "asc" | "desc";
 };
 
-const SORTS: LibrarySort[] = ["name", "updated", "created", "status", "custom"];
+const SORTS: string[] = ["name", "updated", "created", "status", "custom"];
 
 export const Route = createFileRoute("/_authenticated/projects/")({
   validateSearch: (search: Record<string, unknown>): LibrarySearch => {
-    const sort = String(search.sort ?? "");
-    const dir = String(search.dir ?? "");
-    const folder = typeof search.folder === "string" && search.folder ? search.folder : undefined;
+    const rawSort = String(search["sort"] ?? "");
+    const rawDir = String(search["dir"] ?? "");
+    const rawFolder = search["folder"];
+    const folder = typeof rawFolder === "string" && rawFolder ? rawFolder : undefined;
     return {
       ...(folder ? { folder } : {}),
-      sort: (SORTS as string[]).includes(sort) ? (sort as LibrarySort) : "updated",
-      dir: dir === "asc" ? "asc" : "desc",
+      ...(SORTS.includes(rawSort) ? { sort: rawSort as LibrarySort } : {}),
+      ...(rawDir === "asc" || rawDir === "desc" ? { dir: rawDir } : {}),
     };
   },
   head: () => ({
