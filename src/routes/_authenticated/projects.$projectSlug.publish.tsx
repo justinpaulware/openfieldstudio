@@ -468,16 +468,16 @@ function ProjectPublish() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 px-6 py-8">
-      <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-semibold">Publish</h1>
           <StatusChip status={project.status} />
         </div>
         <div className="flex items-center gap-3">
-          {saveButton}
           {dirty && (
             <span className="font-secondary text-xs text-muted-foreground">Unsaved changes</span>
           )}
+          {saveButton}
         </div>
       </div>
 
@@ -512,18 +512,6 @@ function ProjectPublish() {
             />
           </div>
         </div>
-      </Section>
-
-      <Section
-        title="Public project URL"
-        description={
-          !username
-            ? "Choose a username to unlock your public URLs."
-            : project.status === "published"
-              ? "Anyone with this link can view the project."
-              : "Publish the Main view to make this link work."
-        }
-      >
         {username ? (
           <CopyField label="Project URL" value={publicUrl} />
         ) : (
@@ -531,26 +519,32 @@ function ProjectPublish() {
             <Link to="/settings">Choose a username in Settings</Link>
           </Button>
         )}
+        <p className="font-secondary text-xs text-muted-foreground">
+          {!username
+            ? "Choose a username to unlock your public URLs."
+            : project.status === "published"
+              ? "Anyone with this link can view the project."
+              : "Publish the Main view to make this link work."}
+        </p>
         {project.published_at && (
           <p className="font-secondary text-xs text-muted-foreground">
             Last published {new Date(project.published_at).toLocaleString()}
           </p>
         )}
-      </Section>
-
-      <Section title="Attribution" description="Credit yourself and the data behind the map.">
-        <div className="space-y-2">
-          <Label htmlFor="author">Author</Label>
-          <Input id="author" value={author} onChange={(e) => setAuthor(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="data-sources">Data sources</Label>
-          <Textarea
-            id="data-sources"
-            value={dataSources}
-            onChange={(e) => setDataSources(e.target.value)}
-            placeholder="USGS NHD, City of Portland open data"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="author">Author</Label>
+            <Input id="author" value={author} onChange={(e) => setAuthor(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="data-sources">Data sources</Label>
+            <Textarea
+              id="data-sources"
+              value={dataSources}
+              onChange={(e) => setDataSources(e.target.value)}
+              placeholder="USGS NHD, City of Portland open data"
+            />
+          </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="credits">Credits</Label>
