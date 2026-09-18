@@ -469,13 +469,49 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const clearDrag = () => {
     dragRef.current = null;
     setDropTarget(null);
-    setInsertBefore(null);
+    setDropAt(null);
   };
+
+  /** Where the pointer sits inside a row: top edge, bottom edge, or the middle. */
+  const positionFrom = (
+    event: React.DragEvent,
+    allowInside: boolean,
+    axis: "y" | "x" = "y",
+  ): "before" | "after" | "inside" => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const offset = axis === "y" ? event.clientY - rect.top : event.clientX - rect.left;
+    const size = axis === "y" ? rect.height : rect.width;
+    if (allowInside) {
+      if (offset < size * 0.3) return "before";
+      if (offset > size * 0.7) return "after";
+      return "inside";
+    }
+    return offset < size / 2 ? "before" : "after";
+  };
+
+  const DropLine = ({
+    visible,
+    side,
+  }: {
+    visible: boolean;
+    side: "top" | "bottom" | "left" | "right";
+  }) =>
+    visible ? (
+      <div
+        className={cn(
+          "pointer-events-none absolute z-10 rounded-full bg-primary",
+          side === "top" && "-top-px left-1 right-1 h-0.5",
+          side === "bottom" && "-bottom-px left-1 right-1 h-0.5",
+          side === "left" && "-left-1 bottom-1 top-1 w-0.5",
+          side === "right" && "-right-1 bottom-1 top-1 w-0.5",
+        )}
+      />
+    ) : null;
 
   const dropInto = (target: string | null) => {
     const item = dragRef.current;
     clearDrag();
-    if (!item || item.mode !== "move") return;
+    if (!item) return;
     if (item.kind === "project") {
       const project = scoped.find((p) => p.id === item.id);
       if (!project) return;
