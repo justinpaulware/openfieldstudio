@@ -80,7 +80,8 @@ export type GalleryFolder = {
 };
 
 type SortKey = "name" | "updated" | "created" | "status" | "custom";
-type DragItem = { kind: "project" | "folder"; id: string; mode: "move" | "reorder" };
+type DragItem = { kind: "project" | "folder"; id: string };
+type DropSpot = { id: string; position: "before" | "after" };
 type MoveTargetItem = { kind: "project" | "folder"; id: string; name: string; parent: string | null };
 
 const SORT_LABELS: Record<SortKey, string> = {
