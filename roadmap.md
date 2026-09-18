@@ -16,3 +16,11 @@
 - [x] Slice 1 — `comments_allow_shapes` setting + server-side geometry acceptance
 - [x] Slice 2 — Point / Line / Area drawing in the public viewer
 - [x] Slice 3 (chips + shape rendering) — shape rendering, geometry chips, moderation polish
+
+## Projects Library — file browser (Tab 19) — complete (2026-09-18)
+- [x] Folder addresses in the URL; browser Back/Forward work; Back, Forward, Up buttons
+- [x] Direct-content folder summaries ("2 folders · 3 projects", "Empty")
+- [x] Search projects and folders, grouped results, corrected empty states
+- [x] Sort by name / date updated / date created / status / custom order
+- [x] Drag to move into folders and breadcrumbs, reorder in custom order
+- [x] "Move to folder…" command, circular-move guard, Undo toast
