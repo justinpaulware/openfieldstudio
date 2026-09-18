@@ -878,22 +878,34 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                 key={project.id}
                 draggable
                 onDragStart={() => {
-                  dragRef.current = { kind: "project", id: project.id, mode: "move" };
+                  dragRef.current = { kind: "project", id: project.id };
                 }}
                 onDragEnd={clearDrag}
                 onDragOver={(e) => {
-                  if (dragRef.current?.mode !== "reorder") return;
+                  const item = dragRef.current;
+                  if (!item || item.id === project.id) return;
                   e.preventDefault();
-                  setInsertBefore(project.id);
+                  setDropAt({ id: project.id, position: positionFrom(e, false, "x") });
                 }}
-                onDrop={() => {
-                  if (dragRef.current?.mode === "reorder") dropReorder(project.id);
+                onDragLeave={() => setDropAt((v) => (v?.id === project.id ? null : v))}
+                onDrop={(e) => {
+                  const item = dragRef.current;
+                  if (!item) return;
+                  e.preventDefault();
+                  dropReorderAt(project.id, positionFrom(e, false, "x"));
                 }}
                 className={cn(
-                  "group flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]",
-                  insertBefore === project.id && "ring-2 ring-primary",
+                  "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]",
                 )}
               >
+                <DropLine
+                  visible={dropAt?.id === project.id && dropAt.position === "before"}
+                  side="left"
+                />
+                <DropLine
+                  visible={dropAt?.id === project.id && dropAt.position === "after"}
+                  side="right"
+                />
                 <Link
                   to="/projects/$projectSlug"
                   params={{ projectSlug: project.slug }}
