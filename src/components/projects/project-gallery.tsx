@@ -615,16 +615,6 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
           >
             <ArrowRight className="h-4 w-4" />
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            className="h-8 w-8"
-            aria-label="Up one level"
-            disabled={!folderId}
-            onClick={() => goTo({ folder: parentId })}
-          >
-            <ArrowUp className="h-4 w-4" />
-          </Button>
         </div>
 
         <nav className="flex flex-wrap items-center gap-1 font-secondary text-xs text-muted-foreground">
