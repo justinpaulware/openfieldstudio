@@ -32,9 +32,9 @@ function ProjectLayout() {
   // The map editor is a full-height tool: it must never sit inside a scroll
   // container, or an appearing/disappearing scrollbar resizes the map canvas
   // in a loop (flickering scrollbars, jumpy zoom, broken pan).
-  const isMapTab = useRouterState({
-    select: (state) => state.location.pathname.endsWith("/map"),
-  });
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const isMapTab = pathname.endsWith("/map");
+  const isPublishTab = pathname.endsWith("/publish");
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-by-slug", projectSlug],
@@ -98,11 +98,13 @@ function ProjectLayout() {
             <span className="text-sm text-muted-foreground">/</span>
             <ProjectSwitcher projectSlug={projectSlug} title={project.title} />
             <StatusChip status={project.status} />
-            <ViewSwitcher
-              projectId={project.id}
-              projectSlug={projectSlug}
-              activeSlug={search.view ?? "main"}
-            />
+            {!isPublishTab && (
+              <ViewSwitcher
+                projectId={project.id}
+                projectSlug={projectSlug}
+                activeSlug={search.view ?? "main"}
+              />
+            )}
           </div>
           <div id={PROJECT_ACTIONS_ID} className="flex items-center gap-2" />
         </header>
