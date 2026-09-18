@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   ArrowUpDown,
   ChevronRight,
   Folder,
@@ -489,6 +488,11 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
     return offset < size / 2 ? "before" : "after";
   };
 
+  const edgeFrom = (event: React.DragEvent, axis: "y" | "x" = "y"): "before" | "after" => {
+    const pos = positionFrom(event, false, axis);
+    return pos === "after" ? "after" : "before";
+  };
+
   const DropLine = ({
     visible,
     side,
@@ -885,14 +889,14 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
                   const item = dragRef.current;
                   if (!item || item.id === project.id) return;
                   e.preventDefault();
-                  setDropAt({ id: project.id, position: positionFrom(e, false, "x") });
+                  setDropAt({ id: project.id, position: edgeFrom(e, "x") });
                 }}
                 onDragLeave={() => setDropAt((v) => (v?.id === project.id ? null : v))}
                 onDrop={(e) => {
                   const item = dragRef.current;
                   if (!item) return;
                   e.preventDefault();
-                  dropReorderAt(project.id, positionFrom(e, false, "x"));
+                  dropReorderAt(project.id, edgeFrom(e, "x"));
                 }}
                 className={cn(
                   "group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]",
