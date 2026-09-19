@@ -29,7 +29,7 @@ export function ViewSwitcherCard({
   return (
     <div
       className={cn(
-        "w-56 max-w-[min(50vw,26rem)] overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-soft)]",
+        "w-80 max-w-[min(50vw,26rem)] overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-soft)]",
         className,
       )}
     >
