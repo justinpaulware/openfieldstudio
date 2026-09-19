@@ -104,6 +104,8 @@ export function PublicMapViewer({
   const [vertices, setVertices] = useState<[number, number][]>([]);
   const [commentsVisible, setCommentsVisible] = useState(true);
   const [selectedComment, setSelectedComment] = useState<string | null>(null);
+  const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
+  const showSearch = search.search !== false && Boolean(loaderData.addressSearch);
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
@@ -375,6 +377,7 @@ export function PublicMapViewer({
                 else setVertices((current) => [...current, [lng, lat]]);
               }}
               pin={drawMode === "point" && pin ? [pin.lng, pin.lat] : null}
+              searchPin={searchPin}
               commentPins={commentMarkers}
               commentShapes={commentShapes}
               draftShape={draftShape}
@@ -427,6 +430,21 @@ export function PublicMapViewer({
 
         <div className="pointer-events-auto absolute left-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] flex-col items-start gap-2 overflow-y-auto">
           {showTitle && <MapTitleCard title={project.title} description={project.description} />}
+          {showSearch && (
+            <AddressSearchCard
+              hasMarker={searchPin !== null}
+              getViewbox={() => mapRef.current?.getBounds() ?? null}
+              onClear={() => setSearchPin(null)}
+              onSelect={(result: PlaceResult) => {
+                setSearchPin([result.lng, result.lat]);
+                if (result.bbox && result.kind !== "address") {
+                  mapRef.current?.fitBbox(result.bbox, 64);
+                } else {
+                  mapRef.current?.flyTo(result.lng, result.lat, result.kind === "address" ? 16 : 13);
+                }
+              }}
+            />
+          )}
           {showViews && (
             <ViewSwitcherCard
               views={views}
