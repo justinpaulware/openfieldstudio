@@ -54,7 +54,9 @@ export type RenderLayer = {
 
 export type MapHandle = {
   fitBbox: (bbox: Bbox, padding?: number) => void;
-  flyTo: (lng: number, lat: number) => void;
+  flyTo: (lng: number, lat: number, zoom?: number) => void;
+  /** Current extent as [west, south, east, north]. */
+  getBounds: () => [number, number, number, number] | null;
   /** Jump to a saved framing (used when switching project views). */
   setView: (view: {
     center: [number, number];
@@ -111,6 +113,8 @@ type Props = {
   onPick?: (lng: number, lat: number) => void;
   /** Temporary marker drawn at this location, e.g. a comment being written. */
   pin?: [number, number] | null;
+  /** Temporary marker for the selected address-search result. */
+  searchPin?: [number, number] | null;
   /** Approved comments drawn as their own markers. */
   commentPins?: { id: string; lng: number; lat: number }[];
   /** Approved line/area comments drawn as a GeoJSON overlay. */
@@ -139,6 +143,7 @@ export default function MapCanvas({
   pickMode = false,
   onPick,
   pin = null,
+  searchPin = null,
   commentPins,
   commentShapes,
   draftShape = null,
