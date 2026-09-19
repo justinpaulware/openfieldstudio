@@ -16,6 +16,8 @@ import {
 } from "@/components/comments/comment-panel";
 import { getPublishedLayerData, listApprovedComments } from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
+import { AddressSearchCard } from "@/components/public/address-search-card";
+import type { PlaceResult } from "@/lib/geocode.functions";
 import { filterCollection, parseFilterConfig } from "@/lib/layer-filter";
 import {
   MapLegend,
@@ -42,7 +44,7 @@ export const SITE = "https://openfield.nu";
 type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
 
-export type ViewerSearch = { legend?: false; title?: false; views?: false };
+export type ViewerSearch = { legend?: false; title?: false; views?: false; search?: false };
 
 /** Shape returned by the published-map loader. */
 export type PublishedMapData = {
@@ -52,6 +54,8 @@ export type PublishedMapData = {
   views?: SwitcherView[];
   /** True when the project wants the view switcher shown on this view. */
   viewNav?: boolean;
+  /** True when this view enables the address-search card. */
+  addressSearch?: boolean;
   layers: unknown[];
   folders: unknown[];
 };
