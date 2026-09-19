@@ -35,6 +35,7 @@ function ProjectLayout() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isMapTab = pathname.endsWith("/map");
   const isPublishTab = pathname.endsWith("/publish");
+  const isEngagementTab = pathname.endsWith("/comments");
 
   const { data: project, isLoading } = useQuery({
     queryKey: ["project-by-slug", projectSlug],
@@ -98,7 +99,7 @@ function ProjectLayout() {
             <span className="text-sm text-muted-foreground">/</span>
             <ProjectSwitcher projectSlug={projectSlug} title={project.title} />
             <StatusChip status={project.status} />
-            {!isPublishTab && (
+            {!isPublishTab && !isEngagementTab && (
               <ViewSwitcher
                 projectId={project.id}
                 projectSlug={projectSlug}
