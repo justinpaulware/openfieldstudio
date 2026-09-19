@@ -294,6 +294,22 @@ function ViewCard({
             </div>
           )}
 
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+            <div className="min-w-0">
+              <Label htmlFor={`search-${view.id}`} className="font-secondary text-xs">
+                Address search
+              </Label>
+              <p className="font-secondary text-[11px] text-muted-foreground">
+                Lets visitors search for an address or place on this view.
+              </p>
+            </div>
+            <Switch
+              id={`search-${view.id}`}
+              checked={embed.addressSearch}
+              onCheckedChange={(checked) => saveEmbed({ ...embed, addressSearch: checked })}
+            />
+          </div>
+
           <div className="space-y-3 rounded-lg border border-border px-3 py-3">
             <p className="text-xs font-semibold">Embed</p>
             <div className="grid gap-3 sm:grid-cols-2">
