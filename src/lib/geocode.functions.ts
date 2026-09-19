@@ -107,7 +107,9 @@ export const searchPlaces = createServerFn({ method: "GET" })
           lng: Number(row["lon"]),
           lat: Number(row["lat"]),
           bbox: bbox && bbox.every(Number.isFinite) ? bbox : null,
-          kind: classify(row as { class?: string; type?: string; addresstype?: string }),
+          kind: classify(
+            row as { class?: string; category?: string; type?: string; addresstype?: string },
+          ),
         };
       });
       const clean = results.filter((r) => Number.isFinite(r.lng) && Number.isFinite(r.lat));
