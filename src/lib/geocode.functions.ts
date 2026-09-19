@@ -20,10 +20,19 @@ const TTL = 5 * 60 * 1000;
 
 const AREA_CLASSES = new Set(["boundary", "place", "landuse", "natural", "waterway"]);
 
-function classify(row: { class?: string; type?: string; addresstype?: string }): PlaceResult["kind"] {
+function classify(row: {
+  class?: string;
+  category?: string;
+  type?: string;
+  addresstype?: string;
+}): PlaceResult["kind"] {
+  // jsonv2 reports `category`; older responses use `class`.
+  const group = row.category ?? row.class ?? "";
   const type = row.addresstype ?? row.type ?? "";
-  if (["house", "building", "address"].includes(type) || row.class === "building") return "address";
-  if (row.class && AREA_CLASSES.has(row.class)) return "area";
+  if (["house", "building", "address", "house_number"].includes(type) || group === "building") {
+    return "address";
+  }
+  if (group && AREA_CLASSES.has(group)) return "area";
   return "place";
 }
 
