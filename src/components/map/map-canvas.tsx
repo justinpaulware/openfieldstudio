@@ -210,10 +210,31 @@ export default function MapCanvas({
     }
   }, [pin]);
 
+  // Temporary marker for the selected address-search result.
+  const searchPinRef = useRef<maplibregl.Marker | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!searchPin) {
+      searchPinRef.current?.remove();
+      searchPinRef.current = null;
+      return;
+    }
+    if (!searchPinRef.current) {
+      searchPinRef.current = new maplibregl.Marker({ color: "#f2c14e" })
+        .setLngLat(searchPin)
+        .addTo(map);
+    } else {
+      searchPinRef.current.setLngLat(searchPin);
+    }
+  }, [searchPin]);
+
   useEffect(
     () => () => {
       pinRef.current?.remove();
       pinRef.current = null;
+      searchPinRef.current?.remove();
+      searchPinRef.current = null;
     },
     [],
   );
@@ -437,7 +458,14 @@ export default function MapCanvas({
           { padding, duration: 700, maxZoom: 16 },
         );
       },
-      flyTo: (lng, lat) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, duration: 700 }),
+      flyTo: (lng, lat, zoom = 14) =>
+        mapRef.current?.flyTo({ center: [lng, lat], zoom, duration: 700 }),
+      getBounds: () => {
+        const map = mapRef.current;
+        if (!map) return null;
+        const b = map.getBounds();
+        return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+      },
       setView: (view) =>
         mapRef.current?.easeTo({
           center: view.center,
