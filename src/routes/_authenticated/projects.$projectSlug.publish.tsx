@@ -41,9 +41,20 @@ export const Route = createFileRoute("/_authenticated/projects/$projectSlug/publ
   component: ProjectPublish,
 });
 
-type EmbedConfig = { legend: boolean; title: boolean; height: number };
+type EmbedConfig = {
+  legend: boolean;
+  title: boolean;
+  height: number;
+  /** Shows the address-search card on the published view. */
+  addressSearch: boolean;
+};
 
-const DEFAULT_EMBED: EmbedConfig = { legend: true, title: true, height: 540 };
+const DEFAULT_EMBED: EmbedConfig = {
+  legend: true,
+  title: true,
+  height: 540,
+  addressSearch: false,
+};
 
 function parseEmbed(value: unknown): EmbedConfig {
   if (!value || typeof value !== "object") return DEFAULT_EMBED;
@@ -52,6 +63,7 @@ function parseEmbed(value: unknown): EmbedConfig {
     legend: raw.legend ?? DEFAULT_EMBED.legend,
     title: raw.title ?? DEFAULT_EMBED.title,
     height: Number(raw.height) > 0 ? Number(raw.height) : DEFAULT_EMBED.height,
+    addressSearch: raw.addressSearch === true,
   };
 }
 
@@ -281,6 +293,22 @@ function ViewCard({
               />
             </div>
           )}
+
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+            <div className="min-w-0">
+              <Label htmlFor={`search-${view.id}`} className="font-secondary text-xs">
+                Address search
+              </Label>
+              <p className="font-secondary text-[11px] text-muted-foreground">
+                Lets visitors search for an address or place on this view.
+              </p>
+            </div>
+            <Switch
+              id={`search-${view.id}`}
+              checked={embed.addressSearch}
+              onCheckedChange={(checked) => saveEmbed({ ...embed, addressSearch: checked })}
+            />
+          </div>
 
           <div className="space-y-3 rounded-lg border border-border px-3 py-3">
             <p className="text-xs font-semibold">Embed</p>

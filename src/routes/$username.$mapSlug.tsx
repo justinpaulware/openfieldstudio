@@ -16,6 +16,7 @@ export const Route = createFileRoute("/$username/$mapSlug")({
     ...(off(search["legend"]) ? { legend: false as const } : {}),
     ...(off(search["title"]) ? { title: false as const } : {}),
     ...(off(search["views"]) ? { views: false as const } : {}),
+    ...(off(search["search"]) ? { search: false as const } : {}),
   }),
   loader: async ({ params }) => {
     const data = await getPublishedMap({

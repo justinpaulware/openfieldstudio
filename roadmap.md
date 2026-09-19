@@ -30,3 +30,11 @@
 - Each view card: editable address, public URL copy/open, navigation toggle, its own embed settings and code, publish/unpublish.
 - Global embed section removed; unsaved-changes warning on page unload.
 - Folder names in the Projects library rename inline (click name, commits on blur/Enter).
+
+## Address search on published maps (Tab 21) — complete (2026-09-19)
+- Per-view "Address search" toggle in the Publish tab (off by default, stored in the view's embed settings).
+- "Search location" card under the Title card, matching the Views/Legend card style.
+- OpenStreetMap place lookup through a server function, biased to the current map extent, 300ms debounce + cache.
+- Selecting a result flies/zooms the map and drops a temporary marker; X clears the marker and keeps the position.
+- `?search=0` hides the card, matching the other viewer flags.
+- Future (not built): use my location, recent searches, layer-attribute search.

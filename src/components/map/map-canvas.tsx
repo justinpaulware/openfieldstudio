@@ -54,7 +54,9 @@ export type RenderLayer = {
 
 export type MapHandle = {
   fitBbox: (bbox: Bbox, padding?: number) => void;
-  flyTo: (lng: number, lat: number) => void;
+  flyTo: (lng: number, lat: number, zoom?: number) => void;
+  /** Current extent as [west, south, east, north]. */
+  getBounds: () => [number, number, number, number] | null;
   /** Jump to a saved framing (used when switching project views). */
   setView: (view: {
     center: [number, number];
@@ -111,6 +113,8 @@ type Props = {
   onPick?: (lng: number, lat: number) => void;
   /** Temporary marker drawn at this location, e.g. a comment being written. */
   pin?: [number, number] | null;
+  /** Temporary marker for the selected address-search result. */
+  searchPin?: [number, number] | null;
   /** Approved comments drawn as their own markers. */
   commentPins?: { id: string; lng: number; lat: number }[];
   /** Approved line/area comments drawn as a GeoJSON overlay. */
@@ -139,6 +143,7 @@ export default function MapCanvas({
   pickMode = false,
   onPick,
   pin = null,
+  searchPin = null,
   commentPins,
   commentShapes,
   draftShape = null,
@@ -205,10 +210,31 @@ export default function MapCanvas({
     }
   }, [pin]);
 
+  // Temporary marker for the selected address-search result.
+  const searchPinRef = useRef<maplibregl.Marker | null>(null);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!searchPin) {
+      searchPinRef.current?.remove();
+      searchPinRef.current = null;
+      return;
+    }
+    if (!searchPinRef.current) {
+      searchPinRef.current = new maplibregl.Marker({ color: "#f2c14e" })
+        .setLngLat(searchPin)
+        .addTo(map);
+    } else {
+      searchPinRef.current.setLngLat(searchPin);
+    }
+  }, [searchPin]);
+
   useEffect(
     () => () => {
       pinRef.current?.remove();
       pinRef.current = null;
+      searchPinRef.current?.remove();
+      searchPinRef.current = null;
     },
     [],
   );
@@ -432,7 +458,14 @@ export default function MapCanvas({
           { padding, duration: 700, maxZoom: 16 },
         );
       },
-      flyTo: (lng, lat) => mapRef.current?.flyTo({ center: [lng, lat], zoom: 14, duration: 700 }),
+      flyTo: (lng, lat, zoom = 14) =>
+        mapRef.current?.flyTo({ center: [lng, lat], zoom, duration: 700 }),
+      getBounds: () => {
+        const map = mapRef.current;
+        if (!map) return null;
+        const b = map.getBounds();
+        return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+      },
       setView: (view) =>
         mapRef.current?.easeTo({
           center: view.center,

@@ -129,6 +129,9 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
       is_main: v.is_main,
     })),
     viewNav: project.view_nav_enabled && view.show_view_nav && views.length > 1,
+    // Per-view address search flag, stored alongside the embed settings.
+    addressSearch:
+      (view.embed_config as { addressSearch?: boolean } | null)?.addressSearch === true,
     layers,
     folders: (foldersResult.data ?? []) as PublishedFolder[],
   };

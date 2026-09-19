@@ -16,6 +16,8 @@ import {
 } from "@/components/comments/comment-panel";
 import { getPublishedLayerData, listApprovedComments } from "@/lib/publish.functions";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
+import { AddressSearchCard } from "@/components/public/address-search-card";
+import type { PlaceResult } from "@/lib/geocode.functions";
 import { filterCollection, parseFilterConfig } from "@/lib/layer-filter";
 import {
   MapLegend,
@@ -42,7 +44,7 @@ export const SITE = "https://openfield.nu";
 type ViewerLayer = Tables<"layers"> & { layer_styles: StyleRelation };
 type ViewerFolder = Tables<"layer_folders">;
 
-export type ViewerSearch = { legend?: false; title?: false; views?: false };
+export type ViewerSearch = { legend?: false; title?: false; views?: false; search?: false };
 
 /** Shape returned by the published-map loader. */
 export type PublishedMapData = {
@@ -52,6 +54,8 @@ export type PublishedMapData = {
   views?: SwitcherView[];
   /** True when the project wants the view switcher shown on this view. */
   viewNav?: boolean;
+  /** True when this view enables the address-search card. */
+  addressSearch?: boolean;
   layers: unknown[];
   folders: unknown[];
 };
@@ -100,6 +104,8 @@ export function PublicMapViewer({
   const [vertices, setVertices] = useState<[number, number][]>([]);
   const [commentsVisible, setCommentsVisible] = useState(true);
   const [selectedComment, setSelectedComment] = useState<string | null>(null);
+  const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
+  const showSearch = search.search !== false && Boolean(loaderData.addressSearch);
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
@@ -371,6 +377,7 @@ export function PublicMapViewer({
                 else setVertices((current) => [...current, [lng, lat]]);
               }}
               pin={drawMode === "point" && pin ? [pin.lng, pin.lat] : null}
+              searchPin={searchPin}
               commentPins={commentMarkers}
               commentShapes={commentShapes}
               draftShape={draftShape}
@@ -423,6 +430,21 @@ export function PublicMapViewer({
 
         <div className="pointer-events-auto absolute left-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] flex-col items-start gap-2 overflow-y-auto">
           {showTitle && <MapTitleCard title={project.title} description={project.description} />}
+          {showSearch && (
+            <AddressSearchCard
+              hasMarker={searchPin !== null}
+              getViewbox={() => mapRef.current?.getBounds() ?? null}
+              onClear={() => setSearchPin(null)}
+              onSelect={(result: PlaceResult) => {
+                setSearchPin([result.lng, result.lat]);
+                if (result.bbox && result.kind !== "address") {
+                  mapRef.current?.fitBbox(result.bbox, 64);
+                } else {
+                  mapRef.current?.flyTo(result.lng, result.lat, result.kind === "address" ? 16 : 13);
+                }
+              }}
+            />
+          )}
           {showViews && (
             <ViewSwitcherCard
               views={views}
