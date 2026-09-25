@@ -37,12 +37,60 @@ function classify(row: {
 }
 
 function splitLabel(display: string) {
-  const parts = display.split(",").map((part) => part.trim());
-  const name = parts.shift() ?? display;
+  const parts = display.split(",").map((part) => part.trim()).filter(Boolean);
+  let name = parts.shift() ?? display;
+  // Nominatim puts a comma between the house number and the street; rejoin them
+  // so the primary line reads "383 Macon Street" instead of just "383".
+  if (/^\d+[a-z]?$/i.test(name) && parts.length) name = `${name} ${parts.shift()}`;
   // Keep the context short: locality, region, country.
-  const context = parts.filter(Boolean).slice(0, 3).join(", ");
+  const context = parts.slice(0, 3).join(", ");
   return { name, context };
 }
+
+type AddressDetails = Record<string, string | undefined>;
+
+/** Build "383 Macon Street" + "Bedford-Stuyvesant, Brooklyn, NY 11233". */
+function formatAddress(
+  address: AddressDetails | undefined,
+  display: string,
+  fallbackName: string,
+) {
+  if (!address) return splitLabel(display);
+
+  const road = address["road"] ?? address["pedestrian"] ?? address["footway"];
+  const houseNumber = address["house_number"];
+  const primary =
+    (fallbackName && fallbackName.trim()) ||
+    (road ? [houseNumber, road].filter(Boolean).join(" ") : "") ||
+    splitLabel(display).name;
+
+  const locality =
+    address["neighbourhood"] ?? address["hamlet"] ?? address["village"] ?? address["suburb"];
+  const city =
+    address["city"] ??
+    address["town"] ??
+    address["borough"] ??
+    address["municipality"] ??
+    address["county"];
+  // Prefer the borough/suburb over the administrative city when they differ
+  // (OSM reports Brooklyn as `suburb` and New York as `city`).
+  const cityLine =
+    address["suburb"] && address["suburb"] !== locality ? address["suburb"] : city;
+
+  const iso = address["ISO3166-2-lvl4"];
+  const region = iso && iso.includes("-") ? iso.split("-")[1] : address["state"];
+  const postcode = address["postcode"];
+
+  const pieces = [locality, cityLine].filter(
+    (piece, index, all): piece is string => Boolean(piece) && all.indexOf(piece) === index,
+  );
+  const tail = [region, postcode].filter(Boolean).join(" ");
+  if (tail) pieces.push(tail);
+  if (!pieces.length) return { name: primary, context: splitLabel(display).context };
+
+  return { name: primary, context: pieces.join(", ") };
+}
+
 
 /**
  * Place lookup for the published-map search card. Runs server-side against
