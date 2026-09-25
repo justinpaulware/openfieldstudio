@@ -499,6 +499,7 @@ export default function MapCanvas({
         map.moveLayer("of-highlight-casing");
         map.moveLayer("of-highlight-line");
       }
+      console.warn("HLDEBUG2", map.getStyle().layers?.slice(-3).map((l) => l.id).join(","), map.getLayoutProperty("of-highlight-line", "visibility"));
     };
     render();
     map.on("styledata", render);
