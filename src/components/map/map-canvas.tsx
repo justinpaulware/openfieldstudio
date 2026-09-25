@@ -447,9 +447,15 @@ export default function MapCanvas({
   }, [commentShapes, draftShape, draftVertices, selectedCommentId, mapLoaded]);
 
 
-  // Highlight outline for a feature found by address search.
-  const highlightRef = useRef(highlight);
-  highlightRef.current = highlight;
+  // Highlight outline: the feature found by address search, or the polygon the
+  // visitor last clicked (a click always takes over the outline).
+  const [clickHighlight, setClickHighlight] = useState<unknown | null>(null);
+  useEffect(() => {
+    setClickHighlight(null);
+  }, [highlight]);
+  const activeHighlight = clickHighlight ?? highlight;
+  const highlightRef = useRef(activeHighlight);
+  highlightRef.current = activeHighlight;
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
