@@ -447,9 +447,15 @@ export default function MapCanvas({
   }, [commentShapes, draftShape, draftVertices, selectedCommentId, mapLoaded]);
 
 
-  // Highlight outline for a feature found by address search.
-  const highlightRef = useRef(highlight);
-  highlightRef.current = highlight;
+  // Highlight outline: the feature found by address search, or the polygon the
+  // visitor last clicked (a click always takes over the outline).
+  const [clickHighlight, setClickHighlight] = useState<unknown | null>(null);
+  useEffect(() => {
+    setClickHighlight(null);
+  }, [highlight]);
+  const activeHighlight = clickHighlight ?? highlight;
+  const highlightRef = useRef(activeHighlight);
+  highlightRef.current = activeHighlight;
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -503,7 +509,7 @@ export default function MapCanvas({
     return () => {
       map.off("styledata", render);
     };
-  }, [mapLoaded, highlight]);
+  }, [mapLoaded, activeHighlight]);
 
   // Programmatic popup (address-to-feature lookup).
   const forcedPopupRef = useRef(false);
@@ -772,7 +778,34 @@ export default function MapCanvas({
       if (!feature) return null;
       const layer = owner.get(String(feature.layer.id));
       if (!layer) return null;
-      return { layer, properties: (feature.properties ?? {}) as Record<string, unknown> };
+      return {
+        layer,
+        properties: (feature.properties ?? {}) as Record<string, unknown>,
+        feature,
+      };
+    };
+
+    // Rendered features can be clipped at vector-tile edges, so prefer the
+    // matching feature from the layer's own data for a complete outline.
+    const polygonGeometry = (hit: NonNullable<ReturnType<typeof hitFor>>) => {
+      const rendered = hit.feature.geometry as { type?: string } | undefined;
+      const source = hit.layer.data?.features ?? [];
+      const id = hit.feature.id;
+      let match =
+        id === undefined || id === null
+          ? undefined
+          : source.find((f) => (f as { id?: unknown }).id === id);
+      if (!match) {
+        const keys = Object.keys(hit.properties);
+        match = source.find((f) => {
+          const props = (f.properties ?? {}) as Record<string, unknown>;
+          return keys.every((key) => String(props[key] ?? "") === String(hit.properties[key] ?? ""));
+        });
+      }
+      const geometry = (match?.geometry ?? rendered) as { type?: string } | undefined;
+      if (!geometry) return null;
+      if (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon") return null;
+      return geometry as unknown;
     };
 
     const onClick = (event: maplibregl.MapMouseEvent) => {
@@ -785,8 +818,10 @@ export default function MapCanvas({
       const hit = hitFor(event.point);
       if (!hit || hit.layer.style.popup.trigger !== "click") {
         setPopupHit((current) => (current && current.spec.trigger === "click" ? null : current));
+        setClickHighlight(null);
         return;
       }
+      setClickHighlight(polygonGeometry(hit));
       setPopupHit({
         layerName: hit.layer.name,
         spec: hit.layer.style.popup,
@@ -881,7 +916,10 @@ export default function MapCanvas({
               {popupHit.spec.trigger === "click" && (
                 <button
                   type="button"
-                  onClick={() => setPopupHit(null)}
+                  onClick={() => {
+                    setPopupHit(null);
+                    setClickHighlight(null);
+                  }}
                   aria-label="Close popup"
                   className="rounded p-0.5 opacity-60 hover:bg-black/5 hover:opacity-100"
                 >
