@@ -18,6 +18,7 @@ import { getPublishedLayerData, listApprovedComments } from "@/lib/publish.funct
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import { AddressSearchCard } from "@/components/public/address-search-card";
 import type { PlaceResult } from "@/lib/geocode.functions";
+import { DEFAULT_NO_MATCH, findContainingFeature, parseLookup } from "@/lib/address-lookup";
 import { filterCollection, parseFilterConfig } from "@/lib/layer-filter";
 import {
   MapLegend,
@@ -56,6 +57,8 @@ export type PublishedMapData = {
   viewNav?: boolean;
   /** True when this view enables the address-search card. */
   addressSearch?: boolean;
+  /** Optional address-to-feature lookup settings for this view. */
+  addressLookup?: unknown;
   layers: unknown[];
   folders: unknown[];
 };
@@ -106,6 +109,20 @@ export function PublicMapViewer({
   const [selectedComment, setSelectedComment] = useState<string | null>(null);
   const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
   const showSearch = search.search !== false && Boolean(loaderData.addressSearch);
+  const lookup = parseLookup(loaderData.addressLookup);
+  const [highlight, setHighlight] = useState<unknown | null>(null);
+  const [featurePopup, setFeaturePopup] = useState<{
+    layerId: string;
+    properties: Record<string, unknown>;
+    key: number;
+  } | null>(null);
+  const [searchNotice, setSearchNotice] = useState<string | null>(null);
+  const clearSearch = () => {
+    setSearchPin(null);
+    setHighlight(null);
+    setFeaturePopup(null);
+    setSearchNotice(null);
+  };
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
@@ -385,6 +402,9 @@ export function PublicMapViewer({
               selectedCommentId={selectedComment}
               onCommentClick={(id) => setSelectedComment(id)}
               handleRef={mapRef}
+              highlight={highlight}
+              featurePopup={featurePopup}
+              onMapClick={() => setHighlight(null)}
               rightSlot={
                 commentsEnabled ? (
                   <CommentPanel
@@ -434,13 +454,47 @@ export function PublicMapViewer({
             <AddressSearchCard
               hasMarker={searchPin !== null}
               getViewbox={() => mapRef.current?.getBounds() ?? null}
-              onClear={() => setSearchPin(null)}
+              notice={searchNotice}
+              onClear={clearSearch}
               onSelect={(result: PlaceResult) => {
                 setSearchPin([result.lng, result.lat]);
-                if (result.bbox && result.kind !== "address") {
-                  mapRef.current?.fitBbox(result.bbox, 64);
-                } else {
-                  mapRef.current?.flyTo(result.lng, result.lat, result.kind === "address" ? 16 : 13);
+                setHighlight(null);
+                setFeaturePopup(null);
+                setSearchNotice(null);
+                const goToResult = () => {
+                  if (result.bbox && result.kind !== "address") {
+                    mapRef.current?.fitBbox(result.bbox, 64);
+                  } else {
+                    mapRef.current?.flyTo(result.lng, result.lat, result.kind === "address" ? 16 : 13);
+                  }
+                };
+                const lookupLayers =
+                  lookup.mode === "feature"
+                    ? ordered.filter((l) => lookup.layerIds.includes(l.id) && isVisible(l))
+                    : [];
+                if (!lookupLayers.length) {
+                  goToResult();
+                  return;
+                }
+                let layer = lookupLayers[0]!;
+                let hit: ReturnType<typeof findContainingFeature> = null;
+                for (const candidate of lookupLayers) {
+                  const found = findContainingFeature(dataById[candidate.id] ?? null, result.lng, result.lat);
+                  if (found && (!hit || found.area < hit.area)) {
+                    hit = found;
+                    layer = candidate;
+                  }
+                }
+                if (!hit) {
+                  goToResult();
+                  setSearchNotice(lookup.noMatchMessage.trim() || DEFAULT_NO_MATCH);
+                  return;
+                }
+                if (lookup.zoomTo === "feature") mapRef.current?.fitBbox(hit.bbox, 64);
+                else goToResult();
+                if (lookup.highlight) setHighlight(hit.geometry);
+                if (lookup.openPopup) {
+                  setFeaturePopup({ layerId: layer.id, properties: hit.properties, key: Date.now() });
                 }
               }}
             />

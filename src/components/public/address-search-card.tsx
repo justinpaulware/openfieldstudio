@@ -17,8 +17,11 @@ export function AddressSearchCard({
   hasMarker,
   /** Current map extent as [west, south, east, north], used to bias results. */
   getViewbox,
+  notice,
   className,
 }: {
+  /** Status line shown under the input after a pick (e.g. no containing feature). */
+  notice?: string | null;
   onSelect: (result: PlaceResult) => void;
   onClear: () => void;
   hasMarker: boolean;
@@ -105,6 +108,19 @@ export function AddressSearchCard({
               <Loader2 className="h-3 w-3 animate-spin" />
               Searching
             </p>
+          )}
+
+          {notice && picked && (
+            <div className="mt-2 rounded-md bg-map-overlay-foreground/5 px-2 py-1.5 font-secondary text-[11px]">
+              <p className="opacity-80">{notice}</p>
+              <button
+                type="button"
+                onClick={clear}
+                className="mt-1 font-medium text-primary hover:underline"
+              >
+                Clear search
+              </button>
+            </div>
           )}
 
           {showEmpty && (
