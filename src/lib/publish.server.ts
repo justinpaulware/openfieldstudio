@@ -132,6 +132,7 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
     // Per-view address search flag, stored alongside the embed settings.
     addressSearch:
       (view.embed_config as { addressSearch?: boolean } | null)?.addressSearch === true,
+    addressLookup: (view.embed_config as { addressLookup?: unknown } | null)?.addressLookup ?? null,
     layers,
     folders: (foldersResult.data ?? []) as PublishedFolder[],
   };

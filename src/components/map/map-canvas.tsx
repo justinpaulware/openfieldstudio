@@ -126,6 +126,12 @@ type Props = {
   onCommentClick?: (id: string) => void;
   /** Extra cards stacked under the info popup in the top-right column. */
   rightSlot?: ReactNode;
+  /** Geometry outlined on top of every layer (e.g. the feature found by address search). */
+  highlight?: unknown | null;
+  /** Opens a layer's popup programmatically; change `key` to reopen. */
+  featurePopup?: { layerId: string; properties: Record<string, unknown>; key: number } | null;
+  /** Called on every ordinary (non-placement) map click. */
+  onMapClick?: () => void;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -151,6 +157,9 @@ export default function MapCanvas({
   selectedCommentId = null,
   onCommentClick,
   rightSlot,
+  highlight = null,
+  featurePopup = null,
+  onMapClick,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -192,6 +201,8 @@ export default function MapCanvas({
   pickModeRef.current = pickMode;
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
+  const onMapClickRef = useRef(onMapClick);
+  onMapClickRef.current = onMapClick;
   const pinRef = useRef<maplibregl.Marker | null>(null);
 
   // Temporary pin for the comment being written.
@@ -435,6 +446,83 @@ export default function MapCanvas({
     } as never);
   }, [commentShapes, draftShape, draftVertices, selectedCommentId, mapLoaded]);
 
+
+  // Highlight outline for a feature found by address search.
+  const highlightRef = useRef(highlight);
+  highlightRef.current = highlight;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    let retry = false;
+    const render = () => {
+      if (!map.isStyleLoaded()) {
+        if (!retry) {
+          retry = true;
+          map.once("idle", () => {
+            retry = false;
+            render();
+          });
+        }
+        return;
+      }
+      const geometry = highlightRef.current;
+      const data = {
+        type: "FeatureCollection",
+        features: geometry ? [{ type: "Feature", properties: {}, geometry }] : [],
+      };
+      const source = map.getSource("of-highlight") as maplibregl.GeoJSONSource | undefined;
+      if (source) source.setData(data as never);
+      else map.addSource("of-highlight", { type: "geojson", data: data as never });
+      if (!map.getLayer("of-highlight-casing")) {
+        map.addLayer({
+          id: "of-highlight-casing",
+          type: "line",
+          source: "of-highlight",
+          paint: { "line-color": "#ffffff", "line-width": 7, "line-opacity": 0.9 },
+          layout: { "line-join": "round" },
+        });
+      }
+      if (!map.getLayer("of-highlight-line")) {
+        map.addLayer({
+          id: "of-highlight-line",
+          type: "line",
+          source: "of-highlight",
+          paint: { "line-color": "#f2a900", "line-width": 3.5 },
+          layout: { "line-join": "round" },
+        });
+      }
+      // Keep the outline above data layers added later.
+      const top = map.getStyle().layers?.at(-1)?.id;
+      if (top !== "of-highlight-line") {
+        map.moveLayer("of-highlight-casing");
+        map.moveLayer("of-highlight-line");
+      }
+    };
+    render();
+    map.on("styledata", render);
+    return () => {
+      map.off("styledata", render);
+    };
+  }, [mapLoaded, highlight]);
+
+  // Programmatic popup (address-to-feature lookup).
+  const forcedPopupRef = useRef(false);
+  useEffect(() => {
+    if (!featurePopup) {
+      if (forcedPopupRef.current) setPopupHit(null);
+      forcedPopupRef.current = false;
+      return;
+    }
+    const layer = layersRef.current.find((l) => l.id === featurePopup.layerId);
+    if (!layer || !layer.style.popup.enabled) return;
+    setPopupHit({
+      layerName: layer.name,
+      // Docked like a click popup so it stays open until dismissed.
+      spec: { ...layer.style.popup, trigger: "click" },
+      properties: featurePopup.properties,
+    });
+    forcedPopupRef.current = true;
+  }, [featurePopup]);
 
   // Crosshair while placing a comment.
   useEffect(() => {
@@ -692,6 +780,8 @@ export default function MapCanvas({
         onPickRef.current?.(event.lngLat.lng, event.lngLat.lat);
         return;
       }
+      forcedPopupRef.current = false;
+      onMapClickRef.current?.();
       const hit = hitFor(event.point);
       if (!hit || hit.layer.style.popup.trigger !== "click") {
         setPopupHit((current) => (current && current.spec.trigger === "click" ? null : current));
@@ -712,6 +802,7 @@ export default function MapCanvas({
       const hit = hitFor(event.point);
       map.getCanvas().style.cursor = hit ? "pointer" : "";
       if (hit && hit.layer.style.popup.trigger === "hover") {
+        forcedPopupRef.current = false;
         setPopupHit({
           layerName: hit.layer.name,
           spec: hit.layer.style.popup,

@@ -24,6 +24,11 @@ import { slugify } from "@/lib/slug";
 import { cn } from "@/lib/utils";
 import { useMyProfile } from "@/hooks/use-profile";
 import { useProjectViews, useUpdateView, type ProjectView } from "@/lib/views";
+import {
+  DEFAULT_NO_MATCH,
+  parseLookup,
+  type AddressLookupConfig,
+} from "@/lib/address-lookup";
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/publish")({
   head: () => ({
@@ -47,6 +52,8 @@ type EmbedConfig = {
   height: number;
   /** Shows the address-search card on the published view. */
   addressSearch: boolean;
+  /** What a search does beyond dropping a pin. */
+  addressLookup: AddressLookupConfig;
 };
 
 const DEFAULT_EMBED: EmbedConfig = {
@@ -54,6 +61,7 @@ const DEFAULT_EMBED: EmbedConfig = {
   title: true,
   height: 540,
   addressSearch: false,
+  addressLookup: parseLookup(null),
 };
 
 function parseEmbed(value: unknown): EmbedConfig {
@@ -64,6 +72,7 @@ function parseEmbed(value: unknown): EmbedConfig {
     title: raw.title ?? DEFAULT_EMBED.title,
     height: Number(raw.height) > 0 ? Number(raw.height) : DEFAULT_EMBED.height,
     addressSearch: raw.addressSearch === true,
+    addressLookup: parseLookup(raw.addressLookup),
   };
 }
 
@@ -171,6 +180,40 @@ function ViewCard({
       { onError: (e: Error) => toast.error(e.message) },
     );
   };
+
+  const polygonLayers = useQuery({
+    queryKey: ["lookup-layers", projectId, view.id],
+    enabled: open && embed.addressSearch,
+    queryFn: async () => {
+      const [layersRes, viewRes] = await Promise.all([
+        supabase
+          .from("layers")
+          .select("id, name, geometry_type, visible")
+          .eq("project_id", projectId)
+          .order("name"),
+        supabase.from("view_layers").select("layer_id, visible").eq("view_id", view.id),
+      ]);
+      if (layersRes.error) throw layersRes.error;
+      const override = new Map((viewRes.data ?? []).map((r) => [r.layer_id, r.visible]));
+      return (layersRes.data ?? [])
+        .filter((l) => l.geometry_type === "polygon" || l.geometry_type === "mixed")
+        .map((l) => ({ id: l.id, name: l.name, visible: override.get(l.id) ?? l.visible }));
+    },
+  });
+  const lookup = embed.addressLookup;
+  const setLookup = (patch: Partial<AddressLookupConfig>) =>
+    saveEmbed({ ...embed, addressLookup: { ...lookup, ...patch } });
+  const chosen = (polygonLayers.data ?? []).filter((l) => lookup.layerIds.includes(l.id));
+  const lookupWarning =
+    lookup.mode === "feature" && polygonLayers.data
+      ? !lookup.layerIds.length
+        ? "Pick at least one layer. Until then, search only locates the address."
+        : chosen.length < lookup.layerIds.length
+          ? "A chosen layer was removed. It will be skipped."
+          : chosen.some((l) => !l.visible)
+            ? "A chosen layer is hidden in this view. It will be skipped."
+            : null
+      : null;
 
   const saveEmbed = (next: EmbedConfig) => {
     setEmbed(next);
@@ -309,6 +352,133 @@ function ViewCard({
               onCheckedChange={(checked) => saveEmbed({ ...embed, addressSearch: checked })}
             />
           </div>
+
+          {embed.addressSearch && (
+            <div className="space-y-3 rounded-lg border border-border px-3 py-3">
+              <div className="space-y-1.5">
+                <Label htmlFor={`lookup-mode-${view.id}`} className="font-secondary text-xs">
+                  Search behavior
+                </Label>
+                <select
+                  id={`lookup-mode-${view.id}`}
+                  className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:max-w-sm"
+                  value={lookup.mode}
+                  onChange={(e) =>
+                    setLookup({ mode: e.target.value === "feature" ? "feature" : "locate" })
+                  }
+                >
+                  <option value="locate">Locate address only</option>
+                  <option value="feature">Find containing feature</option>
+                </select>
+                <p className="font-secondary text-[11px] text-muted-foreground">
+                  {lookup.mode === "feature"
+                    ? "Finds the shape the address falls in, highlights it and opens its popup."
+                    : "Zooms to the address and drops a pin."}
+                </p>
+              </div>
+
+              {lookup.mode === "feature" && (
+                <>
+                  <div className="space-y-1.5">
+                    <p className="font-secondary text-xs font-medium">Lookup layers</p>
+                    <div className="space-y-1 sm:max-w-sm">
+                      {(polygonLayers.data ?? []).map((l) => (
+                        <label
+                          key={l.id}
+                          className="flex items-center gap-2 rounded-md border border-border px-3 py-1.5 font-secondary text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            checked={lookup.layerIds.includes(l.id)}
+                            onChange={(e) =>
+                              setLookup({
+                                layerIds: e.target.checked
+                                  ? [...lookup.layerIds, l.id]
+                                  : lookup.layerIds.filter((id) => id !== l.id),
+                              })
+                            }
+                          />
+                          <span className="min-w-0 flex-1 truncate">{l.name}</span>
+                          {!l.visible && (
+                            <span className="text-muted-foreground">hidden in this view</span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="font-secondary text-[11px] text-muted-foreground">
+                      Pick every layer that makes up the map, e.g. both represented and unrepresented districts.
+                    </p>
+                    {polygonLayers.data && polygonLayers.data.length === 0 && (
+                      <p className="font-secondary text-[11px] text-muted-foreground">
+                        This project has no polygon layers yet.
+                      </p>
+                    )}
+                    {lookupWarning && (
+                      <p className="font-secondary text-[11px] text-destructive">{lookupWarning}</p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(
+                      [
+                        ["highlight", "Highlight feature"],
+                        ["openPopup", "Open popup"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2"
+                      >
+                        <Label htmlFor={`${key}-${view.id}`} className="font-secondary text-xs">
+                          {label}
+                        </Label>
+                        <Switch
+                          id={`${key}-${view.id}`}
+                          checked={lookup[key]}
+                          onCheckedChange={(checked) => setLookup({ [key]: checked })}
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`lookup-zoom-${view.id}`} className="font-secondary text-xs">
+                      Zoom to
+                    </Label>
+                    <select
+                      id={`lookup-zoom-${view.id}`}
+                      className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm sm:max-w-sm"
+                      value={lookup.zoomTo}
+                      onChange={(e) =>
+                        setLookup({ zoomTo: e.target.value === "feature" ? "feature" : "address" })
+                      }
+                    >
+                      <option value="address">The address</option>
+                      <option value="feature">The whole feature</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`lookup-msg-${view.id}`} className="font-secondary text-xs">
+                      No-match message
+                    </Label>
+                    <Input
+                      id={`lookup-msg-${view.id}`}
+                      defaultValue={lookup.noMatchMessage}
+                      placeholder={DEFAULT_NO_MATCH}
+                      maxLength={300}
+                      onBlur={(e) => {
+                        if (e.target.value !== lookup.noMatchMessage) {
+                          setLookup({ noMatchMessage: e.target.value });
+                        }
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="space-y-3 rounded-lg border border-border px-3 py-3">
             <p className="text-xs font-semibold">Embed</p>
