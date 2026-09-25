@@ -31,19 +31,19 @@ export function AddressSearchCard({
   const [open, setOpen] = useState(true);
   const [value, setValue] = useState("");
   const [query, setQuery] = useState("");
-  const [picked, setPicked] = useState(false);
+  const [selected, setSelected] = useState<PlaceResult | null>(null);
   const boxRef = useRef<[number, number, number, number] | null>(null);
 
   // Debounce typing so we don't query on every keystroke.
   useEffect(() => {
-    if (picked) return;
+    if (selected) return;
     const trimmed = value.trim();
     const timer = window.setTimeout(() => {
       boxRef.current = getViewbox();
       setQuery(trimmed.length >= 2 ? trimmed : "");
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [value, picked, getViewbox]);
+  }, [value, selected, getViewbox]);
 
   const results = useQuery({
     queryKey: ["place-search", query, boxRef.current?.join(",") ?? ""],
@@ -52,14 +52,14 @@ export function AddressSearchCard({
     staleTime: 5 * 60 * 1000,
   });
 
-  const list = query.length >= 2 && !picked ? (results.data ?? []) : [];
+  const list = query.length >= 2 && !selected ? (results.data ?? []) : [];
   const showEmpty =
-    query.length >= 2 && !picked && !results.isFetching && (results.data?.length ?? 0) === 0;
+    query.length >= 2 && !selected && !results.isFetching && (results.data?.length ?? 0) === 0;
 
   const clear = () => {
     setValue("");
     setQuery("");
-    setPicked(false);
+    setSelected(null);
     onClear();
   };
 
@@ -122,14 +122,14 @@ export function AddressSearchCard({
           )}
 
 
-          {results.isFetching && !picked && query.length >= 2 && (
+          {results.isFetching && !selected && query.length >= 2 && (
             <p className="mt-2 flex items-center gap-1.5 font-secondary text-[11px] opacity-70">
               <Loader2 className="h-3 w-3 animate-spin" />
               Searching
             </p>
           )}
 
-          {notice && picked && (
+          {notice && selected && (
             <div className="mt-2 rounded-md bg-map-overlay-foreground/5 px-2 py-1.5 font-secondary text-[11px]">
               <p className="opacity-80">{notice}</p>
               <button
@@ -153,7 +153,7 @@ export function AddressSearchCard({
                   <button
                     type="button"
                     onClick={() => {
-                      setPicked(true);
+                      setSelected(result);
                       setValue(result.name);
                       onSelect(result);
                     }}
