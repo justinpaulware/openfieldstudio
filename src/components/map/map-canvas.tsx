@@ -794,7 +794,7 @@ export default function MapCanvas({
       let match =
         id === undefined || id === null
           ? undefined
-          : source.find((f) => f.id === id);
+          : source.find((f) => (f as { id?: unknown }).id === id);
       if (!match) {
         const keys = Object.keys(hit.properties);
         match = source.find((f) => {
