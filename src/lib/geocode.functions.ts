@@ -137,7 +137,12 @@ export const searchPlaces = createServerFn({ method: "GET" })
       const rows = (await response.json()) as Array<Record<string, unknown>>;
       const results: PlaceResult[] = rows.slice(0, 6).map((row, index) => {
         const display = String(row["display_name"] ?? "");
-        const { name, context } = splitLabel(display);
+        const { name, context } = formatAddress(
+          row["address"] as AddressDetails | undefined,
+          display,
+          String(row["name"] ?? ""),
+        );
+
         const bb = row["boundingbox"] as string[] | undefined;
         const bbox =
           bb && bb.length === 4
