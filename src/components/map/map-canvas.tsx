@@ -455,7 +455,6 @@ export default function MapCanvas({
     if (!map || !mapLoaded) return;
     let retry = false;
     const render = () => {
-      console.warn("HLDEBUG0", map.isStyleLoaded());
       if (!map.isStyleLoaded()) {
         if (!retry) {
           retry = true;
@@ -467,7 +466,6 @@ export default function MapCanvas({
         return;
       }
       const geometry = highlightRef.current;
-      console.warn("HLDEBUG", Boolean(geometry), JSON.stringify(geometry)?.slice(0, 80));
       const data = {
         type: "FeatureCollection",
         features: geometry ? [{ type: "Feature", properties: {}, geometry }] : [],
@@ -499,7 +497,6 @@ export default function MapCanvas({
         map.moveLayer("of-highlight-casing");
         map.moveLayer("of-highlight-line");
       }
-      console.warn("HLDEBUG2", map.getStyle().layers?.slice(-3).map((l) => l.id).join(","), map.getLayoutProperty("of-highlight-line", "visibility"));
     };
     render();
     map.on("styledata", render);
