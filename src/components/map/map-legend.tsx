@@ -519,7 +519,7 @@ export function MapTitleCard({
           <p
             ref={textRef}
             className={cn(
-              "font-secondary text-xs leading-relaxed opacity-70",
+              "whitespace-pre-line font-secondary text-xs leading-relaxed opacity-70",
               !expanded && "line-clamp-3",
             )}
           >
