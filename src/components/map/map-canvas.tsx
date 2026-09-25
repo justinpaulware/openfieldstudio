@@ -798,13 +798,18 @@ export default function MapCanvas({
                 </button>
               )}
             </div>
-            <dl className={popupHit.spec.density === "roomy" ? "space-y-2" : "space-y-1"}>
-              {popupRows(popupHit.spec, popupHit.properties).map((row) => {
+            <dl
+              key={`${popupHit.layerName}-${popupTitle(popupHit.spec, popupHit.properties, popupHit.layerName)}`}
+              className={popupHit.spec.density === "roomy" ? "space-y-2" : "space-y-1"}
+            >
+              {popupRows(popupHit.spec, popupHit.properties).map((row, idx) => {
                 const raw =
                   row.value === null || row.value === undefined ? "" : String(row.value);
                 return (
-                  <div key={row.label}>
-                    <dt className="text-[10px] uppercase tracking-wide opacity-60">{row.label}</dt>
+                  <div key={`${row.field}-${idx}`}>
+                    {row.label.trim() ? (
+                      <dt className="text-[10px] uppercase tracking-wide opacity-60">{row.label}</dt>
+                    ) : null}
                     <dd className="break-words text-[13px]">
                       {row.format === "link" && raw ? (
                         <a

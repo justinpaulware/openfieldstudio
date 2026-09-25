@@ -759,19 +759,22 @@ export function labelAnchorOffset(spec: LabelSpec): {
 export function popupRows(
   spec: PopupSpec,
   properties: Record<string, unknown>,
-): { label: string; value: unknown; format: PopupFieldFormat }[] {
+): { field: string; label: string; value: unknown; format: PopupFieldFormat }[] {
   const configured = spec.fields.filter((field) => field.visible);
-  const list: { label: string; value: unknown; format: PopupFieldFormat }[] = configured.length
-    ? configured.map((field) => ({
-        label: field.alias || field.name,
-        value: properties[field.name],
-        format: field.format,
-      }))
-    : Object.entries(properties).map(([name, value]) => ({
-        label: name,
-        value,
-        format: "text" as PopupFieldFormat,
-      }));
+  const list: { field: string; label: string; value: unknown; format: PopupFieldFormat }[] =
+    configured.length
+      ? configured.map((field) => ({
+          field: field.name,
+          label: field.alias || field.name,
+          value: properties[field.name],
+          format: field.format,
+        }))
+      : Object.entries(properties).map(([name, value]) => ({
+          field: name,
+          label: name,
+          value,
+          format: "text" as PopupFieldFormat,
+        }));
   if (!spec.hideEmpty) return list;
   return list.filter((row) => row.value !== null && row.value !== undefined && row.value !== "");
 }
