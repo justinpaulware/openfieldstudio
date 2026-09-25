@@ -119,7 +119,7 @@ export const searchPlaces = createServerFn({ method: "GET" })
       q: data.query,
       format: "jsonv2",
       limit: "6",
-      addressdetails: "0",
+      addressdetails: "1",
     });
     if (data.viewbox) {
       const [w, s, e, n] = data.viewbox;
