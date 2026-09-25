@@ -916,7 +916,10 @@ export default function MapCanvas({
               {popupHit.spec.trigger === "click" && (
                 <button
                   type="button"
-                  onClick={() => setPopupHit(null)}
+                  onClick={() => {
+                    setPopupHit(null);
+                    setClickHighlight(null);
+                  }}
                   aria-label="Close popup"
                   className="rounded p-0.5 opacity-60 hover:bg-black/5 hover:opacity-100"
                 >
