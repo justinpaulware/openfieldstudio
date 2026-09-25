@@ -509,7 +509,7 @@ export default function MapCanvas({
     return () => {
       map.off("styledata", render);
     };
-  }, [mapLoaded, highlight]);
+  }, [mapLoaded, activeHighlight]);
 
   // Programmatic popup (address-to-feature lookup).
   const forcedPopupRef = useRef(false);
