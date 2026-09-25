@@ -466,6 +466,7 @@ export default function MapCanvas({
         return;
       }
       const geometry = highlightRef.current;
+      console.warn("HLDEBUG", Boolean(geometry), JSON.stringify(geometry)?.slice(0, 80));
       const data = {
         type: "FeatureCollection",
         features: geometry ? [{ type: "Feature", properties: {}, geometry }] : [],
