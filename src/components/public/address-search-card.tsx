@@ -78,30 +78,49 @@ export function AddressSearchCard({
       />
       {open && (
         <div className="border-t border-map-overlay-border px-3 py-2">
-          <div className="relative">
-            <input
-              type="search"
-              value={value}
-              onChange={(event) => {
-                setPicked(false);
-                setValue(event.target.value);
-              }}
-              placeholder="Search address, place or landmark"
-              aria-label="Search address, place or landmark"
-              className="w-full rounded-md border border-map-overlay-border bg-transparent py-1.5 pl-2.5 pr-7 font-secondary text-xs outline-none placeholder:text-map-overlay-foreground/50 focus:border-primary"
-            />
-            {(value || hasMarker) && (
+          {selected ? (
+            <div className="relative rounded-md border border-map-overlay-border px-2.5 py-1.5 pr-7">
+              <p className="text-xs font-medium leading-snug">{selected.name}</p>
+              {selected.context && (
+                <p className="font-secondary text-[11px] leading-snug opacity-60">
+                  {selected.context}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={clear}
                 aria-label="Clear search"
-                className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 opacity-70 hover:bg-map-overlay-foreground/10 hover:opacity-100"
+                className="absolute right-1 top-1.5 rounded p-1 opacity-70 hover:bg-map-overlay-foreground/10 hover:opacity-100"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-            )}
-            {results.isFetching && !value.length && null}
-          </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <input
+                type="search"
+                value={value}
+                onChange={(event) => {
+                  setSelected(null);
+                  setValue(event.target.value);
+                }}
+                placeholder="Search address, place or landmark"
+                aria-label="Search address, place or landmark"
+                className="w-full rounded-md border border-map-overlay-border bg-transparent py-1.5 pl-2.5 pr-7 font-secondary text-xs outline-none placeholder:text-map-overlay-foreground/50 focus:border-primary"
+              />
+              {(value || hasMarker) && (
+                <button
+                  type="button"
+                  onClick={clear}
+                  aria-label="Clear search"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 opacity-70 hover:bg-map-overlay-foreground/10 hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
+
 
           {results.isFetching && !picked && query.length >= 2 && (
             <p className="mt-2 flex items-center gap-1.5 font-secondary text-[11px] opacity-70">
