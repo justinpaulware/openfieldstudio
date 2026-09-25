@@ -778,7 +778,34 @@ export default function MapCanvas({
       if (!feature) return null;
       const layer = owner.get(String(feature.layer.id));
       if (!layer) return null;
-      return { layer, properties: (feature.properties ?? {}) as Record<string, unknown> };
+      return {
+        layer,
+        properties: (feature.properties ?? {}) as Record<string, unknown>,
+        feature,
+      };
+    };
+
+    // Rendered features can be clipped at vector-tile edges, so prefer the
+    // matching feature from the layer's own data for a complete outline.
+    const polygonGeometry = (hit: NonNullable<ReturnType<typeof hitFor>>) => {
+      const rendered = hit.feature.geometry as { type?: string } | undefined;
+      const source = hit.layer.data?.features ?? [];
+      const id = hit.feature.id;
+      let match =
+        id === undefined || id === null
+          ? undefined
+          : source.find((f) => f.id === id);
+      if (!match) {
+        const keys = Object.keys(hit.properties);
+        match = source.find((f) => {
+          const props = (f.properties ?? {}) as Record<string, unknown>;
+          return keys.every((key) => String(props[key] ?? "") === String(hit.properties[key] ?? ""));
+        });
+      }
+      const geometry = (match?.geometry ?? rendered) as { type?: string } | undefined;
+      if (!geometry) return null;
+      if (geometry.type !== "Polygon" && geometry.type !== "MultiPolygon") return null;
+      return geometry as unknown;
     };
 
     const onClick = (event: maplibregl.MapMouseEvent) => {
@@ -791,8 +818,10 @@ export default function MapCanvas({
       const hit = hitFor(event.point);
       if (!hit || hit.layer.style.popup.trigger !== "click") {
         setPopupHit((current) => (current && current.spec.trigger === "click" ? null : current));
+        setClickHighlight(null);
         return;
       }
+      setClickHighlight(polygonGeometry(hit));
       setPopupHit({
         layerName: hit.layer.name,
         spec: hit.layer.style.popup,
