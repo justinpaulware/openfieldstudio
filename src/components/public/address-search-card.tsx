@@ -31,19 +31,19 @@ export function AddressSearchCard({
   const [open, setOpen] = useState(true);
   const [value, setValue] = useState("");
   const [query, setQuery] = useState("");
-  const [picked, setPicked] = useState(false);
+  const [selected, setSelected] = useState<PlaceResult | null>(null);
   const boxRef = useRef<[number, number, number, number] | null>(null);
 
   // Debounce typing so we don't query on every keystroke.
   useEffect(() => {
-    if (picked) return;
+    if (selected) return;
     const trimmed = value.trim();
     const timer = window.setTimeout(() => {
       boxRef.current = getViewbox();
       setQuery(trimmed.length >= 2 ? trimmed : "");
     }, 300);
     return () => window.clearTimeout(timer);
-  }, [value, picked, getViewbox]);
+  }, [value, selected, getViewbox]);
 
   const results = useQuery({
     queryKey: ["place-search", query, boxRef.current?.join(",") ?? ""],
@@ -52,14 +52,14 @@ export function AddressSearchCard({
     staleTime: 5 * 60 * 1000,
   });
 
-  const list = query.length >= 2 && !picked ? (results.data ?? []) : [];
+  const list = query.length >= 2 && !selected ? (results.data ?? []) : [];
   const showEmpty =
-    query.length >= 2 && !picked && !results.isFetching && (results.data?.length ?? 0) === 0;
+    query.length >= 2 && !selected && !results.isFetching && (results.data?.length ?? 0) === 0;
 
   const clear = () => {
     setValue("");
     setQuery("");
-    setPicked(false);
+    setSelected(null);
     onClear();
   };
 
@@ -78,39 +78,58 @@ export function AddressSearchCard({
       />
       {open && (
         <div className="border-t border-map-overlay-border px-3 py-2">
-          <div className="relative">
-            <input
-              type="search"
-              value={value}
-              onChange={(event) => {
-                setPicked(false);
-                setValue(event.target.value);
-              }}
-              placeholder="Search address, place or landmark"
-              aria-label="Search address, place or landmark"
-              className="w-full rounded-md border border-map-overlay-border bg-transparent py-1.5 pl-2.5 pr-7 font-secondary text-xs outline-none placeholder:text-map-overlay-foreground/50 focus:border-primary"
-            />
-            {(value || hasMarker) && (
+          {selected ? (
+            <div className="relative rounded-md border border-map-overlay-border px-2.5 py-1.5 pr-7">
+              <p className="text-xs font-medium leading-snug">{selected.name}</p>
+              {selected.context && (
+                <p className="font-secondary text-[11px] leading-snug opacity-60">
+                  {selected.context}
+                </p>
+              )}
               <button
                 type="button"
                 onClick={clear}
                 aria-label="Clear search"
-                className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 opacity-70 hover:bg-map-overlay-foreground/10 hover:opacity-100"
+                className="absolute right-1 top-1.5 rounded p-1 opacity-70 hover:bg-map-overlay-foreground/10 hover:opacity-100"
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-            )}
-            {results.isFetching && !value.length && null}
-          </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <input
+                type="search"
+                value={value}
+                onChange={(event) => {
+                  setSelected(null);
+                  setValue(event.target.value);
+                }}
+                placeholder="Search address, place or landmark"
+                aria-label="Search address, place or landmark"
+                className="w-full rounded-md border border-map-overlay-border bg-transparent py-1.5 pl-2.5 pr-7 font-secondary text-xs outline-none placeholder:text-map-overlay-foreground/50 focus:border-primary"
+              />
+              {(value || hasMarker) && (
+                <button
+                  type="button"
+                  onClick={clear}
+                  aria-label="Clear search"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1 opacity-70 hover:bg-map-overlay-foreground/10 hover:opacity-100"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          )}
 
-          {results.isFetching && !picked && query.length >= 2 && (
+
+          {results.isFetching && !selected && query.length >= 2 && (
             <p className="mt-2 flex items-center gap-1.5 font-secondary text-[11px] opacity-70">
               <Loader2 className="h-3 w-3 animate-spin" />
               Searching
             </p>
           )}
 
-          {notice && picked && (
+          {notice && selected && (
             <div className="mt-2 rounded-md bg-map-overlay-foreground/5 px-2 py-1.5 font-secondary text-[11px]">
               <p className="opacity-80">{notice}</p>
               <button
@@ -134,16 +153,17 @@ export function AddressSearchCard({
                   <button
                     type="button"
                     onClick={() => {
-                      setPicked(true);
+                      setSelected(result);
                       setValue(result.name);
                       onSelect(result);
                     }}
                     className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-map-overlay-foreground/10"
                   >
-                    <span className="block truncate text-xs">{result.name}</span>
+                    <span className="block text-xs font-medium leading-snug">{result.name}</span>
                     {result.context && (
                       <span className="block truncate font-secondary text-[11px] opacity-60">
                         {result.context}
+
                       </span>
                     )}
                   </button>
