@@ -159,10 +159,11 @@ export function AddressSearchCard({
                     }}
                     className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-map-overlay-foreground/10"
                   >
-                    <span className="block truncate text-xs">{result.name}</span>
+                    <span className="block text-xs font-medium leading-snug">{result.name}</span>
                     {result.context && (
                       <span className="block truncate font-secondary text-[11px] opacity-60">
                         {result.context}
+
                       </span>
                     )}
                   </button>
