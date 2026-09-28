@@ -245,8 +245,12 @@ export async function submitPublicComment(input: {
 }
 
 
-/** Approved comments for a published map. */
-export async function loadApprovedComments(username: string, slug: string) {
+/** Approved comments for a published map, with reaction tallies. */
+export async function loadApprovedComments(
+  username: string,
+  slug: string,
+  visitorId: string | null,
+) {
   const supabase = publicClient();
   const ownerId = await resolveOwner(supabase, username);
   if (!ownerId) return [];
@@ -265,5 +269,70 @@ export async function loadApprovedComments(username: string, slug: string) {
     .eq("status", "approved")
     .order("created_at", { ascending: false })
     .limit(500);
-  return data ?? [];
+  const comments = data ?? [];
+  if (!comments.length) return [];
+
+  const ids = comments.map((c) => c.id);
+  const { data: reactions } = await supabase
+    .from("comment_reactions")
+    .select("comment_id, visitor_id, vote")
+    .in("comment_id", ids);
+
+  const tally = new Map<string, { up: number; down: number; mine: number }>();
+  for (const row of reactions ?? []) {
+    const entry = tally.get(row.comment_id) ?? { up: 0, down: 0, mine: 0 };
+    if (row.vote > 0) entry.up += 1;
+    else entry.down += 1;
+    if (visitorId && row.visitor_id === visitorId) entry.mine = row.vote;
+    tally.set(row.comment_id, entry);
+  }
+
+  return comments.map((comment) => {
+    const entry = tally.get(comment.id) ?? { up: 0, down: 0, mine: 0 };
+    return { ...comment, upvotes: entry.up, downvotes: entry.down, myVote: entry.mine };
+  });
+}
+
+/**
+ * Cast, switch or clear a visitor's reaction on a public comment. Runs with
+ * admin rights but only ever touches approved comments on published maps.
+ */
+export async function reactToPublicComment(input: {
+  commentId: string;
+  visitorId: string;
+  vote: -1 | 0 | 1;
+}) {
+  const supabase = publicClient();
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("id, project_id, projects!inner(status, comments_enabled)")
+    .eq("id", input.commentId)
+    .eq("status", "approved")
+    .maybeSingle();
+  if (!comment) return { ok: false as const, error: "That comment is not available." };
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  if (input.vote === 0) {
+    await supabaseAdmin
+      .from("comment_reactions")
+      .delete()
+      .eq("comment_id", input.commentId)
+      .eq("visitor_id", input.visitorId);
+  } else {
+    await supabaseAdmin
+      .from("comment_reactions")
+      .upsert(
+        { comment_id: input.commentId, visitor_id: input.visitorId, vote: input.vote },
+        { onConflict: "comment_id,visitor_id" },
+      );
+  }
+
+  const { data: rows } = await supabaseAdmin
+    .from("comment_reactions")
+    .select("vote")
+    .eq("comment_id", input.commentId);
+  const up = (rows ?? []).filter((r) => r.vote > 0).length;
+  const down = (rows ?? []).length - up;
+  return { ok: true as const, upvotes: up, downvotes: down, myVote: input.vote };
 }
