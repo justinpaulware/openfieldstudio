@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { MapPin, Pentagon, Spline, ThumbsDown, ThumbsUp, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { colorFor, initialsFor, relativeTime, type CategoryColors } from "@/lib/comment-style";
