@@ -144,9 +144,16 @@ export function PublicMapViewer({
   // Switching views applies straight away from the settings already loaded; the
   // URL catches up afterwards, so the map never waits on a server round-trip.
   const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+  // The view the loader was showing when the visitor last clicked the switcher.
+  const clickedFromRef = useRef<string | null>(null);
   useEffect(() => {
-    setPendingSlug((current) => (current === loaderSlug ? null : current));
+    setPendingSlug((current) =>
+      current === null || current === loaderSlug || loaderSlug !== clickedFromRef.current
+        ? null
+        : current,
+    );
   }, [loaderSlug]);
+
   const activeViewSlug = pendingSlug ?? loaderSlug;
   const activeConfig = viewConfigs.find((config) => config.slug === activeViewSlug) ?? null;
 
