@@ -174,47 +174,31 @@ export function CommentPanel({
 
       {bodyOpen && comments.length > 0 && (
         <ul className="max-h-[40vh] overflow-y-auto border-t border-map-overlay-border">
-          {comments.map((comment) => {
-            const shape = geometryLabel(comment.geometry_type);
-            return (
-              <li key={comment.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(comment.id)}
-                  className={cn(
-                    "w-full border-b border-map-overlay-border px-3 py-2.5 text-left last:border-b-0 hover:bg-black/5",
-                    selectedId === comment.id && "bg-black/5",
-                  )}
-                >
-                  <div className="flex items-baseline gap-2">
-                    <span className="truncate text-xs font-semibold">
-                      {comment.author_name || "Anonymous"}
-                    </span>
-                    <span className="ml-auto shrink-0 font-secondary text-[11px] opacity-60">
-                      {relativeTime(comment.created_at)}
-                    </span>
-                  </div>
-                  {(comment.category || shape) && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {comment.category && (
-                        <span className="inline-block rounded-full bg-black/10 px-1.5 py-0.5 font-secondary text-[10px]">
-                          {comment.category}
-                        </span>
-                      )}
-                      {shape && (
-                        <span className="inline-block rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
-                          {shape}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <p className="mt-1 font-secondary text-xs leading-snug opacity-90">
-                    {comment.body}
-                  </p>
-                </button>
-              </li>
-            );
-          })}
+          {comments.map((comment) => (
+            <li key={comment.id}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(comment.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelect(comment.id);
+                  }
+                }}
+                className={cn(
+                  "w-full cursor-pointer border-b border-map-overlay-border px-3 py-2.5 text-left last:border-b-0 hover:bg-black/5",
+                  selectedId === comment.id && "bg-black/5",
+                )}
+              >
+                <CommentCard
+                  comment={comment}
+                  colors={colors}
+                  onVote={onVote ? (vote) => onVote(comment.id, vote) : undefined}
+                />
+              </div>
+            </li>
+          ))}
         </ul>
       )}
 
