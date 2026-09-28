@@ -152,28 +152,7 @@
   border: 1px solid var(--map-overlay-border, rgba(0, 0, 0, 0.1));
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
-/* Pull the tip 1px into the card so its border never draws a seam across the arrow. */
+/* No arrow tip: the card floats above the marker, avoiding seam/shape artifacts. */
 .of-comment-popup .maplibregl-popup-tip {
-  position: relative;
-  z-index: 1;
-  border-top-color: var(--map-overlay, #fff);
-  border-bottom-color: var(--map-overlay, #fff);
-  border-left-color: var(--map-overlay, #fff);
-  border-right-color: var(--map-overlay, #fff);
-}
-.of-comment-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
-.of-comment-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
-.of-comment-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
-  margin-top: -1px;
-}
-.of-comment-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip,
-.of-comment-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
-.of-comment-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
-  margin-bottom: -1px;
-}
-.of-comment-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
-  margin-right: -1px;
-}
-.of-comment-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
-  margin-left: -1px;
+  display: none;
 }
