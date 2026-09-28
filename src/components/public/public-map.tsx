@@ -61,12 +61,38 @@ type ViewerFolder = Tables<"layer_folders">;
 
 export type ViewerSearch = { legend?: false; title?: false; views?: false; search?: false };
 
+/** Per-view settings bundled with the initial load, for instant switching. */
+export type ViewConfig = {
+  id: string;
+  name: string;
+  slug: string;
+  is_main: boolean;
+  title: string;
+  description: string | null;
+  map_center: unknown;
+  map_zoom: number | null;
+  map_pitch: number | null;
+  map_bearing: number | null;
+  basemap: string | null;
+  show_legend: boolean | null;
+  scale_units: string | null;
+  viewNav: boolean;
+  addressSearch: boolean;
+  addressLookup: unknown;
+  overrides: Record<
+    string,
+    { visible: boolean; opacity: number; sort_order: number; filter_config: unknown }
+  >;
+};
+
 /** Shape returned by the published-map loader. */
 export type PublishedMapData = {
   project: Tables<"projects">;
   view?: { id: string; name: string; slug: string; is_main: boolean };
   /** Every published view of this project, Main first. */
   views?: SwitcherView[];
+  /** Settings and layer overrides for every published view. */
+  viewConfigs?: ViewConfig[];
   /** True when the project wants the view switcher shown on this view. */
   viewNav?: boolean;
   /** True when this view enables the address-search card. */
@@ -74,8 +100,11 @@ export type PublishedMapData = {
   /** Optional address-to-feature lookup settings for this view. */
   addressLookup?: unknown;
   layers: unknown[];
+  /** Layers before any view override is applied. */
+  baseLayers?: unknown[];
   folders: unknown[];
 };
+
 
 /** Only "off" flags are kept, so canonical URLs stay clean. */
 export const off = (value: unknown) => value === false || value === "0" || value === "false";
@@ -105,14 +134,73 @@ export function PublicMapViewer({
   search: ViewerSearch;
   data: PublishedMapData;
 }) {
-  const project = loaderData.project;
-  const layers = loaderData.layers as unknown as ViewerLayer[];
   const folders = loaderData.folders as unknown as ViewerFolder[];
   const navigate = useNavigate();
 
   const views = loaderData.views ?? [];
-  const activeViewSlug = loaderData.view?.slug ?? null;
-  const showViews = search.views !== false && Boolean(loaderData.viewNav) && views.length > 1;
+  const viewConfigs = loaderData.viewConfigs ?? [];
+  const loaderSlug = loaderData.view?.slug ?? null;
+
+  // Switching views applies straight away from the settings already loaded; the
+  // URL catches up afterwards, so the map never waits on a server round-trip.
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+  // The view the loader was showing when the visitor last clicked the switcher.
+  const clickedFromRef = useRef<string | null>(null);
+  useEffect(() => {
+    setPendingSlug((current) =>
+      current === null || current === loaderSlug || loaderSlug !== clickedFromRef.current
+        ? null
+        : current,
+    );
+  }, [loaderSlug]);
+
+  const activeViewSlug = pendingSlug ?? loaderSlug;
+  const activeConfig = viewConfigs.find((config) => config.slug === activeViewSlug) ?? null;
+
+  const baseLayers = (loaderData.baseLayers ?? loaderData.layers) as unknown as ViewerLayer[];
+  const layers = useMemo(() => {
+    if (!activeConfig) return loaderData.layers as unknown as ViewerLayer[];
+    return baseLayers
+      .map((layer) => {
+        const override = activeConfig.overrides?.[layer.id];
+        return override
+          ? {
+              ...layer,
+              visible: override.visible,
+              opacity: override.opacity,
+              sort_order: override.sort_order,
+              filter_config: override.filter_config as ViewerLayer["filter_config"],
+            }
+          : layer;
+      })
+      .sort((a, b) => a.sort_order - b.sort_order);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseLayers, activeConfig, loaderData.layers]);
+
+  const project = useMemo(
+    () =>
+      activeConfig
+        ? ({
+            ...loaderData.project,
+            title: activeConfig.title,
+            description: activeConfig.description,
+            map_center: activeConfig.map_center,
+            map_zoom: activeConfig.map_zoom,
+            map_pitch: activeConfig.map_pitch,
+            map_bearing: activeConfig.map_bearing,
+            basemap: activeConfig.basemap,
+            show_legend: activeConfig.show_legend,
+            scale_units: activeConfig.scale_units,
+          } as Tables<"projects">)
+        : loaderData.project,
+    [activeConfig, loaderData.project],
+  );
+
+  const showViews =
+    search.views !== false &&
+    Boolean(activeConfig ? activeConfig.viewNav : loaderData.viewNav) &&
+    views.length > 1;
+
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [commentMode, setCommentMode] = useState(false);
@@ -122,8 +210,13 @@ export function PublicMapViewer({
   const [commentsVisible, setCommentsVisible] = useState(true);
   const [selectedComment, setSelectedComment] = useState<string | null>(null);
   const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
-  const showSearch = search.search !== false && Boolean(loaderData.addressSearch);
-  const lookup = parseLookup(loaderData.addressLookup);
+  const showSearch =
+    search.search !== false &&
+    Boolean(activeConfig ? activeConfig.addressSearch : loaderData.addressSearch);
+  const lookup = parseLookup(
+    activeConfig ? activeConfig.addressLookup : loaderData.addressLookup,
+  );
+
   const [highlight, setHighlight] = useState<unknown | null>(null);
   const [featurePopup, setFeaturePopup] = useState<{
     layerId: string;
@@ -305,8 +398,15 @@ export function PublicMapViewer({
     [layers, folders],
   );
 
+  // Queries are keyed to a stable, id-sorted layer list so that changing the
+  // per-view display order can never shuffle one layer's data onto another.
+  const queryLayers = useMemo(
+    () => [...baseLayers].sort((a, b) => a.id.localeCompare(b.id)),
+    [baseLayers],
+  );
+
   const results = useQueries({
-    queries: ordered.map((layer) => ({
+    queries: queryLayers.map((layer) => ({
       queryKey: ["published-layer-data", username, slug, layer.id, layer.updated_at],
       // Raster layers stream tiles from their service — there is nothing to fetch.
       queryFn: () =>
@@ -320,16 +420,26 @@ export function PublicMapViewer({
     })),
   });
 
+  const rawById = useMemo(() => {
+    const map: Record<string, FeatureCollection | null> = {};
+    queryLayers.forEach((layer, index) => {
+      map[layer.id] = (results[index]?.data as FeatureCollection | null) ?? null;
+    });
+    return map;
+  }, [queryLayers, results]);
 
   const dataById = useMemo(() => {
     const map: Record<string, FeatureCollection | null> = {};
-    ordered.forEach((layer, index) => {
-      const data = (results[index]?.data as FeatureCollection | null) ?? null;
+    ordered.forEach((layer) => {
       // Saved attribute filters apply to the public map too.
-      map[layer.id] = filterCollection(data, parseFilterConfig(layer.filter_config));
+      map[layer.id] = filterCollection(
+        rawById[layer.id] ?? null,
+        parseFilterConfig(layer.filter_config),
+      );
     });
     return map;
-  }, [ordered, results]);
+  }, [ordered, rawById]);
+
 
   const loading = results.some((result) => result.isLoading);
 
@@ -622,6 +732,10 @@ export function PublicMapViewer({
               views={views}
               activeSlug={activeViewSlug}
               onSelect={(view) => {
+                // Apply the view right away, then let the URL follow.
+                clickedFromRef.current = loaderSlug;
+                setPendingSlug(view.slug);
+
                 if (view.is_main) {
                   void navigate({
                     to: "/$username/$mapSlug",
@@ -636,6 +750,7 @@ export function PublicMapViewer({
                   });
                 }
               }}
+
             />
           )}
           {showLegend && (

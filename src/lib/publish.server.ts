@@ -89,13 +89,58 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
     : (views.find((v) => v.id === project.default_view_id) ?? views.find((v) => v.is_main));
   if (!view) return null;
 
-  const { data: viewLayers } = await supabase
+  // Every published view's layer overrides, fetched once. The viewer keeps these
+  // client-side so switching views is instant instead of a fresh server round-trip.
+  const { data: allViewLayers } = await supabase
     .from("view_layers")
     .select("*")
-    .eq("view_id", view.id);
+    .in(
+      "view_id",
+      views.map((v) => v.id),
+    );
 
-  const overrides = new Map((viewLayers ?? []).map((row) => [row.layer_id, row]));
-  const layers = ((layersResult.data ?? []) as PublishedLayer[])
+  const byView = new Map<string, typeof allViewLayers>();
+  for (const row of allViewLayers ?? []) {
+    const list = byView.get(row.view_id) ?? [];
+    list.push(row);
+    byView.set(row.view_id, list);
+  }
+
+  const baseLayers = (layersResult.data ?? []) as PublishedLayer[];
+
+  /** Per-view settings the viewer needs to re-render without another fetch. */
+  const viewConfigs = views.map((v) => ({
+    id: v.id,
+    name: v.name,
+    slug: v.slug,
+    is_main: v.is_main,
+    title: v.is_main ? project.title : `${project.title} — ${v.name}`,
+    description: v.description ?? project.description,
+    map_center: v.map_center,
+    map_zoom: v.map_zoom,
+    map_pitch: v.map_pitch,
+    map_bearing: v.map_bearing,
+    basemap: v.basemap,
+    show_legend: v.show_legend,
+    scale_units: v.scale_units,
+    viewNav: project.view_nav_enabled && v.show_view_nav && views.length > 1,
+    addressSearch: (v.embed_config as { addressSearch?: boolean } | null)?.addressSearch === true,
+    addressLookup: (v.embed_config as { addressLookup?: unknown } | null)?.addressLookup ?? null,
+    overrides: Object.fromEntries(
+      (byView.get(v.id) ?? []).map((row) => [
+        row.layer_id,
+        {
+          visible: row.visible,
+          opacity: row.opacity,
+          sort_order: row.sort_order,
+          filter_config: row.filter_config,
+        },
+      ]),
+    ),
+  }));
+
+  const overrides = new Map((byView.get(view.id) ?? []).map((row) => [row.layer_id, row]));
+  const layers = baseLayers
     .map((layer) => {
       const override = overrides.get(layer.id);
       return override
@@ -130,15 +175,21 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
       slug: v.slug,
       is_main: v.is_main,
     })),
+    /** All published views' settings + layer overrides, for instant switching. */
+    viewConfigs,
     viewNav: project.view_nav_enabled && view.show_view_nav && views.length > 1,
     // Per-view address search flag, stored alongside the embed settings.
     addressSearch:
       (view.embed_config as { addressSearch?: boolean } | null)?.addressSearch === true,
     addressLookup: (view.embed_config as { addressLookup?: unknown } | null)?.addressLookup ?? null,
+    /** Layers with the active view's overrides already applied. */
     layers,
+    /** Layers exactly as stored on the project, before any view override. */
+    baseLayers,
     folders: (foldersResult.data ?? []) as PublishedFolder[],
   };
 }
+
 
 /** Fetch one layer's features for a published project. Verifies the project first. */
 export async function loadPublishedLayerData(username: string, slug: string, layerId: string) {
