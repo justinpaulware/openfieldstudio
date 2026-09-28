@@ -54,6 +54,12 @@ export function categoryColors(
     const value = overrides[name];
     out[name] = typeof value === "string" && HEX.test(value) ? value : defaultCategoryColor(index);
   });
+  // Comments left without a category always show up as "Other".
+  if (!out[OTHER_CATEGORY]) {
+    const value = overrides[OTHER_CATEGORY];
+    out[OTHER_CATEGORY] =
+      typeof value === "string" && HEX.test(value) ? value : UNCATEGORIZED_COLOR;
+  }
   return out;
 }
 
