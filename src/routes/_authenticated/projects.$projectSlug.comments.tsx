@@ -481,16 +481,30 @@ function ProjectComments() {
             onCheckedChange={setCommentsEnabled}
           />
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-          <Label htmlFor="comments-allow-shapes" className="font-secondary text-xs">
-            Allow drawn lines and areas
-          </Label>
-          <Switch
-            id="comments-allow-shapes"
-            checked={allowShapes}
-            onCheckedChange={setAllowShapes}
-          />
+        <div className="space-y-2 rounded-lg border border-border px-3 py-2.5">
+          <Label className="font-secondary text-xs">Comment types</Label>
+          {(
+            [
+              { key: "point", label: "Points", icon: MapPin },
+              { key: "line", label: "Lines", icon: Spline },
+              { key: "area", label: "Polygons", icon: Pentagon },
+            ] as const
+          ).map((option) => (
+            <div key={option.key} className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 font-secondary text-xs text-muted-foreground">
+                <option.icon className="h-3.5 w-3.5" aria-hidden />
+                {option.label}
+              </span>
+              <Switch
+                checked={geometryTypes[option.key]}
+                onCheckedChange={(checked) =>
+                  setGeometryTypes((current) => ({ ...current, [option.key]: checked }))
+                }
+              />
+            </div>
+          ))}
         </div>
+
         <div className="space-y-2">
           <Label>Categories</Label>
           <p className="font-secondary text-xs text-muted-foreground">
