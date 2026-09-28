@@ -530,7 +530,7 @@ export function PublicMapViewer({
                     }}
                     pin={drawMode === "point" ? pin : centroid}
                     geometry={drawMode === "point" ? null : readyGeometry}
-                    allowShapes={allowShapes}
+                    geometryTypes={geometryTypes}
                     mode={drawMode}
                     onModeChange={(next) => {
                       setDrawMode(next);
@@ -544,8 +544,14 @@ export function PublicMapViewer({
                     onSelect={(id) => {
                       setSelectedComment(id);
                       const found = comments.find((comment) => comment.id === id);
-                      if (found) mapRef.current?.flyTo(found.lng, found.lat);
+                      // Zoom in close enough to read the surroundings, but never
+                      // pull the visitor back out if they are already closer.
+                      if (found) {
+                        const current = mapRef.current?.getZoom?.() ?? 0;
+                        mapRef.current?.flyTo(found.lng, found.lat, Math.max(current, 16));
+                      }
                     }}
+
                     onSubmitted={() => {
                       void commentsQuery.refetch();
                       resetDraft();
