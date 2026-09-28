@@ -130,27 +130,61 @@ export function PublicMapViewer({
     (project as { comments_allow_shapes?: boolean }).comments_allow_shapes,
   );
 
+  // A stable per-browser id lets anonymous visitors vote once per comment.
+  const [visitor, setVisitor] = useState<string | null>(null);
+  useEffect(() => setVisitor(visitorId()), []);
+
   const commentsQuery = useQuery({
-    queryKey: ["approved-comments", username, slug],
-    queryFn: () => listApprovedComments({ data: { username, slug } }),
+    queryKey: ["approved-comments", username, slug, visitor],
+    queryFn: () => listApprovedComments({ data: { username, slug, visitorId: visitor } }),
     enabled: commentsEnabled,
   });
   const comments = (commentsQuery.data ?? []) as PublicComment[];
+
+  // Each category gets a color from the standard palette unless the author picked one.
+  const categoryColors = useMemo(
+    () => categoryColors_(commentCategories, savedCategoryColors(view?.embed_config ?? project.embed_config)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [commentCategories, view?.embed_config, project.embed_config],
+  );
+
+  const voteMutation = useMutation({
+    mutationFn: (input: { commentId: string; vote: -1 | 0 | 1 }) =>
+      reactToComment({ data: { ...input, visitorId: visitor ?? "" } }),
+    onSuccess: () => void commentsQuery.refetch(),
+  });
+
+  const handleVote = (commentId: string, vote: -1 | 0 | 1) => {
+    if (!visitor) return;
+    voteMutation.mutate({ commentId, vote });
+  };
 
   // Approved lines and areas render as a GeoJSON overlay; pins keep their markers.
   const commentShapes = commentsEnabled && commentsVisible
     ? comments.flatMap((comment) => {
         const geometry = (comment as { geometry?: CommentGeometry | null }).geometry;
         if (!geometry || geometry.type === "Point") return [];
-        return [{ id: comment.id, geometry }];
+        return [{ id: comment.id, geometry, color: colorFor(categoryColors, comment.category) }];
       })
     : [];
   const commentMarkers = commentsEnabled && commentsVisible
-    ? comments.filter((comment) => {
-        const type = (comment as { geometry_type?: string | null }).geometry_type;
-        return !type || type === "Point";
-      })
+    ? comments
+        .filter((comment) => {
+          const type = (comment as { geometry_type?: string | null }).geometry_type;
+          return !type || type === "Point";
+        })
+        .map((comment) => ({
+          id: comment.id,
+          lng: comment.lng,
+          lat: comment.lat,
+          color: colorFor(categoryColors, comment.category),
+          initials: initialsFor(comment.author_name),
+        }))
     : [];
+
+  const selected = commentsEnabled
+    ? (comments.find((comment) => comment.id === selectedComment) ?? null)
+    : null;
 
   // Completed geometry for the shape being drawn, plus a live preview.
   const draftShape: CommentGeometry | null =
