@@ -119,10 +119,11 @@ export function CommentPanel({
                   type="button"
                   onClick={() => onModeChange?.(option.id)}
                   className={cn(
-                    "flex-1 rounded px-2 py-1 font-secondary text-xs",
+                    "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 font-secondary text-xs",
                     mode === option.id ? "bg-black/10 font-semibold" : "opacity-70 hover:bg-black/5",
                   )}
                 >
+                  <option.icon className="h-3.5 w-3.5" aria-hidden />
                   {option.label}
                 </button>
               ))}
