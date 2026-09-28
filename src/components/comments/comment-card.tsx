@@ -26,7 +26,33 @@ export function CommentCard({
 }) {
   const color = colorFor(colors, comment.category);
   const shape = geometryLabel(comment.geometry_type);
-  const mine = comment.myVote ?? 0;
+
+  // Votes render from local state first so the thumbs respond on the same frame
+  // as the click; the server result simply confirms what is already on screen.
+  const serverVote = (comment.myVote ?? 0) as -1 | 0 | 1;
+  const [local, setLocal] = useState<{ vote: -1 | 0 | 1; up: number; down: number }>({
+    vote: serverVote,
+    up: comment.upvotes ?? 0,
+    down: comment.downvotes ?? 0,
+  });
+  useEffect(() => {
+    setLocal({
+      vote: serverVote,
+      up: comment.upvotes ?? 0,
+      down: comment.downvotes ?? 0,
+    });
+  }, [comment.id, serverVote, comment.upvotes, comment.downvotes]);
+
+  const mine = local.vote;
+  const cast = (next: -1 | 0 | 1) => {
+    setLocal((current) => {
+      const up = current.up - (current.vote === 1 ? 1 : 0) + (next === 1 ? 1 : 0);
+      const down = current.down - (current.vote === -1 ? 1 : 0) + (next === -1 ? 1 : 0);
+      return { vote: next, up: Math.max(0, up), down: Math.max(0, down) };
+    });
+    onVote?.(next);
+  };
+
 
   return (
     <div className={cn("space-y-2 text-map-overlay-foreground", className)}>
