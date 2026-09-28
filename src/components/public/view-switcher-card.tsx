@@ -35,7 +35,7 @@ export function ViewSwitcherCard({
     >
       <MapCardHeader
         icon={Layers}
-        title="Map views"
+        title="Views"
         subtitle={open ? undefined : active.name}
         open={open}
         onToggle={() => setOpen((value) => !value)}

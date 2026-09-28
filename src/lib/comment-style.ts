@@ -17,8 +17,16 @@ export const COMMENT_PALETTE = [
   "#8b5cf6",
 ] as const;
 
-/** Color used for comments without a category. */
-export const UNCATEGORIZED_COLOR = "#8b5cf6";
+/** Color used for comments without a category ("Other"). */
+export const UNCATEGORIZED_COLOR = "#4b5563";
+
+/** Label shown for comments the visitor left uncategorized. */
+export const OTHER_CATEGORY = "Other";
+
+/** Category name to display for a comment, defaulting to "Other". */
+export function categoryLabel(category: string | null | undefined) {
+  return category && category.trim() ? category : OTHER_CATEGORY;
+}
 
 export type CategoryColors = Record<string, string>;
 
@@ -46,6 +54,12 @@ export function categoryColors(
     const value = overrides[name];
     out[name] = typeof value === "string" && HEX.test(value) ? value : defaultCategoryColor(index);
   });
+  // Comments left without a category always show up as "Other".
+  if (!out[OTHER_CATEGORY]) {
+    const value = overrides[OTHER_CATEGORY];
+    out[OTHER_CATEGORY] =
+      typeof value === "string" && HEX.test(value) ? value : UNCATEGORIZED_COLOR;
+  }
   return out;
 }
 
@@ -61,10 +75,9 @@ export function savedCategoryColors(embedConfig: unknown): Record<string, string
   return out;
 }
 
-/** Color for one comment, falling back to the neutral violet. */
+/** Color for one comment; uncategorized comments use the "Other" grey. */
 export function colorFor(colors: CategoryColors, category: string | null | undefined) {
-  if (!category) return UNCATEGORIZED_COLOR;
-  return colors[category] ?? UNCATEGORIZED_COLOR;
+  return colors[categoryLabel(category)] ?? UNCATEGORIZED_COLOR;
 }
 
 /** Up to two initials from an author name; "A" for anonymous visitors. */
@@ -121,6 +134,11 @@ export function geometryLabel(type?: string | null) {
   if (type === "LineString") return "Line";
   if (type === "Polygon") return "Area";
   return null;
+}
+
+/** Same as geometryLabel but always names a shape — points included. */
+export function geometryTag(type?: string | null) {
+  return geometryLabel(type) ?? "Point";
 }
 
 /** Which comment geometries visitors may draw on a published map. */

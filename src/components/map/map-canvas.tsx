@@ -36,6 +36,7 @@ import {
 
 import { buildMaskGeometry } from "@/lib/mask-geometry";
 import { rasterPaint, type RasterStyle } from "@/lib/raster-style";
+import { UNCATEGORIZED_COLOR } from "@/lib/comment-style";
 
 
 
@@ -295,7 +296,7 @@ export default function MapCanvas({
         `border:2px solid ${selected ? "#111827" : "#ffffff"}`,
         "cursor:pointer",
         "box-shadow:0 1px 5px rgba(0,0,0,.35)",
-        `background:${item.color ?? "#8b5cf6"}`,
+        `background:${item.color ?? UNCATEGORIZED_COLOR}`,
         selected ? "outline:2px solid rgba(17,24,39,.25)" : "",
       ].join(";");
       el.addEventListener("click", (event) => {
@@ -382,7 +383,7 @@ export default function MapCanvas({
           properties: {
             id: item.id,
             selected: item.id === state.selectedCommentId,
-            color: item.color ?? "#8b5cf6",
+            color: item.color ?? UNCATEGORIZED_COLOR,
           },
           geometry: item.geometry,
         })),
@@ -420,7 +421,10 @@ export default function MapCanvas({
           type: "fill",
           source: "of-comment-shapes",
           filter: ["==", ["geometry-type"], "Polygon"],
-          paint: { "fill-color": ["get", "color"], "fill-opacity": 0.2 },
+          paint: {
+            "fill-color": ["coalesce", ["get", "color"], UNCATEGORIZED_COLOR],
+            "fill-opacity": 0.2,
+          },
         });
       }
       if (!map.getLayer("of-comment-shapes-line")) {
@@ -429,7 +433,7 @@ export default function MapCanvas({
           type: "line",
           source: "of-comment-shapes",
           paint: {
-            "line-color": ["get", "color"],
+            "line-color": ["coalesce", ["get", "color"], UNCATEGORIZED_COLOR],
             "line-width": ["case", ["get", "selected"], 5, 3],
             "line-opacity": 0.95,
           },
@@ -468,6 +472,7 @@ export default function MapCanvas({
           },
         });
       }
+      raiseCommentLayers(map);
     };
 
     render();
@@ -500,7 +505,11 @@ export default function MapCanvas({
       features: (commentShapes ?? []).map((item) => ({
         type: "Feature" as const,
         id: item.id,
-        properties: { id: item.id, selected: item.id === selectedCommentId },
+        properties: {
+          id: item.id,
+          selected: item.id === selectedCommentId,
+          color: item.color ?? UNCATEGORIZED_COLOR,
+        },
         geometry: item.geometry,
       })),
     };
@@ -1494,6 +1503,20 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
     for (const id of [...registry.keys()]) {
       if (!liveOverflow.has(id)) registry.delete(id);
     }
+  }
+  raiseCommentLayers(map);
+}
+
+/** Comment shapes and drafts always sit above the project's data layers. */
+export function raiseCommentLayers(map: MapLibreMap) {
+  for (const id of [
+    "of-comment-shapes-fill",
+    "of-comment-shapes-line",
+    "of-comment-draft-fill",
+    "of-comment-draft-line",
+    "of-comment-draft-point",
+  ]) {
+    if (map.getLayer(id)) map.moveLayer(id);
   }
 }
 

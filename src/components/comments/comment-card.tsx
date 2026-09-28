@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { MapPin, Pentagon, Spline, ThumbsDown, ThumbsUp, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { colorFor, initialsFor, relativeTime, type CategoryColors } from "@/lib/comment-style";
+import {
+  categoryLabel,
+  colorFor,
+  initialsFor,
+  relativeTime,
+  type CategoryColors,
+} from "@/lib/comment-style";
 import { geometryLabel } from "@/components/comments/comment-panel";
 import type { PublicComment } from "@/components/comments/comment-panel";
 
@@ -73,24 +79,20 @@ export function CommentCard({
               {relativeTime(comment.created_at)}
             </span>
           </div>
-          {(comment.category || shape) && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {comment.category && (
-                <span
-                  className="inline-block rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
-                  style={{ background: `${color}22`, color }}
-                >
-                  {comment.category}
-                </span>
-              )}
-              {shape && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
-                  <ShapeIcon type={comment.geometry_type} />
-                  {shape}
-                </span>
-              )}
-            </div>
-          )}
+          <div className="mt-1 flex flex-wrap gap-1">
+            <span
+              className="inline-block rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
+              style={{ background: `${color}22`, color }}
+            >
+              {categoryLabel(comment.category)}
+            </span>
+            {shape && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
+                <ShapeIcon type={comment.geometry_type} />
+                {shape}
+              </span>
+            )}
+          </div>
         </div>
         {onClose && (
           <button

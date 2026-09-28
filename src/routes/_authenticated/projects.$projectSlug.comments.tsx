@@ -33,7 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
-import { geometryLabel } from "@/components/comments/comment-panel";
+import { categoryLabel, geometryTag } from "@/lib/comment-style";
 import { ColorField } from "@/components/map/color-field";
 import {
   ALL_GEOMETRY_TYPES,
@@ -415,23 +415,19 @@ function ProjectComments() {
                     <span className="text-sm font-semibold">
                       {comment.author_name || "Anonymous"}
                     </span>
-                    {comment.category && (
-                      <span
-                        className="rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
-                        style={{
-                          background: `${colorFor(activeColors, comment.category)}26`,
-                          color: colorFor(activeColors, comment.category),
-                        }}
-                      >
-                        {comment.category}
-                      </span>
-                    )}
-                    {geometryLabel(comment.geometry_type) && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
-                        <ShapeIcon type={comment.geometry_type} />
-                        {geometryLabel(comment.geometry_type)}
-                      </span>
-                    )}
+                    <span
+                      className="rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
+                      style={{
+                        background: `${colorFor(activeColors, comment.category)}26`,
+                        color: colorFor(activeColors, comment.category),
+                      }}
+                    >
+                      {categoryLabel(comment.category)}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                      <ShapeIcon type={comment.geometry_type} />
+                      {geometryTag(comment.geometry_type)}
+                    </span>
                     {isCommentHidden(comment.status) && (
                       <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
                         Hidden
