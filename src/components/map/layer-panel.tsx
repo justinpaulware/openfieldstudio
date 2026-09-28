@@ -563,6 +563,43 @@ export function LayerPanel({
                 <CopyPlus className="mr-2 h-4 w-4" />
                 Duplicate layer
               </DropdownMenuItem>
+              {(onCopySettings || onPasteSettings) && <DropdownMenuSeparator />}
+              {onCopySettings && (
+                <DropdownMenuItem onClick={() => onCopySettings(layer)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy style &amp; settings
+                </DropdownMenuItem>
+              )}
+              {onPasteSettings && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={!copiedFrom} className="px-2 py-1.5">
+                    <ClipboardPaste className="mr-2 h-4 w-4" />
+                    <span className="truncate">
+                      {copiedFrom ? `Paste from "${copiedFrom}"` : "Paste style & settings"}
+                    </span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "all")}>
+                        All settings
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "symbology")}>
+                        Symbology only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "labels")}>
+                        Labels only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "popup")}>
+                        Popups only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "filter")}>
+                        Filter only
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onRefresh(layer)}>
                 <RefreshCw className="mr-2 h-4 w-4" />
