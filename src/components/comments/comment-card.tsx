@@ -162,7 +162,7 @@ function VoteButton({
 }
 
 /** Small glyph matching the comment's geometry: pin, line or area. */
-export function ShapeIcon({ type }: { type?: string | null }) {
+export function ShapeIcon({ type }: { type?: string | null | undefined }) {
   const Icon = type === "LineString" || type === "MultiLineString" ? Spline
     : type === "Polygon" || type === "MultiPolygon" ? Pentagon
     : MapPin;
