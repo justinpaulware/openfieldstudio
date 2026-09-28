@@ -890,6 +890,57 @@ function MapEditor() {
     persistStyle(layerId, next);
   };
 
+  /** Copy one layer's look and settings, then paste part or all onto another. */
+  const copySettings = (layer: LayerWithStyle) => {
+    setClipboard({
+      layerId: layer.id,
+      layerName: layer.name,
+      style: styleFor(layer),
+      filter: filterFor(layer),
+    });
+    toast.success(`Copied style & settings from "${layer.name}"`);
+  };
+
+  const pasteSettings = (layer: LayerWithStyle, scope: PasteScope) => {
+    if (!clipboard) return;
+    if (clipboard.layerId === layer.id) return;
+    const current = styleFor(layer);
+    const source = clipboard.style;
+
+    if (scope === "all" || scope === "symbology" || scope === "labels" || scope === "popup") {
+      let next: LayerStyle;
+      if (scope === "all") next = { ...source };
+      else if (scope === "labels") next = { ...current, labels: { ...source.labels } };
+      else if (scope === "popup") next = { ...current, popup: { ...source.popup } };
+      else
+        next = {
+          ...source,
+          labels: { ...current.labels },
+          popup: { ...current.popup },
+        };
+      setStyleDrafts((drafts) => ({ ...drafts, [layer.id]: next }));
+      persistStyle(layer.id, next);
+    }
+
+    if (scope === "all" || scope === "filter") {
+      persistFilter(layer.id, clipboard.filter);
+    }
+
+    const what =
+      scope === "all"
+        ? "all settings"
+        : scope === "symbology"
+          ? "symbology"
+          : scope === "labels"
+            ? "labels"
+            : scope === "popup"
+              ? "popups"
+              : "filter";
+    toast.success(`Pasted ${what} to "${layer.name}"`);
+  };
+
+
+
   const nextSortOrder = layers.length
     ? Math.min(...layers.map((l) => l.sort_order)) - 1
     : 0;
