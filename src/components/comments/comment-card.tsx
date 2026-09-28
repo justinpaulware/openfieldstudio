@@ -110,16 +110,16 @@ export function CommentCard({
           <VoteButton
             icon={ThumbsUp}
             label="Upvote"
-            count={comment.upvotes ?? 0}
+            count={local.up}
             active={mine === 1}
-            onClick={() => onVote(mine === 1 ? 0 : 1)}
+            onClick={() => cast(mine === 1 ? 0 : 1)}
           />
           <VoteButton
             icon={ThumbsDown}
             label="Downvote"
-            count={comment.downvotes ?? 0}
+            count={local.down}
             active={mine === -1}
-            onClick={() => onVote(mine === -1 ? 0 : -1)}
+            onClick={() => cast(mine === -1 ? 0 : -1)}
           />
         </div>
       )}
