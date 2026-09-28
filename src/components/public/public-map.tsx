@@ -495,6 +495,8 @@ export function PublicMapViewer({
                     }}
                     vertexCount={vertices.length}
                     onUndo={() => setVertices((current) => current.slice(0, -1))}
+                    colors={categoryColors}
+                    onVote={handleVote}
                     selectedId={selectedComment}
                     onSelect={(id) => {
                       setSelectedComment(id);
