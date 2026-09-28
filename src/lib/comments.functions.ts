@@ -84,7 +84,8 @@ export const exportComments = createServerFn({ method: "POST" })
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
 
-    if (data.status !== "all") query = query.eq("status", data.status);
+    if (data.status === "hidden") query = query.in("status", [...HIDDEN_STATUSES]);
+    if (data.status === "visible") query = query.not("status", "in", `(${HIDDEN_STATUSES.join(",")})`);
     if (data.search.trim()) query = query.ilike("body", `%${data.search.trim()}%`);
 
     const { data: rows, error } = await query;
