@@ -174,8 +174,13 @@ export function PublicMapViewer({
   const [commentsVisible, setCommentsVisible] = useState(true);
   const [selectedComment, setSelectedComment] = useState<string | null>(null);
   const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
-  const showSearch = search.search !== false && Boolean(loaderData.addressSearch);
-  const lookup = parseLookup(loaderData.addressLookup);
+  const showSearch =
+    search.search !== false &&
+    Boolean(activeConfig ? activeConfig.addressSearch : loaderData.addressSearch);
+  const lookup = parseLookup(
+    activeConfig ? activeConfig.addressLookup : loaderData.addressLookup,
+  );
+
   const [highlight, setHighlight] = useState<unknown | null>(null);
   const [featurePopup, setFeaturePopup] = useState<{
     layerId: string;
