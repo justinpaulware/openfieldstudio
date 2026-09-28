@@ -42,6 +42,9 @@ const STATUS_FILTERS = [
 ] as const;
 type StatusFilter = (typeof STATUS_FILTERS)[number]["id"];
 
+/** Legacy rejected comments are treated as hidden. */
+const isCommentHidden = (status: string) => status === "hidden" || status === "rejected";
+
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
   head: () => ({
@@ -207,7 +210,7 @@ function ProjectComments() {
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (comments ?? []).filter((c) => {
-      const isHidden = c.status === "hidden" || c.status === "rejected";
+      const isHidden = isCommentHidden(c.status);
       const statusOk =
         statusFilter === "all" || (statusFilter === "hidden" ? isHidden : !isHidden);
       return statusOk && (!term || c.body.toLowerCase().includes(term));
@@ -362,7 +365,7 @@ function ProjectComments() {
                 className={cn(
                   "flex gap-3 px-4 py-3",
                   selectedId === comment.id && "bg-muted/60",
-                  comment.status === "hidden" && "opacity-60",
+                  isCommentHidden(comment.status) && "opacity-60",
                 )}
               >
                 <button
@@ -380,11 +383,12 @@ function ProjectComments() {
                       </span>
                     )}
                     {geometryLabel(comment.geometry_type) && (
-                      <span className="rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                        <ShapeIcon type={comment.geometry_type} />
                         {geometryLabel(comment.geometry_type)}
                       </span>
                     )}
-                    {comment.status === "hidden" && (
+                    {isCommentHidden(comment.status) && (
                       <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
                         Hidden
                       </span>
@@ -399,16 +403,16 @@ function ProjectComments() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    title={comment.status === "hidden" ? "Restore comment" : "Hide comment"}
-                    aria-label={comment.status === "hidden" ? "Restore comment" : "Hide comment"}
+                    title={isCommentHidden(comment.status) ? "Restore comment" : "Hide comment"}
+                    aria-label={isCommentHidden(comment.status) ? "Restore comment" : "Hide comment"}
                     onClick={() =>
                       setStatus.mutate({
                         id: comment.id,
-                        status: comment.status === "hidden" ? "approved" : "hidden",
+                        status: isCommentHidden(comment.status) ? "approved" : "hidden",
                       })
                     }
                   >
-                    {comment.status === "hidden" ? (
+                    {isCommentHidden(comment.status) ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
