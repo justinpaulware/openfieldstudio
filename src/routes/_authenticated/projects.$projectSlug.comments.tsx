@@ -462,26 +462,36 @@ function ProjectComments() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="comment-categories">Categories</Label>
-          <Input
-            id="comment-categories"
-            value={categories}
-            onChange={(e) => setCategories(e.target.value)}
-            placeholder="General feedback, Question, Issue"
-          />
+          <Label>Categories</Label>
           <p className="font-secondary text-xs text-muted-foreground">
-            Comma separated. Leave empty to hide the category picker.
+            Each category gets its own color for pins, shapes and labels on the published map.
           </p>
-          {categoryList.length > 0 && (
-            <div className="space-y-1 rounded-md border p-2">
-              <p className="font-secondary text-xs text-muted-foreground">
-                Colors used for pins, shapes and labels on the published map.
-              </p>
-              {categoryList.map((name) => (
-                <div key={name} className="flex items-center justify-between gap-2">
-                  <span className="truncate font-secondary text-xs">{name}</span>
+
+          {categories.length > 0 && (
+            <div className="space-y-2">
+              {categories.map((name, index) => (
+                <div key={index} className="space-y-2 rounded-md border border-border p-2">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={name}
+                      onChange={(e) => renameCategory(index, e.target.value)}
+                      placeholder="Category name"
+                      className="h-8 flex-1 font-secondary text-xs"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      title="Remove category"
+                      aria-label={`Remove ${name || "category"}`}
+                      onClick={() => removeCategory(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <ColorField
-                    label={name}
+                    label={`${name || "Category"} color`}
+                    hideLabel
                     value={colorFor(activeColors, name)}
                     allowTransparent={false}
                     onChange={(color) =>
@@ -491,6 +501,36 @@ function ProjectComments() {
                 </div>
               ))}
             </div>
+          )}
+
+          <div className="flex items-center gap-1">
+            <Input
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCategory();
+                }
+              }}
+              placeholder="Add a category"
+              className="h-8 flex-1 font-secondary text-xs"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0"
+              disabled={!newCategory.trim()}
+              onClick={addCategory}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Add
+            </Button>
+          </div>
+          {categories.length === 0 && (
+            <p className="font-secondary text-xs text-muted-foreground">
+              With no categories, visitors won't see a category picker.
+            </p>
           )}
         </div>
         <Button
