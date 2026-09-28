@@ -411,6 +411,26 @@ function ProjectComments() {
           <p className="font-secondary text-xs text-muted-foreground">
             Comma separated. Leave empty to hide the category picker.
           </p>
+          {categoryList.length > 0 && (
+            <div className="space-y-1 rounded-md border p-2">
+              <p className="font-secondary text-xs text-muted-foreground">
+                Colors used for pins, shapes and labels on the published map.
+              </p>
+              {categoryList.map((name) => (
+                <div key={name} className="flex items-center justify-between gap-2">
+                  <span className="truncate font-secondary text-xs">{name}</span>
+                  <ColorField
+                    label={name}
+                    value={colorFor(activeColors, name)}
+                    allowTransparent={false}
+                    onChange={(color) =>
+                      setCategoryColorMap((current) => ({ ...current, [name]: color }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Button
           className="w-full"
