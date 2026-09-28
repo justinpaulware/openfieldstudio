@@ -236,6 +236,13 @@ type Props = {
   /** True when the layer has an active attribute filter. */
   filteredFor?: (layer: PanelLayer) => boolean;
   onDuplicate: (layer: LayerRow) => void;
+  /** Copy this layer's style, labels, popups and filter to the session clipboard. */
+  onCopySettings?: (layer: PanelLayer) => void;
+  /** Apply the copied settings to this layer. */
+  onPasteSettings?: (layer: PanelLayer, scope: PasteScope) => void;
+  /** Name of the layer currently on the clipboard, if any. */
+  copiedFrom?: string | null;
+
   onMoveToFolder: (layer: LayerRow, folderId: string | null) => void;
   onFolderRename: (folder: FolderRow, name: string) => void;
   onFolderToggle: (folder: FolderRow) => void;
