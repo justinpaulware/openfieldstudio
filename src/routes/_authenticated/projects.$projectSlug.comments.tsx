@@ -206,11 +206,12 @@ function ProjectComments() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (comments ?? []).filter(
-      (c) =>
-        (statusFilter === "all" || c.status === statusFilter) &&
-        (!term || c.body.toLowerCase().includes(term)),
-    );
+    return (comments ?? []).filter((c) => {
+      const isHidden = c.status === "hidden" || c.status === "rejected";
+      const statusOk =
+        statusFilter === "all" || (statusFilter === "hidden" ? isHidden : !isHidden);
+      return statusOk && (!term || c.body.toLowerCase().includes(term));
+    });
   }, [comments, statusFilter, search]);
 
   const runExport = useServerFn(exportComments);
