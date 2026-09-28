@@ -6,7 +6,14 @@ import { CommentComposer, type PendingPin } from "@/components/comments/comment-
 import { CommentCard } from "@/components/comments/comment-card";
 import { MapCardHeader } from "@/components/map/map-card-header";
 import type { CommentGeometry } from "@/components/map/map-canvas";
-import { geometryLabel, type CategoryColors, type PublicComment } from "@/lib/comment-style";
+import {
+  ALL_GEOMETRY_TYPES,
+  geometryLabel,
+  type CategoryColors,
+  type CommentGeometryTypes,
+  type PublicComment,
+} from "@/lib/comment-style";
+
 
 export type CommentDrawMode = "point" | "line" | "area";
 
@@ -30,8 +37,9 @@ export function CommentPanel({
   onToggleAdding,
   pin,
   geometry,
-  allowShapes = false,
+  geometryTypes = ALL_GEOMETRY_TYPES,
   mode = "point",
+
   onModeChange,
   vertexCount = 0,
   onUndo,
@@ -51,7 +59,7 @@ export function CommentPanel({
   onToggleAdding: () => void;
   pin: PendingPin | null;
   geometry?: CommentGeometry | null;
-  allowShapes?: boolean;
+  geometryTypes?: CommentGeometryTypes;
   mode?: CommentDrawMode;
   onModeChange?: (mode: CommentDrawMode) => void;
   vertexCount?: number;
