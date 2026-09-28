@@ -254,18 +254,29 @@ export default function MapCanvas({
     [],
   );
 
-  // Approved comment markers.
-  const commentMarkersRef = useRef<maplibregl.Marker[]>([]);
+  // Approved comment markers. Markers are reused between renders and keyed by
+  // id so the DOM is not rebuilt on every state change; rebuilding mid-gesture
+  // is what made pins lag behind the map while zooming.
+  const commentMarkersRef = useRef<Map<string, { marker: maplibregl.Marker; key: string }>>(
+    new Map(),
+  );
   const onCommentClickRef = useRef(onCommentClick);
   onCommentClickRef.current = onCommentClick;
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
-    for (const marker of commentMarkersRef.current) marker.remove();
-    commentMarkersRef.current = [];
+    const store = commentMarkersRef.current;
+    const seen = new Set<string>();
+
     for (const item of commentPins ?? []) {
       const selected = item.id === selectedCommentId;
+      const key = [item.lng, item.lat, item.color, item.initials, selected].join("|");
+      seen.add(item.id);
+      const existing = store.get(item.id);
+      if (existing && existing.key === key) continue;
+      if (existing) existing.marker.remove();
+
       const el = document.createElement("button");
       el.type = "button";
       el.setAttribute("aria-label", "Comment");
@@ -283,24 +294,39 @@ export default function MapCanvas({
         "border-radius:9999px",
         `border:2px solid ${selected ? "#111827" : "#ffffff"}`,
         "cursor:pointer",
-        "transition:transform .12s ease",
         "box-shadow:0 1px 5px rgba(0,0,0,.35)",
         `background:${item.color ?? "#8b5cf6"}`,
-        selected ? "transform:scale(1.2)" : "",
+        selected ? "outline:2px solid rgba(17,24,39,.25)" : "",
       ].join(";");
       el.addEventListener("click", (event) => {
         event.stopPropagation();
         onCommentClickRef.current?.(item.id);
       });
-      commentMarkersRef.current.push(
-        new maplibregl.Marker({ element: el }).setLngLat([item.lng, item.lat]).addTo(map),
-      );
+      store.set(item.id, {
+        key,
+        marker: new maplibregl.Marker({ element: el })
+          .setLngLat([item.lng, item.lat])
+          .addTo(map),
+      });
     }
-    return () => {
-      for (const marker of commentMarkersRef.current) marker.remove();
-      commentMarkersRef.current = [];
-    };
+
+    for (const [id, entry] of store) {
+      if (!seen.has(id)) {
+        entry.marker.remove();
+        store.delete(id);
+      }
+    }
   }, [commentPins, selectedCommentId, mapLoaded]);
+
+  // Drop every marker when the canvas unmounts.
+  useEffect(
+    () => () => {
+      for (const entry of commentMarkersRef.current.values()) entry.marker.remove();
+      commentMarkersRef.current.clear();
+    },
+    [],
+  );
+
 
   // Comment card anchored on the map, above the selected comment. The card is
   // React content portalled into the MapLibre popup element.
