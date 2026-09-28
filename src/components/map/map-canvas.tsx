@@ -420,7 +420,10 @@ export default function MapCanvas({
           type: "fill",
           source: "of-comment-shapes",
           filter: ["==", ["geometry-type"], "Polygon"],
-          paint: { "fill-color": ["get", "color"], "fill-opacity": 0.2 },
+          paint: {
+            "fill-color": ["coalesce", ["get", "color"], UNCATEGORIZED_COLOR],
+            "fill-opacity": 0.2,
+          },
         });
       }
       if (!map.getLayer("of-comment-shapes-line")) {
@@ -429,7 +432,7 @@ export default function MapCanvas({
           type: "line",
           source: "of-comment-shapes",
           paint: {
-            "line-color": ["get", "color"],
+            "line-color": ["coalesce", ["get", "color"], UNCATEGORIZED_COLOR],
             "line-width": ["case", ["get", "selected"], 5, 3],
             "line-opacity": 0.95,
           },
