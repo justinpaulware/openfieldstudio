@@ -1121,13 +1121,26 @@ function removeLayerIfPresent(map: MapLibreMap, id: string) {
   if (map.getLayer(id)) map.removeLayer(id);
 }
 
+/** Latest requested layers per map, so deferred syncs never apply stale views. */
+const pendingLayers = new WeakMap<MapLibreMap, RenderLayer[]>();
+
 function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
   if (!map.isStyleLoaded()) {
-    map.once("idle", () => syncLayers(map, layers));
+    const alreadyQueued = pendingLayers.has(map);
+    pendingLayers.set(map, layers);
+    if (!alreadyQueued) {
+      map.once("idle", () => {
+        const latest = pendingLayers.get(map);
+        pendingLayers.delete(map);
+        if (latest) syncLayers(map, latest);
+      });
+    }
     return;
   }
+  pendingLayers.delete(map);
 
-  const keep = new Set(layers.filter((l) => l.data || l.raster).map((l) => l.id));
+  // Layers still loading keep their existing source so switching views doesn't flicker.
+  const keep = new Set(layers.filter((l) => l.data || l.raster || !l.data).map((l) => l.id));
   const keepRaster = new Set(layers.filter((l) => l.raster).map((l) => l.id));
 
   // Drop anything we own that no longer belongs.
