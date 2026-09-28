@@ -61,12 +61,38 @@ type ViewerFolder = Tables<"layer_folders">;
 
 export type ViewerSearch = { legend?: false; title?: false; views?: false; search?: false };
 
+/** Per-view settings bundled with the initial load, for instant switching. */
+export type ViewConfig = {
+  id: string;
+  name: string;
+  slug: string;
+  is_main: boolean;
+  title: string;
+  description: string | null;
+  map_center: unknown;
+  map_zoom: number | null;
+  map_pitch: number | null;
+  map_bearing: number | null;
+  basemap: string | null;
+  show_legend: boolean | null;
+  scale_units: string | null;
+  viewNav: boolean;
+  addressSearch: boolean;
+  addressLookup: unknown;
+  overrides: Record<
+    string,
+    { visible: boolean; opacity: number; sort_order: number; filter_config: unknown }
+  >;
+};
+
 /** Shape returned by the published-map loader. */
 export type PublishedMapData = {
   project: Tables<"projects">;
   view?: { id: string; name: string; slug: string; is_main: boolean };
   /** Every published view of this project, Main first. */
   views?: SwitcherView[];
+  /** Settings and layer overrides for every published view. */
+  viewConfigs?: ViewConfig[];
   /** True when the project wants the view switcher shown on this view. */
   viewNav?: boolean;
   /** True when this view enables the address-search card. */
@@ -74,8 +100,11 @@ export type PublishedMapData = {
   /** Optional address-to-feature lookup settings for this view. */
   addressLookup?: unknown;
   layers: unknown[];
+  /** Layers before any view override is applied. */
+  baseLayers?: unknown[];
   folders: unknown[];
 };
+
 
 /** Only "off" flags are kept, so canonical URLs stay clean. */
 export const off = (value: unknown) => value === false || value === "0" || value === "false";
