@@ -158,6 +158,7 @@ export default function MapCanvas({
   draftVertices,
   selectedCommentId = null,
   onCommentClick,
+  commentPopup = null,
   rightSlot,
   highlight = null,
   featurePopup = null,
