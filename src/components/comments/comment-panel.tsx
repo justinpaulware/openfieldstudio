@@ -70,7 +70,10 @@ export function CommentPanel({
   colors: CategoryColors;
   onVote?: (commentId: string, vote: -1 | 0 | 1) => void;
 }) {
+  const modeKey = (id: CommentDrawMode) => (id === "area" ? "area" : id);
+  const enabledModes = MODES.filter((option) => geometryTypes[modeKey(option.id)]);
   const ready = mode === "point" ? Boolean(pin) : Boolean(geometry);
+
   const hint =
     mode === "point"
       ? "Click the map where your comment belongs."
@@ -119,9 +122,9 @@ export function CommentPanel({
 
       {bodyOpen && adding && (
         <div className="space-y-3 border-t border-map-overlay-border p-3">
-          {allowShapes && (
+          {enabledModes.length > 1 && (
             <div className="flex items-center gap-1 rounded-md border border-map-overlay-border p-0.5">
-              {MODES.map((option) => (
+              {enabledModes.map((option) => (
                 <button
                   key={option.id}
                   type="button"
@@ -137,6 +140,7 @@ export function CommentPanel({
               ))}
             </div>
           )}
+
 
           {ready ? (
             <CommentComposer
