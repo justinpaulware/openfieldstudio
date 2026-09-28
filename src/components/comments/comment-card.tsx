@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import { MapPin, Pentagon, Spline, ThumbsDown, ThumbsUp, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { colorFor, initialsFor, relativeTime, type CategoryColors } from "@/lib/comment-style";
+import {
+  categoryLabel,
+  colorFor,
+  initialsFor,
+  relativeTime,
+  type CategoryColors,
+} from "@/lib/comment-style";
 import { geometryLabel } from "@/components/comments/comment-panel";
 import type { PublicComment } from "@/components/comments/comment-panel";
 
