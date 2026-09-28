@@ -13,10 +13,10 @@ export type CommentDrawMode = "point" | "line" | "area";
 export { geometryLabel };
 export type { PublicComment };
 
-const MODES: { id: CommentDrawMode; label: string }[] = [
-  { id: "point", label: "Point" },
-  { id: "line", label: "Line" },
-  { id: "area", label: "Area" },
+const MODES: { id: CommentDrawMode; label: string; icon: typeof MapPin }[] = [
+  { id: "point", label: "Point", icon: MapPin },
+  { id: "line", label: "Line", icon: Spline },
+  { id: "area", label: "Area", icon: Pentagon },
 ];
 
 export function CommentPanel({
