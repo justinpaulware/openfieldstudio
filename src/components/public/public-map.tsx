@@ -725,6 +725,8 @@ export function PublicMapViewer({
               views={views}
               activeSlug={activeViewSlug}
               onSelect={(view) => {
+                // Apply the view right away, then let the URL follow.
+                setPendingSlug(view.slug);
                 if (view.is_main) {
                   void navigate({
                     to: "/$username/$mapSlug",
@@ -739,6 +741,7 @@ export function PublicMapViewer({
                   });
                 }
               }}
+
             />
           )}
           {showLegend && (
