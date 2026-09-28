@@ -3,40 +3,15 @@ import { Eye, EyeOff, MessageSquare, Plus, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
+import { CommentCard } from "@/components/comments/comment-card";
 import { MapCardHeader } from "@/components/map/map-card-header";
 import type { CommentGeometry } from "@/components/map/map-canvas";
+import { geometryLabel, type CategoryColors, type PublicComment } from "@/lib/comment-style";
 
 export type CommentDrawMode = "point" | "line" | "area";
 
-export type PublicComment = {
-  id: string;
-  lng: number;
-  lat: number;
-  body: string;
-  category: string | null;
-  author_name: string | null;
-  created_at: string;
-  geometry_type?: string | null;
-};
-
-function relativeTime(iso: string) {
-  const then = new Date(iso).getTime();
-  const minutes = Math.round((Date.now() - then) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-/** "Line" / "Area" chip; pins get no chip because they are the default. */
-export function geometryLabel(type?: string | null) {
-  if (type === "LineString") return "Line";
-  if (type === "Polygon") return "Area";
-  return null;
-}
+export { geometryLabel };
+export type { PublicComment };
 
 const MODES: { id: CommentDrawMode; label: string }[] = [
   { id: "point", label: "Point" },
