@@ -104,7 +104,9 @@ function ProjectComments() {
 
   const [commentsEnabled, setCommentsEnabled] = useState(false);
   const [allowShapes, setAllowShapes] = useState(false);
-  const [categories, setCategories] = useState("");
+  /** Categories are edited one row at a time, like layers. */
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState("");
   /** Author overrides keyed by category name; unset names fall back to the palette. */
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
 
@@ -112,18 +114,29 @@ function ProjectComments() {
     if (!project) return;
     setCommentsEnabled(project.comments_enabled);
     setAllowShapes(project.comments_allow_shapes);
-    setCategories((project.comment_categories ?? []).join(", "));
+    setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
   }, [project]);
 
   const categoryList = useMemo(
-    () =>
-      categories
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
+    () => categories.map((c) => c.trim()).filter(Boolean),
     [categories],
   );
+
+  const addCategory = () => {
+    const name = newCategory.trim();
+    if (!name || categories.some((c) => c.toLowerCase() === name.toLowerCase())) return;
+    setCategories((current) => [...current, name]);
+    setNewCategory("");
+  };
+
+  const renameCategory = (index: number, name: string) => {
+    setCategories((current) => current.map((c, i) => (i === index ? name : c)));
+  };
+
+  const removeCategory = (index: number) => {
+    setCategories((current) => current.filter((_, i) => i !== index));
+  };
   const activeColors = useMemo(
     () => categoryColors(categoryList, categoryColorMap),
     [categoryList, categoryColorMap],
