@@ -21,6 +21,13 @@ import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
 import { geometryLabel } from "@/components/comments/comment-panel";
+import { ColorField } from "@/components/map/color-field";
+import {
+  categoryColors,
+  colorFor,
+  savedCategoryColors,
+  UNCATEGORIZED_COLOR,
+} from "@/lib/comment-style";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
