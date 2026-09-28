@@ -733,7 +733,9 @@ export function PublicMapViewer({
               activeSlug={activeViewSlug}
               onSelect={(view) => {
                 // Apply the view right away, then let the URL follow.
+                clickedFromRef.current = loaderSlug;
                 setPendingSlug(view.slug);
+
                 if (view.is_main) {
                   void navigate({
                     to: "/$username/$mapSlug",
