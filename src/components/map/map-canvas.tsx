@@ -1195,7 +1195,29 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       }
       continue;
     }
-    if (!layer.data) continue;
+    if (!layer.data) {
+      // Features for this layer haven't arrived yet (common right after a view
+      // switch). Anything already on the map still gets its new visibility now,
+      // so layers turned off in the new view vanish on the same frame instead
+      // of lingering until the fetch finishes.
+      const pendingVisibility = layer.visible ? "visible" : "none";
+      for (const suffix of [
+        "fill",
+        "line",
+        "circle",
+        "outline",
+        "symbol",
+        "label",
+        "labeloverflow",
+        "maskfill",
+        "heat",
+      ] as const) {
+        const id = LYR(layer.id, suffix);
+        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", pendingVisibility);
+      }
+      continue;
+    }
+
 
     const sourceId = SRC(layer.id);
     const existing = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
