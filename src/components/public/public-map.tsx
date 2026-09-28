@@ -190,28 +190,34 @@ export function PublicMapViewer({
     voteMutation.mutate({ commentId, vote });
   };
 
-  // Approved lines and areas render as a GeoJSON overlay; pins keep their markers.
-  const commentShapes = commentsEnabled && commentsVisible
-    ? comments.flatMap((comment) => {
-        const geometry = (comment as { geometry?: CommentGeometry | null }).geometry;
-        if (!geometry || geometry.type === "Point") return [];
-        return [{ id: comment.id, geometry, color: colorFor(categoryColors, comment.category) }];
-      })
-    : [];
-  const commentMarkers = commentsEnabled && commentsVisible
-    ? comments
-        .filter((comment) => {
-          const type = (comment as { geometry_type?: string | null }).geometry_type;
-          return !type || type === "Point";
-        })
-        .map((comment) => ({
-          id: comment.id,
-          lng: comment.lng,
-          lat: comment.lat,
-          color: colorFor(categoryColors, comment.category),
-          initials: initialsFor(comment.author_name),
-        }))
-    : [];
+  // Approved lines and areas render as a GeoJSON overlay; every comment also
+  // gets an initialled marker at its anchor point. Both lists are memoized so
+  // the map does not rebuild its markers on unrelated re-renders.
+  const commentShapes = useMemo(
+    () =>
+      commentsEnabled && commentsVisible
+        ? comments.flatMap((comment) => {
+            const geometry = (comment as { geometry?: CommentGeometry | null }).geometry;
+            if (!geometry || geometry.type === "Point") return [];
+            return [{ id: comment.id, geometry, color: colorFor(categoryColors, comment.category) }];
+          })
+        : [],
+    [comments, commentsEnabled, commentsVisible, categoryColors],
+  );
+  const commentMarkers = useMemo(
+    () =>
+      commentsEnabled && commentsVisible
+        ? comments.map((comment) => ({
+            id: comment.id,
+            lng: comment.lng,
+            lat: comment.lat,
+            color: colorFor(categoryColors, comment.category),
+            initials: initialsFor(comment.author_name),
+          }))
+        : [],
+    [comments, commentsEnabled, commentsVisible, categoryColors],
+  );
+
 
   const selected = commentsEnabled
     ? (comments.find((comment) => comment.id === selectedComment) ?? null)
