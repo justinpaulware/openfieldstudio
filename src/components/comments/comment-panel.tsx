@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, MessageSquare, Plus, X } from "lucide-react";
+import { Eye, EyeOff, MapPin, MessageSquare, Pentagon, Plus, Spline, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
