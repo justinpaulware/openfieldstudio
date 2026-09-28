@@ -1502,6 +1502,20 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       if (!liveOverflow.has(id)) registry.delete(id);
     }
   }
+  raiseCommentLayers(map);
+}
+
+/** Comment shapes and drafts always sit above the project's data layers. */
+export function raiseCommentLayers(map: MapLibreMap) {
+  for (const id of [
+    "of-comment-shapes-fill",
+    "of-comment-shapes-line",
+    "of-comment-draft-fill",
+    "of-comment-draft-line",
+    "of-comment-draft-point",
+  ]) {
+    if (map.getLayer(id)) map.moveLayer(id);
+  }
 }
 
 /** Matches nothing — the overflow layer starts empty until collision is measured. */
