@@ -143,9 +143,8 @@ export function PublicMapViewer({
 
   // Each category gets a color from the standard palette unless the author picked one.
   const categoryColors = useMemo(
-    () => categoryColors_(commentCategories, savedCategoryColors(view?.embed_config ?? project.embed_config)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [commentCategories, view?.embed_config, project.embed_config],
+    () => buildCategoryColors(commentCategories, savedCategoryColors(project.embed_config)),
+    [commentCategories, project.embed_config],
   );
 
   const voteMutation = useMutation({
