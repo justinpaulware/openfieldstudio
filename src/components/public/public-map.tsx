@@ -446,10 +446,31 @@ export function PublicMapViewer({
               draftVertices={commentMode && drawMode !== "point" ? vertices : []}
               selectedCommentId={selectedComment}
               onCommentClick={(id) => setSelectedComment(id)}
+              commentPopup={
+                selected && commentsVisible
+                  ? {
+                      id: selected.id,
+                      lng: selected.lng,
+                      lat: selected.lat,
+                      content: (
+                        <CommentCard
+                          comment={selected}
+                          colors={categoryColors}
+                          onVote={(vote) => handleVote(selected.id, vote)}
+                          onClose={() => setSelectedComment(null)}
+                          className="w-[248px]"
+                        />
+                      ),
+                    }
+                  : null
+              }
               handleRef={mapRef}
               highlight={highlight}
               featurePopup={featurePopup}
-              onMapClick={() => setHighlight(null)}
+              onMapClick={() => {
+                setHighlight(null);
+                setSelectedComment(null);
+              }}
               rightSlot={
                 commentsEnabled ? (
                   <CommentPanel
