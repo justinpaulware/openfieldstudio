@@ -2,12 +2,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-const STATUSES = ["pending", "approved", "hidden", "rejected"] as const;
+/** Hidden covers the legacy rejected state; everything else counts as visible. */
+const HIDDEN_STATUSES = ["hidden", "rejected"] as const;
 
 const input = z.object({
   projectId: z.string().uuid(),
   format: z.enum(["csv", "geojson"]),
-  status: z.enum(["all", ...STATUSES]).default("all"),
+  status: z.enum(["all", "visible", "hidden"]).default("all"),
   search: z.string().default(""),
 });
 
