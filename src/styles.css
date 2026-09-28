@@ -142,3 +142,17 @@
   cursor: pointer;
   user-select: none;
 }
+
+/* Comment card anchored on the map: the popup chrome is just a shell. */
+.of-comment-popup .maplibregl-popup-content {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--map-overlay, #fff);
+  color: var(--map-overlay-foreground, #111);
+  border: 1px solid var(--map-overlay-border, rgba(0, 0, 0, 0.1));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.of-comment-popup .maplibregl-popup-tip {
+  border-top-color: var(--map-overlay, #fff);
+  border-bottom-color: var(--map-overlay, #fff);
+}
