@@ -10,7 +10,12 @@ import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectHeaderActions } from "@/components/project-header";
 
-import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/layer-panel";
+import {
+  LayerPanel,
+  flattenLayerOrder,
+  type FolderRow,
+  type PasteScope,
+} from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
