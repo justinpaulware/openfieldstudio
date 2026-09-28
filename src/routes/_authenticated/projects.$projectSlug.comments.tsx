@@ -416,7 +416,13 @@ function ProjectComments() {
                       {comment.author_name || "Anonymous"}
                     </span>
                     {comment.category && (
-                      <span className="rounded-full bg-muted px-1.5 py-0.5 font-secondary text-[10px]">
+                      <span
+                        className="rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
+                        style={{
+                          background: `${colorFor(activeColors, comment.category)}26`,
+                          color: colorFor(activeColors, comment.category),
+                        }}
+                      >
                         {comment.category}
                       </span>
                     )}
