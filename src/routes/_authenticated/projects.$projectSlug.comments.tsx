@@ -2,7 +2,19 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Eye, EyeOff, Loader2, MessageSquare, Plus, Trash2 } from "lucide-react";
+import {
+  Download,
+  Eye,
+  EyeOff,
+  Loader2,
+  MapPin,
+  MessageSquare,
+  Pentagon,
+  Plus,
+  Spline,
+  Trash2,
+} from "lucide-react";
+
 import { ShapeIcon } from "@/components/comments/comment-card";
 import { toast } from "sonner";
 
