@@ -17,8 +17,16 @@ export const COMMENT_PALETTE = [
   "#8b5cf6",
 ] as const;
 
-/** Color used for comments without a category. */
-export const UNCATEGORIZED_COLOR = "#8b5cf6";
+/** Color used for comments without a category ("Other"). */
+export const UNCATEGORIZED_COLOR = "#4b5563";
+
+/** Label shown for comments the visitor left uncategorized. */
+export const OTHER_CATEGORY = "Other";
+
+/** Category name to display for a comment, defaulting to "Other". */
+export function categoryLabel(category: string | null | undefined) {
+  return category && category.trim() ? category : OTHER_CATEGORY;
+}
 
 export type CategoryColors = Record<string, string>;
 
