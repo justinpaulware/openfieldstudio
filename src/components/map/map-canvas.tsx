@@ -319,7 +319,11 @@ export default function MapCanvas({
         features: (state.commentShapes ?? []).map((item) => ({
           type: "Feature" as const,
           id: item.id,
-          properties: { id: item.id, selected: item.id === state.selectedCommentId },
+          properties: {
+            id: item.id,
+            selected: item.id === state.selectedCommentId,
+            color: item.color ?? "#8b5cf6",
+          },
           geometry: item.geometry,
         })),
       };
