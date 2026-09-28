@@ -264,19 +264,28 @@ export default function MapCanvas({
     for (const marker of commentMarkersRef.current) marker.remove();
     commentMarkersRef.current = [];
     for (const item of commentPins ?? []) {
+      const selected = item.id === selectedCommentId;
       const el = document.createElement("button");
       el.type = "button";
       el.setAttribute("aria-label", "Comment");
       el.className = "of-comment-pin";
+      el.textContent = item.initials ?? "";
       el.style.cssText = [
-        "width:22px",
-        "height:22px",
+        "display:flex",
+        "align-items:center",
+        "justify-content:center",
+        "width:26px",
+        "height:26px",
+        "padding:0",
+        "font:600 11px/1 var(--font-sans, inherit)",
+        "color:#ffffff",
         "border-radius:9999px",
-        "border:2px solid #ffffff",
+        `border:2px solid ${selected ? "#111827" : "#ffffff"}`,
         "cursor:pointer",
-        "box-shadow:0 1px 4px rgba(0,0,0,.35)",
-        `background:${item.id === selectedCommentId ? "#6d28d9" : "#8b5cf6"}`,
-        item.id === selectedCommentId ? "transform:scale(1.25)" : "",
+        "transition:transform .12s ease",
+        "box-shadow:0 1px 5px rgba(0,0,0,.35)",
+        `background:${item.color ?? "#8b5cf6"}`,
+        selected ? "transform:scale(1.2)" : "",
       ].join(";");
       el.addEventListener("click", (event) => {
         event.stopPropagation();
