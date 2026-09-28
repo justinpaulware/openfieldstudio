@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Download, Eye, EyeOff, Loader2, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { ShapeIcon } from "@/components/comments/comment-card";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
