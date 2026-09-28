@@ -115,15 +115,17 @@ type Props = {
   pin?: [number, number] | null;
   /** Temporary marker for the selected address-search result. */
   searchPin?: [number, number] | null;
-  /** Approved comments drawn as their own markers. */
-  commentPins?: { id: string; lng: number; lat: number }[];
+  /** Approved comments drawn as their own markers, tinted by category. */
+  commentPins?: { id: string; lng: number; lat: number; color?: string; initials?: string }[];
   /** Approved line/area comments drawn as a GeoJSON overlay. */
-  commentShapes?: { id: string; geometry: CommentGeometry }[];
+  commentShapes?: { id: string; geometry: CommentGeometry; color?: string }[];
   /** Shape currently being drawn (live preview) plus its vertices. */
   draftShape?: CommentGeometry | null;
   draftVertices?: [number, number][];
   selectedCommentId?: string | null;
   onCommentClick?: (id: string) => void;
+  /** Card anchored on the map above the selected comment. */
+  commentPopup?: { id: string; lng: number; lat: number; content: ReactNode } | null;
   /** Extra cards stacked under the info popup in the top-right column. */
   rightSlot?: ReactNode;
   /** Geometry outlined on top of every layer (e.g. the feature found by address search). */
