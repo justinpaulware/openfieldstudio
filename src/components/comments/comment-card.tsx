@@ -73,16 +73,14 @@ export function CommentCard({
               {relativeTime(comment.created_at)}
             </span>
           </div>
-          {(comment.category || shape) && (
+          {(
             <div className="mt-1 flex flex-wrap gap-1">
-              {comment.category && (
-                <span
-                  className="inline-block rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
-                  style={{ background: `${color}22`, color }}
-                >
-                  {comment.category}
-                </span>
-              )}
+              <span
+                className="inline-block rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
+                style={{ background: `${color}22`, color }}
+              >
+                {categoryLabel(comment.category)}
+              </span>
               {shape && (
                 <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
                   <ShapeIcon type={comment.geometry_type} />
