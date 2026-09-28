@@ -33,7 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
-import { geometryLabel } from "@/components/comments/comment-panel";
+import { categoryLabel, geometryTag } from "@/lib/comment-style";
 import { ColorField } from "@/components/map/color-field";
 import {
   ALL_GEOMETRY_TYPES,
