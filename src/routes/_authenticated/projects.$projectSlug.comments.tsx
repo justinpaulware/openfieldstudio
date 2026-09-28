@@ -175,17 +175,20 @@ function ProjectComments() {
         comment_category_colors: Object.fromEntries(
           categoryList.map((name) => [name, activeColors[name] ?? UNCATEGORIZED_COLOR]),
         ),
+        comment_geometry_types: geometryTypeList(geometryTypes),
       };
       const { error } = await supabase
         .from("projects")
         .update({
           comments_enabled: commentsEnabled,
-          comments_allow_shapes: allowShapes,
+          // Kept in sync for older readers that only know the single flag.
+          comments_allow_shapes: geometryTypes.line || geometryTypes.area,
           comment_categories: categoryList,
           embed_config: embed,
         })
         .eq("id", projectId);
       if (error) throw error;
+
     },
     onSuccess: () => {
       toast.success("Comment settings saved.");
