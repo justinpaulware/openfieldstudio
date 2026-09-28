@@ -19,7 +19,7 @@ export function CommentCard({
 }: {
   comment: PublicComment;
   colors: CategoryColors;
-  onVote?: (vote: -1 | 0 | 1) => void;
+  onVote?: ((vote: -1 | 0 | 1) => void) | undefined;
   onClose?: () => void;
   className?: string;
 }) {
