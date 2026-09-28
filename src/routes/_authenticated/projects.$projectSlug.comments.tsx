@@ -24,11 +24,17 @@ import type { MapHandle } from "@/components/map/map-canvas";
 import { geometryLabel } from "@/components/comments/comment-panel";
 import { ColorField } from "@/components/map/color-field";
 import {
+  ALL_GEOMETRY_TYPES,
   categoryColors,
   colorFor,
+  commentGeometryTypes,
+  geometryTypeList,
+  initialsFor,
   savedCategoryColors,
   UNCATEGORIZED_COLOR,
+  type CommentGeometryTypes,
 } from "@/lib/comment-style";
+
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
@@ -107,7 +113,8 @@ function ProjectComments() {
   });
 
   const [commentsEnabled, setCommentsEnabled] = useState(false);
-  const [allowShapes, setAllowShapes] = useState(false);
+  /** Which shapes visitors may leave: points, lines, areas. */
+  const [geometryTypes, setGeometryTypes] = useState<CommentGeometryTypes>(ALL_GEOMETRY_TYPES);
   /** Categories are edited one row at a time, like layers. */
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState("");
@@ -117,10 +124,13 @@ function ProjectComments() {
   useEffect(() => {
     if (!project) return;
     setCommentsEnabled(project.comments_enabled);
-    setAllowShapes(project.comments_allow_shapes);
+    setGeometryTypes(
+      commentGeometryTypes(project.embed_config, project.comments_allow_shapes),
+    );
     setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
   }, [project]);
+
 
   const categoryList = useMemo(
     () => categories.map((c) => c.trim()).filter(Boolean),
