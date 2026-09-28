@@ -142,6 +142,8 @@ export function PublicMapViewer({
     (project as { comments_allow_shapes?: boolean }).comments_allow_shapes,
   );
 
+  const queryClient = useQueryClient();
+
   // A stable per-browser id lets anonymous visitors vote once per comment.
   const [visitor, setVisitor] = useState<string | null>(null);
   useEffect(() => setVisitor(visitorId()), []);
