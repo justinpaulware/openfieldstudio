@@ -38,6 +38,8 @@ export function CommentPanel({
   selectedId,
   onSelect,
   onSubmitted,
+  colors,
+  onVote,
 }: {
   username: string;
   slug: string;
@@ -57,6 +59,8 @@ export function CommentPanel({
   selectedId: string | null;
   onSelect: (id: string) => void;
   onSubmitted: () => void;
+  colors: CategoryColors;
+  onVote?: (commentId: string, vote: -1 | 0 | 1) => void;
 }) {
   const ready = mode === "point" ? Boolean(pin) : Boolean(geometry);
   const hint =
