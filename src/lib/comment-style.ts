@@ -99,3 +99,26 @@ export function visitorId() {
   }
   return id;
 }
+
+/** A comment as shown on a published map, with its reaction tallies. */
+export type PublicComment = {
+  id: string;
+  lng: number;
+  lat: number;
+  body: string;
+  category: string | null;
+  author_name: string | null;
+  created_at: string;
+  geometry_type?: string | null;
+  upvotes?: number;
+  downvotes?: number;
+  /** This visitor's vote: 1, -1 or 0. */
+  myVote?: number;
+};
+
+/** "Line" / "Area" chip; pins get no chip because they are the default. */
+export function geometryLabel(type?: string | null) {
+  if (type === "LineString") return "Line";
+  if (type === "Polygon") return "Area";
+  return null;
+}
