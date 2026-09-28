@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { ThumbsDown, ThumbsUp, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
