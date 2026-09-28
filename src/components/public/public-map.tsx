@@ -23,10 +23,12 @@ import { CommentCard } from "@/components/comments/comment-card";
 import {
   categoryColors as buildCategoryColors,
   colorFor,
+  commentGeometryTypes,
   initialsFor,
   savedCategoryColors,
   visitorId,
 } from "@/lib/comment-style";
+
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import { AddressSearchCard } from "@/components/public/address-search-card";
 import type { PlaceResult } from "@/lib/geocode.functions";
