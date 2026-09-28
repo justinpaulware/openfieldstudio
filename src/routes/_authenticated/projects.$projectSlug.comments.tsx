@@ -289,16 +289,16 @@ function ProjectComments() {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
-            {STATUS_FILTERS.map((value) => (
+            {STATUS_FILTERS.map((option) => (
               <Button
-                key={value}
+                key={option.id}
                 type="button"
                 size="sm"
-                variant={statusFilter === value ? "secondary" : "ghost"}
-                className="h-7 font-secondary text-xs capitalize"
-                onClick={() => setStatusFilter(value)}
+                variant={statusFilter === option.id ? "secondary" : "ghost"}
+                className="h-7 font-secondary text-xs"
+                onClick={() => setStatusFilter(option.id)}
               >
-                {value}
+                {option.label}
               </Button>
             ))}
           </div>
