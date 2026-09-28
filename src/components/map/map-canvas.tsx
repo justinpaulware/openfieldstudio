@@ -296,7 +296,7 @@ export default function MapCanvas({
         `border:2px solid ${selected ? "#111827" : "#ffffff"}`,
         "cursor:pointer",
         "box-shadow:0 1px 5px rgba(0,0,0,.35)",
-        `background:${item.color ?? "#8b5cf6"}`,
+        `background:${item.color ?? UNCATEGORIZED_COLOR}`,
         selected ? "outline:2px solid rgba(17,24,39,.25)" : "",
       ].join(";");
       el.addEventListener("click", (event) => {
