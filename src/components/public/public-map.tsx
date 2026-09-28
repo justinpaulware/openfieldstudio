@@ -547,8 +547,9 @@ export function PublicMapViewer({
                       // Zoom in close enough to read the surroundings, but never
                       // pull the visitor back out if they are already closer.
                       if (found) {
-                        const current = mapRef.current?.getZoom?.() ?? 0;
+                        const current = mapRef.current?.getView()?.zoom ?? 0;
                         mapRef.current?.flyTo(found.lng, found.lat, Math.max(current, 16));
+
                       }
                     }}
 
