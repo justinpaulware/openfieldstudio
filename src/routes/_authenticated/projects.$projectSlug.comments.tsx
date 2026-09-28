@@ -255,9 +255,17 @@ function ProjectComments() {
     }
   }
 
+  // Preview pins match the published map: category color plus author initials.
   const pins = useMemo(
-    () => filtered.map((c) => ({ id: c.id, lng: c.lng, lat: c.lat })),
-    [filtered],
+    () =>
+      filtered.map((c) => ({
+        id: c.id,
+        lng: c.lng,
+        lat: c.lat,
+        color: colorFor(activeColors, c.category),
+        initials: initialsFor(c.author_name),
+      })),
+    [filtered, activeColors],
   );
 
 
@@ -271,8 +279,12 @@ function ProjectComments() {
   function select(id: string) {
     setSelectedId(id);
     const target = (comments ?? []).find((c) => c.id === id);
-    if (target) mapRef.current?.flyTo(target.lng, target.lat);
+    if (target) {
+      const current = mapRef.current?.getView()?.zoom ?? 0;
+      mapRef.current?.flyTo(target.lng, target.lat, Math.max(current, 16));
+    }
   }
+
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
