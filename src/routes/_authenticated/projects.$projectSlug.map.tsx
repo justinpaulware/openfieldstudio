@@ -507,6 +507,16 @@ function MapEditor() {
   const [styleLayerId, setStyleLayerId] = useState<string | null>(null);
   const [editorSection, setEditorSection] = useState<EditorSection>("symbology");
 
+  // Session clipboard for copying a layer's look and settings onto another layer.
+  const [clipboard, setClipboard] = useState<{
+    layerId: string;
+    layerName: string;
+    style: LayerStyle;
+    filter: FilterConfig;
+  } | null>(null);
+
+
+
   // Filter drafts keep the map instant while the database write debounces.
   const [filterDrafts, setFilterDrafts] = useState<Record<string, FilterConfig>>({});
   const filterTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
