@@ -391,8 +391,15 @@ export function PublicMapViewer({
     [layers, folders],
   );
 
+  // Queries are keyed to a stable, id-sorted layer list so that changing the
+  // per-view display order can never shuffle one layer's data onto another.
+  const queryLayers = useMemo(
+    () => [...baseLayers].sort((a, b) => a.id.localeCompare(b.id)),
+    [baseLayers],
+  );
+
   const results = useQueries({
-    queries: ordered.map((layer) => ({
+    queries: queryLayers.map((layer) => ({
       queryKey: ["published-layer-data", username, slug, layer.id, layer.updated_at],
       // Raster layers stream tiles from their service — there is nothing to fetch.
       queryFn: () =>
@@ -406,16 +413,26 @@ export function PublicMapViewer({
     })),
   });
 
+  const rawById = useMemo(() => {
+    const map: Record<string, FeatureCollection | null> = {};
+    queryLayers.forEach((layer, index) => {
+      map[layer.id] = (results[index]?.data as FeatureCollection | null) ?? null;
+    });
+    return map;
+  }, [queryLayers, results]);
 
   const dataById = useMemo(() => {
     const map: Record<string, FeatureCollection | null> = {};
-    ordered.forEach((layer, index) => {
-      const data = (results[index]?.data as FeatureCollection | null) ?? null;
+    ordered.forEach((layer) => {
       // Saved attribute filters apply to the public map too.
-      map[layer.id] = filterCollection(data, parseFilterConfig(layer.filter_config));
+      map[layer.id] = filterCollection(
+        rawById[layer.id] ?? null,
+        parseFilterConfig(layer.filter_config),
+      );
     });
     return map;
-  }, [ordered, results]);
+  }, [ordered, rawById]);
+
 
   const loading = results.some((result) => result.isLoading);
 
