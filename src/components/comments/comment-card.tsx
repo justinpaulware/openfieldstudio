@@ -84,7 +84,8 @@ export function CommentCard({
                 </span>
               )}
               {shape && (
-                <span className="inline-block rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
+                <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
+                  <ShapeIcon type={comment.geometry_type} />
                   {shape}
                 </span>
               )}
