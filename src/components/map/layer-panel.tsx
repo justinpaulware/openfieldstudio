@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  ClipboardPaste,
+  Copy,
   CopyPlus,
   ChevronDown,
   ChevronRight,
@@ -25,7 +27,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -206,6 +212,9 @@ function NameEditor({
 }
 
 
+/** Which parts of a copied layer configuration to apply. */
+export type PasteScope = "all" | "symbology" | "labels" | "popup" | "filter";
+
 type Props = {
   layers: PanelLayer[];
   folders: FolderRow[];
@@ -230,6 +239,13 @@ type Props = {
   /** True when the layer has an active attribute filter. */
   filteredFor?: (layer: PanelLayer) => boolean;
   onDuplicate: (layer: LayerRow) => void;
+  /** Copy this layer's style, labels, popups and filter to the session clipboard. */
+  onCopySettings?: (layer: PanelLayer) => void;
+  /** Apply the copied settings to this layer. */
+  onPasteSettings?: (layer: PanelLayer, scope: PasteScope) => void;
+  /** Name of the layer currently on the clipboard, if any. */
+  copiedFrom?: string | null;
+
   onMoveToFolder: (layer: LayerRow, folderId: string | null) => void;
   onFolderRename: (folder: FolderRow, name: string) => void;
   onFolderToggle: (folder: FolderRow) => void;
@@ -261,6 +277,9 @@ export function LayerPanel({
   onFilter,
   filteredFor,
   onDuplicate,
+  onCopySettings,
+  onPasteSettings,
+  copiedFrom,
   onMoveToFolder,
   onFolderRename,
   onFolderToggle,
@@ -544,6 +563,43 @@ export function LayerPanel({
                 <CopyPlus className="mr-2 h-4 w-4" />
                 Duplicate layer
               </DropdownMenuItem>
+              {(onCopySettings || onPasteSettings) && <DropdownMenuSeparator />}
+              {onCopySettings && (
+                <DropdownMenuItem onClick={() => onCopySettings(layer)}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy style &amp; settings
+                </DropdownMenuItem>
+              )}
+              {onPasteSettings && (
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger disabled={!copiedFrom} className="px-2 py-1.5">
+                    <ClipboardPaste className="mr-2 h-4 w-4" />
+                    <span className="truncate">
+                      {copiedFrom ? `Paste from "${copiedFrom}"` : "Paste style & settings"}
+                    </span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "all")}>
+                        All settings
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "symbology")}>
+                        Symbology only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "labels")}>
+                        Labels only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "popup")}>
+                        Popups only
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPasteSettings(layer, "filter")}>
+                        Filter only
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onRefresh(layer)}>
                 <RefreshCw className="mr-2 h-4 w-4" />

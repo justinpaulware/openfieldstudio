@@ -10,7 +10,12 @@ import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectHeaderActions } from "@/components/project-header";
 
-import { LayerPanel, flattenLayerOrder, type FolderRow } from "@/components/map/layer-panel";
+import {
+  LayerPanel,
+  flattenLayerOrder,
+  type FolderRow,
+  type PasteScope,
+} from "@/components/map/layer-panel";
 import { AddLayerDialog } from "@/components/map/add-layer-dialog";
 import { AttributeTable } from "@/components/map/attribute-table";
 import { LayerSourceDialog } from "@/components/map/layer-source-dialog";
@@ -502,6 +507,16 @@ function MapEditor() {
   const [styleLayerId, setStyleLayerId] = useState<string | null>(null);
   const [editorSection, setEditorSection] = useState<EditorSection>("symbology");
 
+  // Session clipboard for copying a layer's look and settings onto another layer.
+  const [clipboard, setClipboard] = useState<{
+    layerId: string;
+    layerName: string;
+    style: LayerStyle;
+    filter: FilterConfig;
+  } | null>(null);
+
+
+
   // Filter drafts keep the map instant while the database write debounces.
   const [filterDrafts, setFilterDrafts] = useState<Record<string, FilterConfig>>({});
   const filterTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -890,6 +905,57 @@ function MapEditor() {
     persistStyle(layerId, next);
   };
 
+  /** Copy one layer's look and settings, then paste part or all onto another. */
+  const copySettings = (layer: LayerWithStyle) => {
+    setClipboard({
+      layerId: layer.id,
+      layerName: layer.name,
+      style: styleFor(layer),
+      filter: filterFor(layer),
+    });
+    toast.success(`Copied style & settings from "${layer.name}"`);
+  };
+
+  const pasteSettings = (layer: LayerWithStyle, scope: PasteScope) => {
+    if (!clipboard) return;
+    if (clipboard.layerId === layer.id) return;
+    const current = styleFor(layer);
+    const source = clipboard.style;
+
+    if (scope === "all" || scope === "symbology" || scope === "labels" || scope === "popup") {
+      let next: LayerStyle;
+      if (scope === "all") next = { ...source };
+      else if (scope === "labels") next = { ...current, labels: { ...source.labels } };
+      else if (scope === "popup") next = { ...current, popup: { ...source.popup } };
+      else
+        next = {
+          ...source,
+          labels: { ...current.labels },
+          popup: { ...current.popup },
+        };
+      setStyleDrafts((drafts) => ({ ...drafts, [layer.id]: next }));
+      persistStyle(layer.id, next);
+    }
+
+    if (scope === "all" || scope === "filter") {
+      persistFilter(layer.id, clipboard.filter);
+    }
+
+    const what =
+      scope === "all"
+        ? "all settings"
+        : scope === "symbology"
+          ? "symbology"
+          : scope === "labels"
+            ? "labels"
+            : scope === "popup"
+              ? "popups"
+              : "filter";
+    toast.success(`Pasted ${what} to "${layer.name}"`);
+  };
+
+
+
   const nextSortOrder = layers.length
     ? Math.min(...layers.map((l) => l.sort_order)) - 1
     : 0;
@@ -1040,6 +1106,9 @@ function MapEditor() {
                 onZoomTo={(layer) => zoomToLayer(layer as LayerWithStyle)}
                 onDelete={(layer) => deleteLayer.mutate(layer)}
                 onDuplicate={(layer) => duplicateLayer.mutate(layer)}
+                onCopySettings={(layer) => copySettings(layer as LayerWithStyle)}
+                onPasteSettings={(layer, scope) => pasteSettings(layer as LayerWithStyle, scope)}
+                copiedFrom={clipboard?.layerName ?? null}
                 onReorder={(ids) => reorder.mutate(ids)}
                 onOpenTable={(layer) => setTableLayerId(layer.id)}
                 onRefresh={(layer) => refreshLayer.mutate({ layer })}
