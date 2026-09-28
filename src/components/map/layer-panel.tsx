@@ -212,6 +212,9 @@ function NameEditor({
 }
 
 
+/** Which parts of a copied layer configuration to apply. */
+export type PasteScope = "all" | "symbology" | "labels" | "popup" | "filter";
+
 type Props = {
   layers: PanelLayer[];
   folders: FolderRow[];
