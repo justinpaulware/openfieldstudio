@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, MessageSquare, Plus, X } from "lucide-react";
+import { Eye, EyeOff, MapPin, MessageSquare, Pentagon, Plus, Spline, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
@@ -13,10 +13,10 @@ export type CommentDrawMode = "point" | "line" | "area";
 export { geometryLabel };
 export type { PublicComment };
 
-const MODES: { id: CommentDrawMode; label: string }[] = [
-  { id: "point", label: "Point" },
-  { id: "line", label: "Line" },
-  { id: "area", label: "Area" },
+const MODES: { id: CommentDrawMode; label: string; icon: typeof MapPin }[] = [
+  { id: "point", label: "Point", icon: MapPin },
+  { id: "line", label: "Line", icon: Spline },
+  { id: "area", label: "Area", icon: Pentagon },
 ];
 
 export function CommentPanel({
@@ -119,10 +119,11 @@ export function CommentPanel({
                   type="button"
                   onClick={() => onModeChange?.(option.id)}
                   className={cn(
-                    "flex-1 rounded px-2 py-1 font-secondary text-xs",
+                    "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 font-secondary text-xs",
                     mode === option.id ? "bg-black/10 font-semibold" : "opacity-70 hover:bg-black/5",
                   )}
                 >
+                  <option.icon className="h-3.5 w-3.5" aria-hidden />
                   {option.label}
                 </button>
               ))}

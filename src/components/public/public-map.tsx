@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ClientOnly, Link, useNavigate } from "@tanstack/react-router";
-import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ViewSwitcherCard,
   type SwitcherView,
@@ -142,6 +142,8 @@ export function PublicMapViewer({
     (project as { comments_allow_shapes?: boolean }).comments_allow_shapes,
   );
 
+  const queryClient = useQueryClient();
+
   // A stable per-browser id lets anonymous visitors vote once per comment.
   const [visitor, setVisitor] = useState<string | null>(null);
   useEffect(() => setVisitor(visitorId()), []);
@@ -159,10 +161,28 @@ export function PublicMapViewer({
     [commentCategories, project.embed_config],
   );
 
+  // Patch the cached comment in place instead of refetching the whole list,
+  // so the tally the visitor sees settles without a second round trip.
   const voteMutation = useMutation({
     mutationFn: (input: { commentId: string; vote: -1 | 0 | 1 }) =>
       reactToComment({ data: { ...input, visitorId: visitor ?? "" } }),
-    onSuccess: () => void commentsQuery.refetch(),
+    onSuccess: (result, input) => {
+      if (!result?.ok) return;
+      queryClient.setQueryData(
+        ["approved-comments", username, slug, visitor],
+        (current: PublicComment[] | undefined) =>
+          (current ?? []).map((comment) =>
+            comment.id === input.commentId
+              ? {
+                  ...comment,
+                  upvotes: result.upvotes,
+                  downvotes: result.downvotes,
+                  myVote: result.myVote,
+                }
+              : comment,
+          ),
+      );
+    },
   });
 
   const handleVote = (commentId: string, vote: -1 | 0 | 1) => {

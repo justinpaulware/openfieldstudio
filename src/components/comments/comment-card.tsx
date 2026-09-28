@@ -1,4 +1,5 @@
-import { ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { MapPin, Pentagon, Spline, ThumbsDown, ThumbsUp, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { colorFor, initialsFor, relativeTime, type CategoryColors } from "@/lib/comment-style";
@@ -25,7 +26,33 @@ export function CommentCard({
 }) {
   const color = colorFor(colors, comment.category);
   const shape = geometryLabel(comment.geometry_type);
-  const mine = comment.myVote ?? 0;
+
+  // Votes render from local state first so the thumbs respond on the same frame
+  // as the click; the server result simply confirms what is already on screen.
+  const serverVote = (comment.myVote ?? 0) as -1 | 0 | 1;
+  const [local, setLocal] = useState<{ vote: -1 | 0 | 1; up: number; down: number }>({
+    vote: serverVote,
+    up: comment.upvotes ?? 0,
+    down: comment.downvotes ?? 0,
+  });
+  useEffect(() => {
+    setLocal({
+      vote: serverVote,
+      up: comment.upvotes ?? 0,
+      down: comment.downvotes ?? 0,
+    });
+  }, [comment.id, serverVote, comment.upvotes, comment.downvotes]);
+
+  const mine = local.vote;
+  const cast = (next: -1 | 0 | 1) => {
+    setLocal((current) => {
+      const up = current.up - (current.vote === 1 ? 1 : 0) + (next === 1 ? 1 : 0);
+      const down = current.down - (current.vote === -1 ? 1 : 0) + (next === -1 ? 1 : 0);
+      return { vote: next, up: Math.max(0, up), down: Math.max(0, down) };
+    });
+    onVote?.(next);
+  };
+
 
   return (
     <div className={cn("space-y-2 text-map-overlay-foreground", className)}>
@@ -57,7 +84,8 @@ export function CommentCard({
                 </span>
               )}
               {shape && (
-                <span className="inline-block rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
+                <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
+                  <ShapeIcon type={comment.geometry_type} />
                   {shape}
                 </span>
               )}
@@ -83,16 +111,16 @@ export function CommentCard({
           <VoteButton
             icon={ThumbsUp}
             label="Upvote"
-            count={comment.upvotes ?? 0}
+            count={local.up}
             active={mine === 1}
-            onClick={() => onVote(mine === 1 ? 0 : 1)}
+            onClick={() => cast(mine === 1 ? 0 : 1)}
           />
           <VoteButton
             icon={ThumbsDown}
             label="Downvote"
-            count={comment.downvotes ?? 0}
+            count={local.down}
             active={mine === -1}
-            onClick={() => onVote(mine === -1 ? 0 : -1)}
+            onClick={() => cast(mine === -1 ? 0 : -1)}
           />
         </div>
       )}
@@ -131,4 +159,12 @@ function VoteButton({
       {count > 0 ? count : null}
     </button>
   );
+}
+
+/** Small glyph matching the comment's geometry: pin, line or area. */
+export function ShapeIcon({ type }: { type?: string | null | undefined }) {
+  const Icon = type === "LineString" || type === "MultiLineString" ? Spline
+    : type === "Polygon" || type === "MultiPolygon" ? Pentagon
+    : MapPin;
+  return <Icon className="h-3 w-3" aria-hidden />;
 }

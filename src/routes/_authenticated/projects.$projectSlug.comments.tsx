@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Eye, EyeOff, Loader2, MessageSquare, Trash2 } from "lucide-react";
+import { Download, Eye, EyeOff, Loader2, MessageSquare, Plus, Trash2 } from "lucide-react";
+import { ShapeIcon } from "@/components/comments/comment-card";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -31,8 +32,19 @@ import {
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-const STATUS_FILTERS = ["all", "pending", "approved", "hidden", "rejected"] as const;
-type StatusFilter = (typeof STATUS_FILTERS)[number];
+/**
+ * Comments publish immediately, so moderation is simply visible vs hidden.
+ * The legacy pending/rejected states are folded into those two buckets.
+ */
+const STATUS_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "visible", label: "Visible" },
+  { id: "hidden", label: "Hidden" },
+] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number]["id"];
+
+/** Legacy rejected comments are treated as hidden. */
+const isCommentHidden = (status: string) => status === "hidden" || status === "rejected";
 
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
@@ -96,7 +108,9 @@ function ProjectComments() {
 
   const [commentsEnabled, setCommentsEnabled] = useState(false);
   const [allowShapes, setAllowShapes] = useState(false);
-  const [categories, setCategories] = useState("");
+  /** Categories are edited one row at a time, like layers. */
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState("");
   /** Author overrides keyed by category name; unset names fall back to the palette. */
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
 
@@ -104,18 +118,41 @@ function ProjectComments() {
     if (!project) return;
     setCommentsEnabled(project.comments_enabled);
     setAllowShapes(project.comments_allow_shapes);
-    setCategories((project.comment_categories ?? []).join(", "));
+    setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
   }, [project]);
 
   const categoryList = useMemo(
-    () =>
-      categories
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
+    () => categories.map((c) => c.trim()).filter(Boolean),
     [categories],
   );
+
+  const addCategory = () => {
+    const name = newCategory.trim();
+    if (!name || categories.some((c) => c.toLowerCase() === name.toLowerCase())) return;
+    setCategories((current) => [...current, name]);
+    setNewCategory("");
+  };
+
+  const renameCategory = (index: number, name: string) => {
+    setCategories((current) => {
+      const previous = current[index];
+      // Carry the chosen color across the rename so the swatch doesn't reset.
+      if (previous && previous !== name) {
+        setCategoryColorMap((colors) => {
+          if (!(previous in colors)) return colors;
+          const next = { ...colors, [name]: colors[previous]! };
+          delete next[previous];
+          return next;
+        });
+      }
+      return current.map((c, i) => (i === index ? name : c));
+    });
+  };
+
+  const removeCategory = (index: number) => {
+    setCategories((current) => current.filter((_, i) => i !== index));
+  };
   const activeColors = useMemo(
     () => categoryColors(categoryList, categoryColorMap),
     [categoryList, categoryColorMap],
@@ -173,11 +210,12 @@ function ProjectComments() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return (comments ?? []).filter(
-      (c) =>
-        (statusFilter === "all" || c.status === statusFilter) &&
-        (!term || c.body.toLowerCase().includes(term)),
-    );
+    return (comments ?? []).filter((c) => {
+      const isHidden = isCommentHidden(c.status);
+      const statusOk =
+        statusFilter === "all" || (statusFilter === "hidden" ? isHidden : !isHidden);
+      return statusOk && (!term || c.body.toLowerCase().includes(term));
+    });
   }, [comments, statusFilter, search]);
 
   const runExport = useServerFn(exportComments);
@@ -255,16 +293,16 @@ function ProjectComments() {
 
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-1 rounded-lg border border-border p-1">
-            {STATUS_FILTERS.map((value) => (
+            {STATUS_FILTERS.map((option) => (
               <Button
-                key={value}
+                key={option.id}
                 type="button"
                 size="sm"
-                variant={statusFilter === value ? "secondary" : "ghost"}
-                className="h-7 font-secondary text-xs capitalize"
-                onClick={() => setStatusFilter(value)}
+                variant={statusFilter === option.id ? "secondary" : "ghost"}
+                className="h-7 font-secondary text-xs"
+                onClick={() => setStatusFilter(option.id)}
               >
-                {value}
+                {option.label}
               </Button>
             ))}
           </div>
@@ -328,7 +366,7 @@ function ProjectComments() {
                 className={cn(
                   "flex gap-3 px-4 py-3",
                   selectedId === comment.id && "bg-muted/60",
-                  comment.status === "hidden" && "opacity-60",
+                  isCommentHidden(comment.status) && "opacity-60",
                 )}
               >
                 <button
@@ -346,11 +384,12 @@ function ProjectComments() {
                       </span>
                     )}
                     {geometryLabel(comment.geometry_type) && (
-                      <span className="rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                        <ShapeIcon type={comment.geometry_type} />
                         {geometryLabel(comment.geometry_type)}
                       </span>
                     )}
-                    {comment.status === "hidden" && (
+                    {isCommentHidden(comment.status) && (
                       <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
                         Hidden
                       </span>
@@ -365,16 +404,16 @@ function ProjectComments() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    title={comment.status === "hidden" ? "Restore comment" : "Hide comment"}
-                    aria-label={comment.status === "hidden" ? "Restore comment" : "Hide comment"}
+                    title={isCommentHidden(comment.status) ? "Restore comment" : "Hide comment"}
+                    aria-label={isCommentHidden(comment.status) ? "Restore comment" : "Hide comment"}
                     onClick={() =>
                       setStatus.mutate({
                         id: comment.id,
-                        status: comment.status === "hidden" ? "approved" : "hidden",
+                        status: isCommentHidden(comment.status) ? "approved" : "hidden",
                       })
                     }
                   >
-                    {comment.status === "hidden" ? (
+                    {isCommentHidden(comment.status) ? (
                       <EyeOff className="h-4 w-4" />
                     ) : (
                       <Eye className="h-4 w-4" />
@@ -428,26 +467,36 @@ function ProjectComments() {
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="comment-categories">Categories</Label>
-          <Input
-            id="comment-categories"
-            value={categories}
-            onChange={(e) => setCategories(e.target.value)}
-            placeholder="General feedback, Question, Issue"
-          />
+          <Label>Categories</Label>
           <p className="font-secondary text-xs text-muted-foreground">
-            Comma separated. Leave empty to hide the category picker.
+            Each category gets its own color for pins, shapes and labels on the published map.
           </p>
-          {categoryList.length > 0 && (
-            <div className="space-y-1 rounded-md border p-2">
-              <p className="font-secondary text-xs text-muted-foreground">
-                Colors used for pins, shapes and labels on the published map.
-              </p>
-              {categoryList.map((name) => (
-                <div key={name} className="flex items-center justify-between gap-2">
-                  <span className="truncate font-secondary text-xs">{name}</span>
+
+          {categories.length > 0 && (
+            <div className="space-y-2">
+              {categories.map((name, index) => (
+                <div key={index} className="space-y-2 rounded-md border border-border p-2">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={name}
+                      onChange={(e) => renameCategory(index, e.target.value)}
+                      placeholder="Category name"
+                      className="h-8 flex-1 font-secondary text-xs"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      title="Remove category"
+                      aria-label={`Remove ${name || "category"}`}
+                      onClick={() => removeCategory(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <ColorField
-                    label={name}
+                    label={`${name || "Category"} color`}
+                    hideLabel
                     value={colorFor(activeColors, name)}
                     allowTransparent={false}
                     onChange={(color) =>
@@ -457,6 +506,36 @@ function ProjectComments() {
                 </div>
               ))}
             </div>
+          )}
+
+          <div className="flex items-center gap-1">
+            <Input
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  addCategory();
+                }
+              }}
+              placeholder="Add a category"
+              className="h-8 flex-1 font-secondary text-xs"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0"
+              disabled={!newCategory.trim()}
+              onClick={addCategory}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              Add
+            </Button>
+          </div>
+          {categories.length === 0 && (
+            <p className="font-secondary text-xs text-muted-foreground">
+              With no categories, visitors won't see a category picker.
+            </p>
           )}
         </div>
         <Button
