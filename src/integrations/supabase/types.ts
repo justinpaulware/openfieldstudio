@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      comment_reactions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          updated_at: string
+          visitor_id: string
+          vote: number
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          visitor_id: string
+          vote: number
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          visitor_id?: string
+          vote?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_reactions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           attributes: Json
