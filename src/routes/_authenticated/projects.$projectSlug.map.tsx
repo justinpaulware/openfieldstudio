@@ -1106,6 +1106,9 @@ function MapEditor() {
                 onZoomTo={(layer) => zoomToLayer(layer as LayerWithStyle)}
                 onDelete={(layer) => deleteLayer.mutate(layer)}
                 onDuplicate={(layer) => duplicateLayer.mutate(layer)}
+                onCopySettings={(layer) => copySettings(layer as LayerWithStyle)}
+                onPasteSettings={(layer, scope) => pasteSettings(layer as LayerWithStyle, scope)}
+                copiedFrom={clipboard?.layerName ?? null}
                 onReorder={(ids) => reorder.mutate(ids)}
                 onOpenTable={(layer) => setTableLayerId(layer.id)}
                 onRefresh={(layer) => refreshLayer.mutate({ layer })}
