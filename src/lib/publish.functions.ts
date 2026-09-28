@@ -76,10 +76,30 @@ export const submitComment = createServerFn({ method: "POST" })
 export const listApprovedComments = createServerFn({ method: "GET" })
   .inputValidator((data) =>
     z
-      .object({ username: z.string().min(1).max(30), slug: z.string().min(1).max(120) })
+      .object({
+        username: z.string().min(1).max(30),
+        slug: z.string().min(1).max(120),
+        visitorId: z.string().max(64).nullish(),
+      })
       .parse(data),
   )
   .handler(async ({ data }) => {
     const { loadApprovedComments } = await import("./publish.server");
-    return loadApprovedComments(data.username, data.slug);
+    return loadApprovedComments(data.username, data.slug, data.visitorId ?? null);
+  });
+
+/** Thumbs up / down on a public comment; vote 0 clears the visitor's vote. */
+export const reactToComment = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        commentId: z.string().uuid(),
+        visitorId: z.string().min(8).max(64),
+        vote: z.union([z.literal(-1), z.literal(0), z.literal(1)]),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { reactToPublicComment } = await import("./publish.server");
+    return reactToPublicComment(data);
   });

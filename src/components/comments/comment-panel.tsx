@@ -3,40 +3,15 @@ import { Eye, EyeOff, MessageSquare, Plus, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
+import { CommentCard } from "@/components/comments/comment-card";
 import { MapCardHeader } from "@/components/map/map-card-header";
 import type { CommentGeometry } from "@/components/map/map-canvas";
+import { geometryLabel, type CategoryColors, type PublicComment } from "@/lib/comment-style";
 
 export type CommentDrawMode = "point" | "line" | "area";
 
-export type PublicComment = {
-  id: string;
-  lng: number;
-  lat: number;
-  body: string;
-  category: string | null;
-  author_name: string | null;
-  created_at: string;
-  geometry_type?: string | null;
-};
-
-function relativeTime(iso: string) {
-  const then = new Date(iso).getTime();
-  const minutes = Math.round((Date.now() - then) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-/** "Line" / "Area" chip; pins get no chip because they are the default. */
-export function geometryLabel(type?: string | null) {
-  if (type === "LineString") return "Line";
-  if (type === "Polygon") return "Area";
-  return null;
-}
+export { geometryLabel };
+export type { PublicComment };
 
 const MODES: { id: CommentDrawMode; label: string }[] = [
   { id: "point", label: "Point" },
@@ -63,6 +38,8 @@ export function CommentPanel({
   selectedId,
   onSelect,
   onSubmitted,
+  colors,
+  onVote,
 }: {
   username: string;
   slug: string;
@@ -82,6 +59,8 @@ export function CommentPanel({
   selectedId: string | null;
   onSelect: (id: string) => void;
   onSubmitted: () => void;
+  colors: CategoryColors;
+  onVote?: (commentId: string, vote: -1 | 0 | 1) => void;
 }) {
   const ready = mode === "point" ? Boolean(pin) : Boolean(geometry);
   const hint =
@@ -195,47 +174,31 @@ export function CommentPanel({
 
       {bodyOpen && comments.length > 0 && (
         <ul className="max-h-[40vh] overflow-y-auto border-t border-map-overlay-border">
-          {comments.map((comment) => {
-            const shape = geometryLabel(comment.geometry_type);
-            return (
-              <li key={comment.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(comment.id)}
-                  className={cn(
-                    "w-full border-b border-map-overlay-border px-3 py-2.5 text-left last:border-b-0 hover:bg-black/5",
-                    selectedId === comment.id && "bg-black/5",
-                  )}
-                >
-                  <div className="flex items-baseline gap-2">
-                    <span className="truncate text-xs font-semibold">
-                      {comment.author_name || "Anonymous"}
-                    </span>
-                    <span className="ml-auto shrink-0 font-secondary text-[11px] opacity-60">
-                      {relativeTime(comment.created_at)}
-                    </span>
-                  </div>
-                  {(comment.category || shape) && (
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {comment.category && (
-                        <span className="inline-block rounded-full bg-black/10 px-1.5 py-0.5 font-secondary text-[10px]">
-                          {comment.category}
-                        </span>
-                      )}
-                      {shape && (
-                        <span className="inline-block rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
-                          {shape}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  <p className="mt-1 font-secondary text-xs leading-snug opacity-90">
-                    {comment.body}
-                  </p>
-                </button>
-              </li>
-            );
-          })}
+          {comments.map((comment) => (
+            <li key={comment.id}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onSelect(comment.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelect(comment.id);
+                  }
+                }}
+                className={cn(
+                  "w-full cursor-pointer border-b border-map-overlay-border px-3 py-2.5 text-left last:border-b-0 hover:bg-black/5",
+                  selectedId === comment.id && "bg-black/5",
+                )}
+              >
+                <CommentCard
+                  comment={comment}
+                  colors={colors}
+                  onVote={onVote ? (vote) => onVote(comment.id, vote) : undefined}
+                />
+              </div>
+            </li>
+          ))}
         </ul>
       )}
 

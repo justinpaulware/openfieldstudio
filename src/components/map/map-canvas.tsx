@@ -1,4 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
+import { createPortal } from "react-dom";
 import * as maplibregl from "maplibre-gl";
 import type { Map as MapLibreMap } from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -115,15 +116,17 @@ type Props = {
   pin?: [number, number] | null;
   /** Temporary marker for the selected address-search result. */
   searchPin?: [number, number] | null;
-  /** Approved comments drawn as their own markers. */
-  commentPins?: { id: string; lng: number; lat: number }[];
+  /** Approved comments drawn as their own markers, tinted by category. */
+  commentPins?: { id: string; lng: number; lat: number; color?: string; initials?: string }[];
   /** Approved line/area comments drawn as a GeoJSON overlay. */
-  commentShapes?: { id: string; geometry: CommentGeometry }[];
+  commentShapes?: { id: string; geometry: CommentGeometry; color?: string }[];
   /** Shape currently being drawn (live preview) plus its vertices. */
   draftShape?: CommentGeometry | null;
   draftVertices?: [number, number][];
   selectedCommentId?: string | null;
   onCommentClick?: (id: string) => void;
+  /** Card anchored on the map above the selected comment. */
+  commentPopup?: { id: string; lng: number; lat: number; content: ReactNode } | null;
   /** Extra cards stacked under the info popup in the top-right column. */
   rightSlot?: ReactNode;
   /** Geometry outlined on top of every layer (e.g. the feature found by address search). */
@@ -156,6 +159,7 @@ export default function MapCanvas({
   draftVertices,
   selectedCommentId = null,
   onCommentClick,
+  commentPopup = null,
   rightSlot,
   highlight = null,
   featurePopup = null,
@@ -261,19 +265,28 @@ export default function MapCanvas({
     for (const marker of commentMarkersRef.current) marker.remove();
     commentMarkersRef.current = [];
     for (const item of commentPins ?? []) {
+      const selected = item.id === selectedCommentId;
       const el = document.createElement("button");
       el.type = "button";
       el.setAttribute("aria-label", "Comment");
       el.className = "of-comment-pin";
+      el.textContent = item.initials ?? "";
       el.style.cssText = [
-        "width:22px",
-        "height:22px",
+        "display:flex",
+        "align-items:center",
+        "justify-content:center",
+        "width:26px",
+        "height:26px",
+        "padding:0",
+        "font:600 11px/1 var(--font-sans, inherit)",
+        "color:#ffffff",
         "border-radius:9999px",
-        "border:2px solid #ffffff",
+        `border:2px solid ${selected ? "#111827" : "#ffffff"}`,
         "cursor:pointer",
-        "box-shadow:0 1px 4px rgba(0,0,0,.35)",
-        `background:${item.id === selectedCommentId ? "#6d28d9" : "#8b5cf6"}`,
-        item.id === selectedCommentId ? "transform:scale(1.25)" : "",
+        "transition:transform .12s ease",
+        "box-shadow:0 1px 5px rgba(0,0,0,.35)",
+        `background:${item.color ?? "#8b5cf6"}`,
+        selected ? "transform:scale(1.2)" : "",
       ].join(";");
       el.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -288,6 +301,39 @@ export default function MapCanvas({
       commentMarkersRef.current = [];
     };
   }, [commentPins, selectedCommentId, mapLoaded]);
+
+  // Comment card anchored on the map, above the selected comment. The card is
+  // React content portalled into the MapLibre popup element.
+  const [commentPopupEl, setCommentPopupEl] = useState<HTMLDivElement | null>(null);
+  const commentPopupId = commentPopup?.id ?? null;
+  const commentPopupLng = commentPopup?.lng ?? null;
+  const commentPopupLat = commentPopup?.lat ?? null;
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !commentPopupId || commentPopupLng === null || commentPopupLat === null) {
+      setCommentPopupEl(null);
+      return;
+    }
+    const element = document.createElement("div");
+    const popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 20,
+      maxWidth: "300px",
+      className: "of-comment-popup",
+    })
+      .setLngLat([commentPopupLng, commentPopupLat])
+      .setDOMContent(element)
+      .addTo(map);
+    setCommentPopupEl(element);
+    return () => {
+      popup.remove();
+      setCommentPopupEl(null);
+    };
+  }, [commentPopupId, commentPopupLng, commentPopupLat, mapLoaded]);
+
+
 
   // Approved line/area comments plus the shape currently being drawn. Both live
   // in their own GeoJSON sources so they survive basemap style swaps.
@@ -307,7 +353,11 @@ export default function MapCanvas({
         features: (state.commentShapes ?? []).map((item) => ({
           type: "Feature" as const,
           id: item.id,
-          properties: { id: item.id, selected: item.id === state.selectedCommentId },
+          properties: {
+            id: item.id,
+            selected: item.id === state.selectedCommentId,
+            color: item.color ?? "#8b5cf6",
+          },
           geometry: item.geometry,
         })),
       };
@@ -344,7 +394,7 @@ export default function MapCanvas({
           type: "fill",
           source: "of-comment-shapes",
           filter: ["==", ["geometry-type"], "Polygon"],
-          paint: { "fill-color": "#8b5cf6", "fill-opacity": 0.2 },
+          paint: { "fill-color": ["get", "color"], "fill-opacity": 0.2 },
         });
       }
       if (!map.getLayer("of-comment-shapes-line")) {
@@ -353,7 +403,7 @@ export default function MapCanvas({
           type: "line",
           source: "of-comment-shapes",
           paint: {
-            "line-color": ["case", ["get", "selected"], "#6d28d9", "#8b5cf6"],
+            "line-color": ["get", "color"],
             "line-width": ["case", ["get", "selected"], 5, 3],
             "line-opacity": 0.95,
           },
@@ -860,6 +910,7 @@ export default function MapCanvas({
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      {commentPopup && commentPopupEl ? createPortal(commentPopup.content, commentPopupEl) : null}
 
       <div className="absolute bottom-[196px] right-2.5 z-10 flex max-h-[calc(100%-220px)] flex-col-reverse items-end gap-1">
         <button

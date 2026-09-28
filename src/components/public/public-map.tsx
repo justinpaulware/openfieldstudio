@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ClientOnly, Link, useNavigate } from "@tanstack/react-router";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import {
   ViewSwitcherCard,
   type SwitcherView,
@@ -14,7 +14,19 @@ import {
   type CommentDrawMode,
   type PublicComment,
 } from "@/components/comments/comment-panel";
-import { getPublishedLayerData, listApprovedComments } from "@/lib/publish.functions";
+import {
+  getPublishedLayerData,
+  listApprovedComments,
+  reactToComment,
+} from "@/lib/publish.functions";
+import { CommentCard } from "@/components/comments/comment-card";
+import {
+  categoryColors as buildCategoryColors,
+  colorFor,
+  initialsFor,
+  savedCategoryColors,
+  visitorId,
+} from "@/lib/comment-style";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import { AddressSearchCard } from "@/components/public/address-search-card";
 import type { PlaceResult } from "@/lib/geocode.functions";
@@ -130,27 +142,60 @@ export function PublicMapViewer({
     (project as { comments_allow_shapes?: boolean }).comments_allow_shapes,
   );
 
+  // A stable per-browser id lets anonymous visitors vote once per comment.
+  const [visitor, setVisitor] = useState<string | null>(null);
+  useEffect(() => setVisitor(visitorId()), []);
+
   const commentsQuery = useQuery({
-    queryKey: ["approved-comments", username, slug],
-    queryFn: () => listApprovedComments({ data: { username, slug } }),
+    queryKey: ["approved-comments", username, slug, visitor],
+    queryFn: () => listApprovedComments({ data: { username, slug, visitorId: visitor } }),
     enabled: commentsEnabled,
   });
   const comments = (commentsQuery.data ?? []) as PublicComment[];
+
+  // Each category gets a color from the standard palette unless the author picked one.
+  const categoryColors = useMemo(
+    () => buildCategoryColors(commentCategories, savedCategoryColors(project.embed_config)),
+    [commentCategories, project.embed_config],
+  );
+
+  const voteMutation = useMutation({
+    mutationFn: (input: { commentId: string; vote: -1 | 0 | 1 }) =>
+      reactToComment({ data: { ...input, visitorId: visitor ?? "" } }),
+    onSuccess: () => void commentsQuery.refetch(),
+  });
+
+  const handleVote = (commentId: string, vote: -1 | 0 | 1) => {
+    if (!visitor) return;
+    voteMutation.mutate({ commentId, vote });
+  };
 
   // Approved lines and areas render as a GeoJSON overlay; pins keep their markers.
   const commentShapes = commentsEnabled && commentsVisible
     ? comments.flatMap((comment) => {
         const geometry = (comment as { geometry?: CommentGeometry | null }).geometry;
         if (!geometry || geometry.type === "Point") return [];
-        return [{ id: comment.id, geometry }];
+        return [{ id: comment.id, geometry, color: colorFor(categoryColors, comment.category) }];
       })
     : [];
   const commentMarkers = commentsEnabled && commentsVisible
-    ? comments.filter((comment) => {
-        const type = (comment as { geometry_type?: string | null }).geometry_type;
-        return !type || type === "Point";
-      })
+    ? comments
+        .filter((comment) => {
+          const type = (comment as { geometry_type?: string | null }).geometry_type;
+          return !type || type === "Point";
+        })
+        .map((comment) => ({
+          id: comment.id,
+          lng: comment.lng,
+          lat: comment.lat,
+          color: colorFor(categoryColors, comment.category),
+          initials: initialsFor(comment.author_name),
+        }))
     : [];
+
+  const selected = commentsEnabled
+    ? (comments.find((comment) => comment.id === selectedComment) ?? null)
+    : null;
 
   // Completed geometry for the shape being drawn, plus a live preview.
   const draftShape: CommentGeometry | null =
@@ -401,10 +446,31 @@ export function PublicMapViewer({
               draftVertices={commentMode && drawMode !== "point" ? vertices : []}
               selectedCommentId={selectedComment}
               onCommentClick={(id) => setSelectedComment(id)}
+              commentPopup={
+                selected && commentsVisible
+                  ? {
+                      id: selected.id,
+                      lng: selected.lng,
+                      lat: selected.lat,
+                      content: (
+                        <CommentCard
+                          comment={selected}
+                          colors={categoryColors}
+                          onVote={(vote) => handleVote(selected.id, vote)}
+                          onClose={() => setSelectedComment(null)}
+                          className="w-[248px]"
+                        />
+                      ),
+                    }
+                  : null
+              }
               handleRef={mapRef}
               highlight={highlight}
               featurePopup={featurePopup}
-              onMapClick={() => setHighlight(null)}
+              onMapClick={() => {
+                setHighlight(null);
+                setSelectedComment(null);
+              }}
               rightSlot={
                 commentsEnabled ? (
                   <CommentPanel
@@ -429,6 +495,8 @@ export function PublicMapViewer({
                     }}
                     vertexCount={vertices.length}
                     onUndo={() => setVertices((current) => current.slice(0, -1))}
+                    colors={categoryColors}
+                    onVote={handleVote}
                     selectedId={selectedComment}
                     onSelect={(id) => {
                       setSelectedComment(id);

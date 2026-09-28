@@ -21,6 +21,13 @@ import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
 import { geometryLabel } from "@/components/comments/comment-panel";
+import { ColorField } from "@/components/map/color-field";
+import {
+  categoryColors,
+  colorFor,
+  savedCategoryColors,
+  UNCATEGORIZED_COLOR,
+} from "@/lib/comment-style";
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
@@ -90,25 +97,45 @@ function ProjectComments() {
   const [commentsEnabled, setCommentsEnabled] = useState(false);
   const [allowShapes, setAllowShapes] = useState(false);
   const [categories, setCategories] = useState("");
+  /** Author overrides keyed by category name; unset names fall back to the palette. */
+  const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!project) return;
     setCommentsEnabled(project.comments_enabled);
     setAllowShapes(project.comments_allow_shapes);
     setCategories((project.comment_categories ?? []).join(", "));
+    setCategoryColorMap(savedCategoryColors(project.embed_config));
   }, [project]);
+
+  const categoryList = useMemo(
+    () =>
+      categories
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean),
+    [categories],
+  );
+  const activeColors = useMemo(
+    () => categoryColors(categoryList, categoryColorMap),
+    [categoryList, categoryColorMap],
+  );
 
   const saveSettings = useMutation({
     mutationFn: async () => {
+      const embed = {
+        ...((project?.embed_config as Record<string, unknown> | null) ?? {}),
+        comment_category_colors: Object.fromEntries(
+          categoryList.map((name) => [name, activeColors[name] ?? UNCATEGORIZED_COLOR]),
+        ),
+      };
       const { error } = await supabase
         .from("projects")
         .update({
           comments_enabled: commentsEnabled,
           comments_allow_shapes: allowShapes,
-          comment_categories: categories
-            .split(",")
-            .map((c) => c.trim())
-            .filter(Boolean),
+          comment_categories: categoryList,
+          embed_config: embed,
         })
         .eq("id", projectId);
       if (error) throw error;
@@ -411,6 +438,26 @@ function ProjectComments() {
           <p className="font-secondary text-xs text-muted-foreground">
             Comma separated. Leave empty to hide the category picker.
           </p>
+          {categoryList.length > 0 && (
+            <div className="space-y-1 rounded-md border p-2">
+              <p className="font-secondary text-xs text-muted-foreground">
+                Colors used for pins, shapes and labels on the published map.
+              </p>
+              {categoryList.map((name) => (
+                <div key={name} className="flex items-center justify-between gap-2">
+                  <span className="truncate font-secondary text-xs">{name}</span>
+                  <ColorField
+                    label={name}
+                    value={colorFor(activeColors, name)}
+                    allowTransparent={false}
+                    onChange={(color) =>
+                      setCategoryColorMap((current) => ({ ...current, [name]: color }))
+                    }
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <Button
           className="w-full"
