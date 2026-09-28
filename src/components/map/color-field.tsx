@@ -100,11 +100,14 @@ export function ColorField({
   label,
   value,
   allowTransparent = true,
+  hideLabel = false,
   onChange,
 }: {
   label: string;
   value: string;
   allowTransparent?: boolean;
+  /** The caller already shows the name elsewhere; keep it for screen readers only. */
+  hideLabel?: boolean;
   onChange: (color: string) => void;
 }) {
   const clear = isTransparent(value);
