@@ -122,3 +122,37 @@ export function geometryLabel(type?: string | null) {
   if (type === "Polygon") return "Area";
   return null;
 }
+
+/** Which comment geometries visitors may draw on a published map. */
+export type CommentGeometryTypes = { point: boolean; line: boolean; area: boolean };
+
+export const ALL_GEOMETRY_TYPES: CommentGeometryTypes = { point: true, line: true, area: true };
+
+/**
+ * Read the per-project geometry permissions. Projects saved before this
+ * setting existed fall back to the old single "allow shapes" flag.
+ */
+export function commentGeometryTypes(
+  embedConfig: unknown,
+  allowShapes: boolean,
+): CommentGeometryTypes {
+  const raw =
+    embedConfig && typeof embedConfig === "object"
+      ? (embedConfig as Record<string, unknown>)["comment_geometry_types"]
+      : null;
+  if (Array.isArray(raw)) {
+    const list = raw.filter((v): v is string => typeof v === "string");
+    return {
+      point: list.includes("point"),
+      line: list.includes("line"),
+      area: list.includes("area"),
+    };
+  }
+  return { point: true, line: allowShapes, area: allowShapes };
+}
+
+/** Serialize the permissions back into embed_config. */
+export function geometryTypeList(types: CommentGeometryTypes) {
+  return (["point", "line", "area"] as const).filter((key) => types[key]);
+}
+
