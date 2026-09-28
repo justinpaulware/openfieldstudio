@@ -36,6 +36,7 @@ import {
 
 import { buildMaskGeometry } from "@/lib/mask-geometry";
 import { rasterPaint, type RasterStyle } from "@/lib/raster-style";
+import { UNCATEGORIZED_COLOR } from "@/lib/comment-style";
 
 
 
@@ -471,6 +472,7 @@ export default function MapCanvas({
           },
         });
       }
+      raiseCommentLayers(map);
     };
 
     render();
