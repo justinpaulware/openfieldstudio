@@ -147,7 +147,7 @@ export function ColorField({
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs text-muted-foreground">{label}</Label>
+      {!hideLabel && <Label className="text-xs text-muted-foreground">{label}</Label>}
       <div className="space-y-1">
         <div className="grid w-fit grid-cols-9 gap-1">{PALETTE_HUES.map(renderSwatch)}</div>
         <div className="grid w-fit grid-cols-9 gap-1">{neutrals.map(renderSwatch)}</div>
