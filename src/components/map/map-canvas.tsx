@@ -1140,7 +1140,7 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
   pendingLayers.delete(map);
 
   // Layers still loading keep their existing source so switching views doesn't flicker.
-  const keep = new Set(layers.filter((l) => l.data || l.raster || !l.data).map((l) => l.id));
+  const keep = new Set(layers.map((l) => l.id));
   const keepRaster = new Set(layers.filter((l) => l.raster).map((l) => l.id));
 
   // Drop anything we own that no longer belongs.
