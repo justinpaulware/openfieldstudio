@@ -130,6 +130,11 @@ export function geometryLabel(type?: string | null) {
   return null;
 }
 
+/** Same as geometryLabel but always names a shape — points included. */
+export function geometryTag(type?: string | null) {
+  return geometryLabel(type) ?? "Point";
+}
+
 /** Which comment geometries visitors may draw on a published map. */
 export type CommentGeometryTypes = { point: boolean; line: boolean; area: boolean };
 
