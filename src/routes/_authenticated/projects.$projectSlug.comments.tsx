@@ -2,7 +2,19 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Eye, EyeOff, Loader2, MessageSquare, Plus, Trash2 } from "lucide-react";
+import {
+  Download,
+  Eye,
+  EyeOff,
+  Loader2,
+  MapPin,
+  MessageSquare,
+  Pentagon,
+  Plus,
+  Spline,
+  Trash2,
+} from "lucide-react";
+
 import { ShapeIcon } from "@/components/comments/comment-card";
 import { toast } from "sonner";
 
@@ -24,11 +36,17 @@ import type { MapHandle } from "@/components/map/map-canvas";
 import { geometryLabel } from "@/components/comments/comment-panel";
 import { ColorField } from "@/components/map/color-field";
 import {
+  ALL_GEOMETRY_TYPES,
   categoryColors,
   colorFor,
+  commentGeometryTypes,
+  geometryTypeList,
+  initialsFor,
   savedCategoryColors,
   UNCATEGORIZED_COLOR,
+  type CommentGeometryTypes,
 } from "@/lib/comment-style";
+
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
@@ -107,7 +125,8 @@ function ProjectComments() {
   });
 
   const [commentsEnabled, setCommentsEnabled] = useState(false);
-  const [allowShapes, setAllowShapes] = useState(false);
+  /** Which shapes visitors may leave: points, lines, areas. */
+  const [geometryTypes, setGeometryTypes] = useState<CommentGeometryTypes>(ALL_GEOMETRY_TYPES);
   /** Categories are edited one row at a time, like layers. */
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState("");
@@ -117,10 +136,13 @@ function ProjectComments() {
   useEffect(() => {
     if (!project) return;
     setCommentsEnabled(project.comments_enabled);
-    setAllowShapes(project.comments_allow_shapes);
+    setGeometryTypes(
+      commentGeometryTypes(project.embed_config, project.comments_allow_shapes),
+    );
     setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
   }, [project]);
+
 
   const categoryList = useMemo(
     () => categories.map((c) => c.trim()).filter(Boolean),
@@ -165,17 +187,20 @@ function ProjectComments() {
         comment_category_colors: Object.fromEntries(
           categoryList.map((name) => [name, activeColors[name] ?? UNCATEGORIZED_COLOR]),
         ),
+        comment_geometry_types: geometryTypeList(geometryTypes),
       };
       const { error } = await supabase
         .from("projects")
         .update({
           comments_enabled: commentsEnabled,
-          comments_allow_shapes: allowShapes,
+          // Kept in sync for older readers that only know the single flag.
+          comments_allow_shapes: geometryTypes.line || geometryTypes.area,
           comment_categories: categoryList,
           embed_config: embed,
         })
         .eq("id", projectId);
       if (error) throw error;
+
     },
     onSuccess: () => {
       toast.success("Comment settings saved.");
@@ -242,9 +267,17 @@ function ProjectComments() {
     }
   }
 
+  // Preview pins match the published map: category color plus author initials.
   const pins = useMemo(
-    () => filtered.map((c) => ({ id: c.id, lng: c.lng, lat: c.lat })),
-    [filtered],
+    () =>
+      filtered.map((c) => ({
+        id: c.id,
+        lng: c.lng,
+        lat: c.lat,
+        color: colorFor(activeColors, c.category),
+        initials: initialsFor(c.author_name),
+      })),
+    [filtered, activeColors],
   );
 
 
@@ -258,8 +291,12 @@ function ProjectComments() {
   function select(id: string) {
     setSelectedId(id);
     const target = (comments ?? []).find((c) => c.id === id);
-    if (target) mapRef.current?.flyTo(target.lng, target.lat);
+    if (target) {
+      const current = mapRef.current?.getView()?.zoom ?? 0;
+      mapRef.current?.flyTo(target.lng, target.lat, Math.max(current, 16));
+    }
   }
+
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -456,16 +493,30 @@ function ProjectComments() {
             onCheckedChange={setCommentsEnabled}
           />
         </div>
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-          <Label htmlFor="comments-allow-shapes" className="font-secondary text-xs">
-            Allow drawn lines and areas
-          </Label>
-          <Switch
-            id="comments-allow-shapes"
-            checked={allowShapes}
-            onCheckedChange={setAllowShapes}
-          />
+        <div className="space-y-2 rounded-lg border border-border px-3 py-2.5">
+          <Label className="font-secondary text-xs">Comment types</Label>
+          {(
+            [
+              { key: "point", label: "Points", icon: MapPin },
+              { key: "line", label: "Lines", icon: Spline },
+              { key: "area", label: "Polygons", icon: Pentagon },
+            ] as const
+          ).map((option) => (
+            <div key={option.key} className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 font-secondary text-xs text-muted-foreground">
+                <option.icon className="h-3.5 w-3.5" aria-hidden />
+                {option.label}
+              </span>
+              <Switch
+                checked={geometryTypes[option.key]}
+                onCheckedChange={(checked) =>
+                  setGeometryTypes((current) => ({ ...current, [option.key]: checked }))
+                }
+              />
+            </div>
+          ))}
         </div>
+
         <div className="space-y-2">
           <Label>Categories</Label>
           <p className="font-secondary text-xs text-muted-foreground">

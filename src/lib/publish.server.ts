@@ -3,6 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { parseLayerFields, toFeatureCollection } from "@/lib/geo";
 import type { StyleRelation } from "@/lib/layer-style";
+import { commentGeometryTypes } from "@/lib/comment-style";
+
 
 /** Publishable-key client: RLS applies as `anon`, so only published projects resolve. */
 export function publicClient() {
@@ -203,7 +205,9 @@ export async function submitPublicComment(input: {
   const { data: project } = ownerId
     ? await supabase
         .from("projects")
-        .select("id, comments_enabled, comment_categories, comments_allow_shapes")
+        .select(
+          "id, comments_enabled, comment_categories, comments_allow_shapes, embed_config",
+        )
         .eq("owner_id", ownerId)
         .eq("published_slug", input.slug)
         .eq("status", "published")
@@ -216,12 +220,16 @@ export async function submitPublicComment(input: {
 
   const geometry = input.geometry ?? null;
   const geometryType = geometry?.type ?? "Point";
-  if (geometryType !== "Point" && !project.comments_allow_shapes) {
+  const allowed = commentGeometryTypes(project.embed_config, project.comments_allow_shapes);
+  const allowedForType =
+    geometryType === "Point" ? allowed.point : geometryType === "LineString" ? allowed.line : allowed.area;
+  if (!allowedForType) {
     return {
       ok: false as const,
-      error: "This map only accepts pinned comments.",
+      error: "This map does not accept that kind of comment.",
     };
   }
+
 
   const category =
     input.category && project.comment_categories.includes(input.category) ? input.category : null;

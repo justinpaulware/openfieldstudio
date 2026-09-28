@@ -6,7 +6,14 @@ import { CommentComposer, type PendingPin } from "@/components/comments/comment-
 import { CommentCard } from "@/components/comments/comment-card";
 import { MapCardHeader } from "@/components/map/map-card-header";
 import type { CommentGeometry } from "@/components/map/map-canvas";
-import { geometryLabel, type CategoryColors, type PublicComment } from "@/lib/comment-style";
+import {
+  ALL_GEOMETRY_TYPES,
+  geometryLabel,
+  type CategoryColors,
+  type CommentGeometryTypes,
+  type PublicComment,
+} from "@/lib/comment-style";
+
 
 export type CommentDrawMode = "point" | "line" | "area";
 
@@ -30,8 +37,9 @@ export function CommentPanel({
   onToggleAdding,
   pin,
   geometry,
-  allowShapes = false,
+  geometryTypes = ALL_GEOMETRY_TYPES,
   mode = "point",
+
   onModeChange,
   vertexCount = 0,
   onUndo,
@@ -51,7 +59,7 @@ export function CommentPanel({
   onToggleAdding: () => void;
   pin: PendingPin | null;
   geometry?: CommentGeometry | null;
-  allowShapes?: boolean;
+  geometryTypes?: CommentGeometryTypes;
   mode?: CommentDrawMode;
   onModeChange?: (mode: CommentDrawMode) => void;
   vertexCount?: number;
@@ -62,7 +70,10 @@ export function CommentPanel({
   colors: CategoryColors;
   onVote?: (commentId: string, vote: -1 | 0 | 1) => void;
 }) {
+  const modeKey = (id: CommentDrawMode) => (id === "area" ? "area" : id);
+  const enabledModes = MODES.filter((option) => geometryTypes[modeKey(option.id)]);
   const ready = mode === "point" ? Boolean(pin) : Boolean(geometry);
+
   const hint =
     mode === "point"
       ? "Click the map where your comment belongs."
@@ -111,9 +122,9 @@ export function CommentPanel({
 
       {bodyOpen && adding && (
         <div className="space-y-3 border-t border-map-overlay-border p-3">
-          {allowShapes && (
+          {enabledModes.length > 1 && (
             <div className="flex items-center gap-1 rounded-md border border-map-overlay-border p-0.5">
-              {MODES.map((option) => (
+              {enabledModes.map((option) => (
                 <button
                   key={option.id}
                   type="button"
@@ -129,6 +140,7 @@ export function CommentPanel({
               ))}
             </div>
           )}
+
 
           {ready ? (
             <CommentComposer

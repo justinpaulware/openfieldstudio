@@ -23,10 +23,12 @@ import { CommentCard } from "@/components/comments/comment-card";
 import {
   categoryColors as buildCategoryColors,
   colorFor,
+  commentGeometryTypes,
   initialsFor,
   savedCategoryColors,
   visitorId,
 } from "@/lib/comment-style";
+
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import { AddressSearchCard } from "@/components/public/address-search-card";
 import type { PlaceResult } from "@/lib/geocode.functions";
@@ -138,9 +140,24 @@ export function PublicMapViewer({
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
-  const allowShapes = Boolean(
-    (project as { comments_allow_shapes?: boolean }).comments_allow_shapes,
+  // Which shapes visitors may draw, chosen per project in the Engagement tab.
+  const geometryTypes = useMemo(
+    () =>
+      commentGeometryTypes(
+        project.embed_config,
+        Boolean((project as { comments_allow_shapes?: boolean }).comments_allow_shapes),
+      ),
+    [project],
   );
+  // Start on the first shape the author actually allows.
+  useEffect(() => {
+    if (!geometryTypes[drawMode === "area" ? "area" : drawMode]) {
+      const first = (["point", "line", "area"] as const).find((key) => geometryTypes[key]);
+      if (first) setDrawMode(first);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geometryTypes]);
+
 
   const queryClient = useQueryClient();
 
@@ -190,28 +207,34 @@ export function PublicMapViewer({
     voteMutation.mutate({ commentId, vote });
   };
 
-  // Approved lines and areas render as a GeoJSON overlay; pins keep their markers.
-  const commentShapes = commentsEnabled && commentsVisible
-    ? comments.flatMap((comment) => {
-        const geometry = (comment as { geometry?: CommentGeometry | null }).geometry;
-        if (!geometry || geometry.type === "Point") return [];
-        return [{ id: comment.id, geometry, color: colorFor(categoryColors, comment.category) }];
-      })
-    : [];
-  const commentMarkers = commentsEnabled && commentsVisible
-    ? comments
-        .filter((comment) => {
-          const type = (comment as { geometry_type?: string | null }).geometry_type;
-          return !type || type === "Point";
-        })
-        .map((comment) => ({
-          id: comment.id,
-          lng: comment.lng,
-          lat: comment.lat,
-          color: colorFor(categoryColors, comment.category),
-          initials: initialsFor(comment.author_name),
-        }))
-    : [];
+  // Approved lines and areas render as a GeoJSON overlay; every comment also
+  // gets an initialled marker at its anchor point. Both lists are memoized so
+  // the map does not rebuild its markers on unrelated re-renders.
+  const commentShapes = useMemo(
+    () =>
+      commentsEnabled && commentsVisible
+        ? comments.flatMap((comment) => {
+            const geometry = (comment as { geometry?: CommentGeometry | null }).geometry;
+            if (!geometry || geometry.type === "Point") return [];
+            return [{ id: comment.id, geometry, color: colorFor(categoryColors, comment.category) }];
+          })
+        : [],
+    [comments, commentsEnabled, commentsVisible, categoryColors],
+  );
+  const commentMarkers = useMemo(
+    () =>
+      commentsEnabled && commentsVisible
+        ? comments.map((comment) => ({
+            id: comment.id,
+            lng: comment.lng,
+            lat: comment.lat,
+            color: colorFor(categoryColors, comment.category),
+            initials: initialsFor(comment.author_name),
+          }))
+        : [],
+    [comments, commentsEnabled, commentsVisible, categoryColors],
+  );
+
 
   const selected = commentsEnabled
     ? (comments.find((comment) => comment.id === selectedComment) ?? null)
@@ -507,7 +530,7 @@ export function PublicMapViewer({
                     }}
                     pin={drawMode === "point" ? pin : centroid}
                     geometry={drawMode === "point" ? null : readyGeometry}
-                    allowShapes={allowShapes}
+                    geometryTypes={geometryTypes}
                     mode={drawMode}
                     onModeChange={(next) => {
                       setDrawMode(next);
@@ -521,8 +544,15 @@ export function PublicMapViewer({
                     onSelect={(id) => {
                       setSelectedComment(id);
                       const found = comments.find((comment) => comment.id === id);
-                      if (found) mapRef.current?.flyTo(found.lng, found.lat);
+                      // Zoom in close enough to read the surroundings, but never
+                      // pull the visitor back out if they are already closer.
+                      if (found) {
+                        const current = mapRef.current?.getView()?.zoom ?? 0;
+                        mapRef.current?.flyTo(found.lng, found.lat, Math.max(current, 16));
+
+                      }
                     }}
+
                     onSubmitted={() => {
                       void commentsQuery.refetch();
                       resetDraft();
