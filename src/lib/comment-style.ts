@@ -69,10 +69,9 @@ export function savedCategoryColors(embedConfig: unknown): Record<string, string
   return out;
 }
 
-/** Color for one comment, falling back to the neutral violet. */
+/** Color for one comment; uncategorized comments use the "Other" grey. */
 export function colorFor(colors: CategoryColors, category: string | null | undefined) {
-  if (!category) return UNCATEGORIZED_COLOR;
-  return colors[category] ?? UNCATEGORIZED_COLOR;
+  return colors[categoryLabel(category)] ?? UNCATEGORIZED_COLOR;
 }
 
 /** Up to two initials from an author name; "A" for anonymous visitors. */
