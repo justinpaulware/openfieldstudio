@@ -169,7 +169,7 @@ export function PublicMapViewer({
               visible: override.visible,
               opacity: override.opacity,
               sort_order: override.sort_order,
-              filter_config: override.filter_config,
+              filter_config: override.filter_config as ViewerLayer["filter_config"],
             }
           : layer;
       })
