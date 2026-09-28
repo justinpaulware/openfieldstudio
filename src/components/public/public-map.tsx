@@ -105,14 +105,66 @@ export function PublicMapViewer({
   search: ViewerSearch;
   data: PublishedMapData;
 }) {
-  const project = loaderData.project;
-  const layers = loaderData.layers as unknown as ViewerLayer[];
   const folders = loaderData.folders as unknown as ViewerFolder[];
   const navigate = useNavigate();
 
   const views = loaderData.views ?? [];
-  const activeViewSlug = loaderData.view?.slug ?? null;
-  const showViews = search.views !== false && Boolean(loaderData.viewNav) && views.length > 1;
+  const viewConfigs = loaderData.viewConfigs ?? [];
+  const loaderSlug = loaderData.view?.slug ?? null;
+
+  // Switching views applies straight away from the settings already loaded; the
+  // URL catches up afterwards, so the map never waits on a server round-trip.
+  const [pendingSlug, setPendingSlug] = useState<string | null>(null);
+  useEffect(() => {
+    setPendingSlug((current) => (current === loaderSlug ? null : current));
+  }, [loaderSlug]);
+  const activeViewSlug = pendingSlug ?? loaderSlug;
+  const activeConfig = viewConfigs.find((config) => config.slug === activeViewSlug) ?? null;
+
+  const baseLayers = (loaderData.baseLayers ?? loaderData.layers) as unknown as ViewerLayer[];
+  const layers = useMemo(() => {
+    if (!activeConfig) return loaderData.layers as unknown as ViewerLayer[];
+    return baseLayers
+      .map((layer) => {
+        const override = activeConfig.overrides?.[layer.id];
+        return override
+          ? {
+              ...layer,
+              visible: override.visible,
+              opacity: override.opacity,
+              sort_order: override.sort_order,
+              filter_config: override.filter_config,
+            }
+          : layer;
+      })
+      .sort((a, b) => a.sort_order - b.sort_order);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseLayers, activeConfig, loaderData.layers]);
+
+  const project = useMemo(
+    () =>
+      activeConfig
+        ? ({
+            ...loaderData.project,
+            title: activeConfig.title,
+            description: activeConfig.description,
+            map_center: activeConfig.map_center,
+            map_zoom: activeConfig.map_zoom,
+            map_pitch: activeConfig.map_pitch,
+            map_bearing: activeConfig.map_bearing,
+            basemap: activeConfig.basemap,
+            show_legend: activeConfig.show_legend,
+            scale_units: activeConfig.scale_units,
+          } as Tables<"projects">)
+        : loaderData.project,
+    [activeConfig, loaderData.project],
+  );
+
+  const showViews =
+    search.views !== false &&
+    Boolean(activeConfig ? activeConfig.viewNav : loaderData.viewNav) &&
+    views.length > 1;
+
 
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [commentMode, setCommentMode] = useState(false);
