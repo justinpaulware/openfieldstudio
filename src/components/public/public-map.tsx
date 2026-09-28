@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ClientOnly, Link, useNavigate } from "@tanstack/react-router";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import {
   ViewSwitcherCard,
   type SwitcherView,
@@ -14,7 +14,19 @@ import {
   type CommentDrawMode,
   type PublicComment,
 } from "@/components/comments/comment-panel";
-import { getPublishedLayerData, listApprovedComments } from "@/lib/publish.functions";
+import {
+  getPublishedLayerData,
+  listApprovedComments,
+  reactToComment,
+} from "@/lib/publish.functions";
+import { CommentCard } from "@/components/comments/comment-card";
+import {
+  categoryColors as buildCategoryColors,
+  colorFor,
+  initialsFor,
+  savedCategoryColors,
+  visitorId,
+} from "@/lib/comment-style";
 import { flattenLayerOrder } from "@/components/map/layer-panel";
 import { AddressSearchCard } from "@/components/public/address-search-card";
 import type { PlaceResult } from "@/lib/geocode.functions";
