@@ -301,6 +301,39 @@ export default function MapCanvas({
     };
   }, [commentPins, selectedCommentId, mapLoaded]);
 
+  // Comment card anchored on the map, above the selected comment. The card is
+  // React content portalled into the MapLibre popup element.
+  const [commentPopupEl, setCommentPopupEl] = useState<HTMLDivElement | null>(null);
+  const commentPopupId = commentPopup?.id ?? null;
+  const commentPopupLng = commentPopup?.lng ?? null;
+  const commentPopupLat = commentPopup?.lat ?? null;
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !commentPopupId || commentPopupLng === null || commentPopupLat === null) {
+      setCommentPopupEl(null);
+      return;
+    }
+    const element = document.createElement("div");
+    const popup = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      offset: 20,
+      maxWidth: "300px",
+      className: "of-comment-popup",
+    })
+      .setLngLat([commentPopupLng, commentPopupLat])
+      .setDOMContent(element)
+      .addTo(map);
+    setCommentPopupEl(element);
+    return () => {
+      popup.remove();
+      setCommentPopupEl(null);
+    };
+  }, [commentPopupId, commentPopupLng, commentPopupLat, mapLoaded]);
+
+
+
   // Approved line/area comments plus the shape currently being drawn. Both live
   // in their own GeoJSON sources so they survive basemap style swaps.
   const shapesRef = useRef({ commentShapes, draftShape, draftVertices, selectedCommentId });
