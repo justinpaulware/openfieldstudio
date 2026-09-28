@@ -382,7 +382,7 @@ export default function MapCanvas({
           properties: {
             id: item.id,
             selected: item.id === state.selectedCommentId,
-            color: item.color ?? "#8b5cf6",
+            color: item.color ?? UNCATEGORIZED_COLOR,
           },
           geometry: item.geometry,
         })),
@@ -500,7 +500,11 @@ export default function MapCanvas({
       features: (commentShapes ?? []).map((item) => ({
         type: "Feature" as const,
         id: item.id,
-        properties: { id: item.id, selected: item.id === selectedCommentId },
+        properties: {
+          id: item.id,
+          selected: item.id === selectedCommentId,
+          color: item.color ?? UNCATEGORIZED_COLOR,
+        },
         geometry: item.geometry,
       })),
     };
