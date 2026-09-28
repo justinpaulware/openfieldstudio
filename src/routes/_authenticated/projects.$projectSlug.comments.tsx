@@ -90,25 +90,45 @@ function ProjectComments() {
   const [commentsEnabled, setCommentsEnabled] = useState(false);
   const [allowShapes, setAllowShapes] = useState(false);
   const [categories, setCategories] = useState("");
+  /** Author overrides keyed by category name; unset names fall back to the palette. */
+  const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!project) return;
     setCommentsEnabled(project.comments_enabled);
     setAllowShapes(project.comments_allow_shapes);
     setCategories((project.comment_categories ?? []).join(", "));
+    setCategoryColorMap(savedCategoryColors(project.embed_config));
   }, [project]);
+
+  const categoryList = useMemo(
+    () =>
+      categories
+        .split(",")
+        .map((c) => c.trim())
+        .filter(Boolean),
+    [categories],
+  );
+  const activeColors = useMemo(
+    () => categoryColors(categoryList, categoryColorMap),
+    [categoryList, categoryColorMap],
+  );
 
   const saveSettings = useMutation({
     mutationFn: async () => {
+      const embed = {
+        ...((project?.embed_config as Record<string, unknown> | null) ?? {}),
+        comment_category_colors: Object.fromEntries(
+          categoryList.map((name) => [name, activeColors[name] ?? UNCATEGORIZED_COLOR]),
+        ),
+      };
       const { error } = await supabase
         .from("projects")
         .update({
           comments_enabled: commentsEnabled,
           comments_allow_shapes: allowShapes,
-          comment_categories: categories
-            .split(",")
-            .map((c) => c.trim())
-            .filter(Boolean),
+          comment_categories: categoryList,
+          embed_config: embed,
         })
         .eq("id", projectId);
       if (error) throw error;
