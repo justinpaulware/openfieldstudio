@@ -131,7 +131,19 @@ function ProjectComments() {
   };
 
   const renameCategory = (index: number, name: string) => {
-    setCategories((current) => current.map((c, i) => (i === index ? name : c)));
+    setCategories((current) => {
+      const previous = current[index];
+      // Carry the chosen color across the rename so the swatch doesn't reset.
+      if (previous && previous !== name) {
+        setCategoryColorMap((colors) => {
+          if (!(previous in colors)) return colors;
+          const next = { ...colors, [name]: colors[previous]! };
+          delete next[previous];
+          return next;
+        });
+      }
+      return current.map((c, i) => (i === index ? name : c));
+    });
   };
 
   const removeCategory = (index: number) => {
