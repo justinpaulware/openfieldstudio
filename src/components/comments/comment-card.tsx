@@ -160,3 +160,11 @@ function VoteButton({
     </button>
   );
 }
+
+/** Small glyph matching the comment's geometry: pin, line or area. */
+export function ShapeIcon({ type }: { type?: string | null }) {
+  const Icon = type === "LineString" || type === "MultiLineString" ? Spline
+    : type === "Polygon" || type === "MultiPolygon" ? Pentagon
+    : MapPin;
+  return <Icon className="h-3 w-3" aria-hidden />;
+}
