@@ -138,9 +138,24 @@ export function PublicMapViewer({
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
-  const allowShapes = Boolean(
-    (project as { comments_allow_shapes?: boolean }).comments_allow_shapes,
+  // Which shapes visitors may draw, chosen per project in the Engagement tab.
+  const geometryTypes = useMemo(
+    () =>
+      commentGeometryTypes(
+        project.embed_config,
+        Boolean((project as { comments_allow_shapes?: boolean }).comments_allow_shapes),
+      ),
+    [project],
   );
+  // Start on the first shape the author actually allows.
+  useEffect(() => {
+    if (!geometryTypes[drawMode === "area" ? "area" : drawMode]) {
+      const first = (["point", "line", "area"] as const).find((key) => geometryTypes[key]);
+      if (first) setDrawMode(first);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [geometryTypes]);
+
 
   const queryClient = useQueryClient();
 
