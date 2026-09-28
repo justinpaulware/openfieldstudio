@@ -910,6 +910,7 @@ export default function MapCanvas({
   return (
     <div className="relative h-full w-full">
       <div ref={containerRef} className="h-full w-full" />
+      {commentPopup && commentPopupEl ? createPortal(commentPopup.content, commentPopupEl) : null}
 
       <div className="absolute bottom-[196px] right-2.5 z-10 flex max-h-[calc(100%-220px)] flex-col-reverse items-end gap-1">
         <button
