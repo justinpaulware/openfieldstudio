@@ -31,8 +31,16 @@ import {
 
 const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
 
-const STATUS_FILTERS = ["all", "pending", "approved", "hidden", "rejected"] as const;
-type StatusFilter = (typeof STATUS_FILTERS)[number];
+/**
+ * Comments publish immediately, so moderation is simply visible vs hidden.
+ * The legacy pending/rejected states are folded into those two buckets.
+ */
+const STATUS_FILTERS = [
+  { id: "all", label: "All" },
+  { id: "visible", label: "Visible" },
+  { id: "hidden", label: "Hidden" },
+] as const;
+type StatusFilter = (typeof STATUS_FILTERS)[number]["id"];
 
 
 export const Route = createFileRoute("/_authenticated/projects/$projectSlug/comments")({
