@@ -49,6 +49,57 @@ export type Database = {
           },
         ]
       }
+      comment_replies: {
+        Row: {
+          author_name: string | null
+          body: string
+          comment_id: string
+          created_at: string
+          id: string
+          is_team_reply: boolean
+          project_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_name?: string | null
+          body: string
+          comment_id: string
+          created_at?: string
+          id?: string
+          is_team_reply?: boolean
+          project_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_name?: string | null
+          body?: string
+          comment_id?: string
+          created_at?: string
+          id?: string
+          is_team_reply?: boolean
+          project_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_replies_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_replies_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           attributes: Json
