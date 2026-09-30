@@ -198,3 +198,12 @@ export function showCommentSource(embedConfig: unknown) {
   if (!embedConfig || typeof embedConfig !== "object") return false;
   return (embedConfig as Record<string, unknown>)["show_comment_source"] === true;
 }
+
+/** Whether visitors may reply to comments on the published map. Off by default. */
+export function allowCommentReplies(embedConfig: unknown) {
+  if (!embedConfig || typeof embedConfig !== "object") return false;
+  return (embedConfig as Record<string, unknown>)["allow_comment_replies"] === true;
+}
+
+/** Badge text shown on replies written by the project team. */
+export const TEAM_REPLY_LABEL = "Project team";
