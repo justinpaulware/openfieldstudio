@@ -96,11 +96,6 @@ export function CommentCard({
                 {shape}
               </span>
             )}
-            {source && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
-                {source}
-              </span>
-            )}
           </div>
         </div>
         {onClose && (
@@ -116,6 +111,14 @@ export function CommentCard({
       </div>
 
       <p className="font-secondary text-xs leading-snug opacity-90">{comment.body}</p>
+
+      {source && (
+        <p className="font-secondary text-[10px] uppercase tracking-wide opacity-60">
+          Source: {source}
+        </p>
+      )}
+
+
 
       {onVote && (
         <div className="flex items-center gap-1">

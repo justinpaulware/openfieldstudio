@@ -9,6 +9,7 @@ import {
   Loader2,
   MapPin,
   MessageSquare,
+  Pencil,
   Pentagon,
   Plus,
   Spline,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { ShapeIcon } from "@/components/comments/comment-card";
+import { EditCommentDialog } from "@/components/comments/edit-comment-dialog";
 import { ImportCommentsDialog } from "@/components/comments/import-comments-dialog";
 import { toast } from "sonner";
 
@@ -140,6 +142,8 @@ function ProjectComments() {
   /** Whether visitors see where each comment came from. */
   const [sourceVisible, setSourceVisible] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  /** Comment currently open in the edit dialog. */
+  const [editing, setEditing] = useState<CommentRow | null>(null);
 
   useEffect(() => {
     if (!project) return;
@@ -427,12 +431,12 @@ function ProjectComments() {
                   onClick={() => select(comment.id)}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-sm font-semibold">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold leading-5">
                       {comment.author_name || "Anonymous"}
                     </span>
                     <span
-                      className="rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
+                      className="inline-flex h-5 items-center rounded-full px-2 font-secondary text-[10px] font-medium leading-none"
                       style={{
                         background: `${colorFor(activeColors, comment.category)}26`,
                         color: colorFor(activeColors, comment.category),
@@ -440,27 +444,39 @@ function ProjectComments() {
                     >
                       {categoryLabel(comment.category)}
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                    <span className="inline-flex h-5 items-center gap-1 rounded-full border border-border px-2 font-secondary text-[10px] leading-none text-muted-foreground">
                       <ShapeIcon type={comment.geometry_type} />
                       {geometryTag(comment.geometry_type)}
                     </span>
-                    {comment.source && (
-                      <span className="rounded-full bg-muted px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
-                        {comment.source}
-                      </span>
-                    )}
                     {isCommentHidden(comment.status) && (
-                      <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
+                      <span className="inline-flex h-5 items-center font-secondary text-[10px] uppercase leading-none tracking-wide text-muted-foreground">
                         Hidden
                       </span>
                     )}
-                    <span className="ml-auto font-secondary text-xs text-muted-foreground">
+                    <span className="ml-auto font-secondary text-xs leading-5 text-muted-foreground">
                       {new Date(comment.created_at).toLocaleString()}
                     </span>
                   </div>
                   <p className="mt-1 font-secondary text-sm leading-snug">{comment.body}</p>
+                  {comment.source && (
+                    <div className="mt-1.5">
+                      <span className="inline-flex h-5 items-center rounded-full bg-muted px-2 font-secondary text-[10px] leading-none text-muted-foreground">
+                        Source: {comment.source}
+                      </span>
+                    </div>
+                  )}
+
                 </button>
                 <div className="flex shrink-0 items-start gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    title="Edit comment"
+                    aria-label="Edit comment"
+                    onClick={() => setEditing(comment)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -631,6 +647,16 @@ function ProjectComments() {
           Save settings
         </Button>
       </aside>
+      <EditCommentDialog
+        comment={editing}
+        categories={categoryList}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        onSaved={() =>
+          queryClient.invalidateQueries({ queryKey: ["project-comments", projectId] })
+        }
+      />
       <ImportCommentsDialog
         open={importOpen}
         onOpenChange={setImportOpen}
@@ -641,6 +667,7 @@ function ProjectComments() {
           queryClient.invalidateQueries({ queryKey: ["project-layers", projectId] });
         }}
       />
+
     </div>
   );
 }
