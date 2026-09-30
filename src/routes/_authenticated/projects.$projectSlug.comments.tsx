@@ -157,6 +157,8 @@ function ProjectComments() {
     setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
     setSourceVisible(showCommentSource(project.embed_config));
+    setRepliesAllowed(allowCommentReplies(project.embed_config));
+
   }, [project]);
 
 
