@@ -26,6 +26,7 @@ import {
   commentGeometryTypes,
   initialsFor,
   savedCategoryColors,
+  showCommentSource,
   visitorId,
 } from "@/lib/comment-style";
 
