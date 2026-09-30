@@ -643,6 +643,16 @@ function ProjectComments() {
           Save settings
         </Button>
       </aside>
+      <EditCommentDialog
+        comment={editing}
+        categories={categoryList}
+        onOpenChange={(open) => {
+          if (!open) setEditing(null);
+        }}
+        onSaved={() =>
+          queryClient.invalidateQueries({ queryKey: ["project-comments", projectId] })
+        }
+      />
       <ImportCommentsDialog
         open={importOpen}
         onOpenChange={setImportOpen}
@@ -653,6 +663,7 @@ function ProjectComments() {
           queryClient.invalidateQueries({ queryKey: ["project-layers", projectId] });
         }}
       />
+
     </div>
   );
 }
