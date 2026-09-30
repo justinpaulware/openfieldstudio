@@ -713,6 +713,14 @@ function ProjectComments() {
             Comments appear on the published map right away.
           </p>
         </div>
+        <Button
+          className="w-full"
+          disabled={saveSettings.isPending}
+          onClick={() => saveSettings.mutate()}
+        >
+          {saveSettings.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Save settings
+        </Button>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
           <Label htmlFor="comments-enabled" className="font-secondary text-xs">
             Allow public comments
