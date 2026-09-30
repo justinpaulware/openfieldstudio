@@ -112,6 +112,14 @@ export function CommentCard({
 
       <p className="font-secondary text-xs leading-snug opacity-90">{comment.body}</p>
 
+      {source && (
+        <p className="font-secondary text-[10px] uppercase tracking-wide opacity-60">
+          Source: {source}
+        </p>
+      )}
+
+
+
       {onVote && (
         <div className="flex items-center gap-1">
           <VoteButton
