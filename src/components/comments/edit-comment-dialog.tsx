@@ -155,6 +155,19 @@ export function EditCommentDialog({
               onChange={(event) => setSource(event.target.value)}
             />
           </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-comment-date">Date &amp; time</Label>
+            <Input
+              id="edit-comment-date"
+              type="datetime-local"
+              value={when}
+              onChange={(event) => setWhen(event.target.value)}
+            />
+            <p className="font-secondary text-xs text-muted-foreground">
+              Shown in your local time. Change it when the feedback was collected on another day.
+            </p>
+          </div>
         </div>
 
         <DialogFooter>
