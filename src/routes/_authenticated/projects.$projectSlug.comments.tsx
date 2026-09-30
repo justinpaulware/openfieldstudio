@@ -439,11 +439,13 @@ function ProjectComments() {
                   isCommentHidden(comment.status) && "opacity-60",
                 )}
               >
+                <div className="min-w-0 flex-1">
                 <button
                   type="button"
                   onClick={() => select(comment.id)}
-                  className="min-w-0 flex-1 text-left"
+                  className="w-full min-w-0 text-left"
                 >
+
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold leading-5">
                       {comment.author_name || "Anonymous"}
