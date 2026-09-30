@@ -103,6 +103,113 @@ type CommentRow = {
   source: string | null;
 };
 
+type ReplyRow = {
+  id: string;
+  comment_id: string;
+  body: string;
+  author_name: string | null;
+  is_team_reply: boolean;
+  created_at: string;
+};
+
+/** Replies under one comment, with an inline box for the project team to answer. */
+function CommentReplies({
+  replies,
+  onDelete,
+  onPost,
+}: {
+  commentId: string;
+  replies: ReplyRow[];
+  onDelete: (id: string) => void;
+  onPost: (body: string) => Promise<unknown>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  return (
+    <div className="mt-2 space-y-2">
+      {replies.length > 0 && (
+        <ul className="space-y-1.5 border-l-2 border-border pl-3">
+          {replies.map((reply) => (
+            <li key={reply.id} className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-secondary text-xs font-semibold">
+                    {reply.is_team_reply
+                      ? TEAM_REPLY_LABEL
+                      : reply.author_name || "Anonymous"}
+                  </span>
+                  <span className="font-secondary text-[10px] text-muted-foreground">
+                    {new Date(reply.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <p className="font-secondary text-xs leading-snug text-muted-foreground">
+                  {reply.body}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-destructive hover:text-destructive"
+                title="Delete reply"
+                aria-label="Delete reply"
+                onClick={() => {
+                  if (confirm("Delete this reply?")) onDelete(reply.id);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {open ? (
+        <div className="space-y-1.5">
+          <Textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            rows={2}
+            maxLength={1000}
+            placeholder="Reply as the project team…"
+            className="font-secondary text-xs"
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              disabled={body.trim().length < 2 || sending}
+              onClick={() => {
+                setSending(true);
+                onPost(body.trim())
+                  .then(() => {
+                    setBody("");
+                    setOpen(false);
+                  })
+                  .finally(() => setSending(false));
+              }}
+            >
+              {sending ? "Posting…" : "Post reply"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="font-secondary text-xs text-muted-foreground hover:text-foreground"
+        >
+          Reply as project team
+        </button>
+      )}
+    </div>
+  );
+}
+
+
 function ProjectComments() {
   const projectId = useProjectId();
   const queryClient = useQueryClient();
