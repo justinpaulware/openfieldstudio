@@ -53,6 +53,7 @@ const HEADERS = [
   "body",
   "category",
   "status",
+  "source",
   "author_name",
   "author_email",
   "created_at",
