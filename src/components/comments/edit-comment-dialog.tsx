@@ -32,7 +32,18 @@ export type EditableComment = {
   body: string;
   category: string | null;
   source: string | null;
+  created_at: string;
 };
+
+/** ISO timestamp -> value a datetime-local input understands, in local time. */
+function toLocalInput(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
+}
 
 /**
  * Lets the map owner correct a comment: assign or change its topic, tidy the
@@ -52,12 +63,14 @@ export function EditCommentDialog({
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<string>(NONE);
   const [source, setSource] = useState("");
+  const [when, setWhen] = useState("");
 
   useEffect(() => {
     if (!comment) return;
     setBody(comment.body);
     setCategory(comment.category?.trim() ? comment.category : NONE);
     setSource(comment.source ?? "");
+    setWhen(toLocalInput(comment.created_at));
   }, [comment]);
 
   const save = useMutation({
@@ -65,12 +78,15 @@ export function EditCommentDialog({
       if (!comment) return;
       const text = body.trim();
       if (!text) throw new Error("A comment can't be empty.");
+      const stamp = when ? new Date(when) : null;
+      if (when && Number.isNaN(stamp!.getTime())) throw new Error("That date isn't valid.");
       const { error } = await supabase
         .from("comments")
         .update({
           body: text,
           category: category === NONE ? null : category,
           source: source.trim() || "Webmap",
+          ...(stamp ? { created_at: stamp.toISOString() } : {}),
         })
         .eq("id", comment.id);
       if (error) throw error;
@@ -138,6 +154,19 @@ export function EditCommentDialog({
               placeholder="Webmap"
               onChange={(event) => setSource(event.target.value)}
             />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-comment-date">Date &amp; time</Label>
+            <Input
+              id="edit-comment-date"
+              type="datetime-local"
+              value={when}
+              onChange={(event) => setWhen(event.target.value)}
+            />
+            <p className="font-secondary text-xs text-muted-foreground">
+              Shown in your local time. Change it when the feedback was collected on another day.
+            </p>
           </div>
         </div>
 
