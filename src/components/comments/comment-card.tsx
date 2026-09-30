@@ -35,6 +35,8 @@ export function CommentCard({
   onVote,
   onClose,
   showSource = false,
+  allowReplies = false,
+  onReply,
   className,
 }: {
   comment: PublicComment;
@@ -43,11 +45,27 @@ export function CommentCard({
   onClose?: () => void;
   /** Show where this feedback came from (webmap, workshop, …). */
   showSource?: boolean;
+  /** Let visitors post a response under this comment. */
+  allowReplies?: boolean;
+  onReply?: (body: string, authorName: string | null) => void | Promise<unknown>;
   className?: string;
 }) {
   const color = colorFor(colors, comment.category);
   const shape = geometryLabel(comment.geometry_type);
   const source = showSource ? (comment.source ?? "").trim() : "";
+  const replies = comment.replies ?? [];
+
+  const [repliesOpen, setRepliesOpen] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
+  const [replyName, setReplyName] = useState("");
+  const [sending, setSending] = useState(false);
+  useEffect(() => {
+    setRepliesOpen(false);
+    setReplyOpen(false);
+    setReplyBody("");
+  }, [comment.id]);
+
 
   // Votes render from local state first so the thumbs respond on the same frame
   // as the click; the server result simply confirms what is already on screen.
