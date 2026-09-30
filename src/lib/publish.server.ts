@@ -298,6 +298,8 @@ export async function submitPublicComment(input: {
     author_name: input.authorName?.trim() || null,
     author_email: input.authorEmail?.trim() || null,
     geometry_type: geometryType,
+    // Everything submitted here came through the published map itself.
+    source: "Webmap",
   });
   if (error) return { ok: false as const, error: "Your comment could not be saved." };
   return { ok: true as const };
@@ -323,7 +325,9 @@ export async function loadApprovedComments(
   if (!project) return [];
   const { data } = await supabase
     .from("comments")
-    .select("id, lng, lat, body, category, author_name, created_at, geometry, geometry_type")
+    .select(
+      "id, lng, lat, body, category, author_name, created_at, source, geometry, geometry_type",
+    )
     .eq("project_id", project.id)
     .eq("status", "approved")
     .order("created_at", { ascending: false })

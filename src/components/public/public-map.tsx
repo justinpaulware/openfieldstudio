@@ -26,6 +26,7 @@ import {
   commentGeometryTypes,
   initialsFor,
   savedCategoryColors,
+  showCommentSource,
   visitorId,
 } from "@/lib/comment-style";
 
@@ -233,6 +234,8 @@ export function PublicMapViewer({
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
+  // Authors decide whether visitors see where each comment came from.
+  const sourceVisible = showCommentSource(project.embed_config);
   // Which shapes visitors may draw, chosen per project in the Engagement tab.
   const geometryTypes = useMemo(
     () =>
@@ -609,6 +612,7 @@ export function PublicMapViewer({
                         <CommentCard
                           comment={selected}
                           colors={categoryColors}
+                          showSource={sourceVisible}
                           onVote={(vote) => handleVote(selected.id, vote)}
                           onClose={() => setSelectedComment(null)}
                           className="w-[248px]"
@@ -649,6 +653,7 @@ export function PublicMapViewer({
                     vertexCount={vertices.length}
                     onUndo={() => setVertices((current) => current.slice(0, -1))}
                     colors={categoryColors}
+                    showSource={sourceVisible}
                     onVote={handleVote}
                     selectedId={selectedComment}
                     onSelect={(id) => {

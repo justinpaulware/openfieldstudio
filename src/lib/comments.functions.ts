@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 /** Hidden covers the legacy rejected state; everything else counts as visible. */
 const HIDDEN_STATUSES = ["hidden", "rejected"] as const;
@@ -18,6 +19,7 @@ type Row = {
   body: string;
   category: string | null;
   status: string;
+  source: string | null;
   author_name: string | null;
   author_email: string | null;
   created_at: string;
@@ -52,6 +54,7 @@ const HEADERS = [
   "body",
   "category",
   "status",
+  "source",
   "author_name",
   "author_email",
   "created_at",
@@ -79,7 +82,7 @@ export const exportComments = createServerFn({ method: "POST" })
     let query = supabase
       .from("comments")
       .select(
-        "id, project_id, body, category, status, author_name, author_email, created_at, updated_at, lng, lat, geometry, geometry_type",
+        "id, project_id, body, category, status, source, author_name, author_email, created_at, updated_at, lng, lat, geometry, geometry_type",
       )
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
@@ -111,6 +114,7 @@ export const exportComments = createServerFn({ method: "POST" })
             body: row.body,
             category: row.category,
             status: row.status,
+            source: row.source,
             author_name: row.author_name,
             author_email: row.author_email,
             created_at: row.created_at,
@@ -140,6 +144,7 @@ export const exportComments = createServerFn({ method: "POST" })
           row.body,
           row.category,
           row.status,
+          row.source,
           row.author_name,
           row.author_email,
           row.created_at,
@@ -160,4 +165,157 @@ export const exportComments = createServerFn({ method: "POST" })
       content: lines.join("\n"),
       count: comments.length,
     };
+  });
+
+/* ------------------------------------------------------------------ *
+ * Importing comments collected offline (workshops, paper forms, …)    *
+ * ------------------------------------------------------------------ */
+
+/** Anything richer than these is flattened before it reaches the database. */
+const geometrySchema = z.object({
+  type: z.enum(["Point", "LineString", "Polygon"]),
+  coordinates: z.any(),
+});
+
+const importInput = z.object({
+  projectId: z.string().uuid(),
+  /** Free-text provenance label, e.g. "Public Workshops". */
+  source: z.string().trim().min(1).max(60).default("Public Workshops"),
+  features: z
+    .array(
+      z.object({
+        body: z.string().trim().min(1).max(2000),
+        category: z.string().trim().max(120).nullable().default(null),
+        authorName: z.string().trim().max(120).nullable().default(null),
+        /** Calendar date from the source data, if any. */
+        date: z.string().trim().nullable().default(null),
+        geometry: geometrySchema,
+      }),
+    )
+    .min(1)
+    .max(2000),
+  /** Layer to delete once the comments land, when converting a layer. */
+  deleteLayerId: z.string().uuid().nullable().default(null),
+});
+
+type Pos = [number, number];
+
+/** Flatten any nesting depth of coordinates down to [lng, lat] pairs. */
+function flattenPositions(value: unknown, out: Pos[] = []): Pos[] {
+  if (!Array.isArray(value)) return out;
+  if (typeof value[0] === "number" && typeof value[1] === "number") {
+    out.push([value[0] as number, value[1] as number]);
+    return out;
+  }
+  for (const part of value) flattenPositions(part, out);
+  return out;
+}
+
+/** Anchor point for the initialled pin: the point itself, or the shape's middle. */
+function anchorFor(geometry: { type: string; coordinates: unknown }): Pos | null {
+  const positions = flattenPositions(geometry.coordinates);
+  if (!positions.length) return null;
+  if (geometry.type === "Point") return positions[0]!;
+  if (geometry.type === "LineString") return positions[Math.floor(positions.length / 2)]!;
+  const sum = positions.reduce<Pos>((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]);
+  return [sum[0] / positions.length, sum[1] / positions.length];
+}
+
+/**
+ * Workshop notes carry a calendar date, never a clock time. Anchor each one at
+ * noon UTC so timezone shifts can't roll it onto the day before or after, then
+ * stagger the seconds so the original sheet order survives sorting.
+ */
+function timestampFor(date: string | null, index: number): string {
+  const trimmed = (date ?? "").trim();
+  let base: Date | null = null;
+  if (trimmed) {
+    const slash = /^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$/.exec(trimmed);
+    const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
+    if (iso) {
+      base = new Date(Date.UTC(+iso[1]!, +iso[2]! - 1, +iso[3]!, 12));
+    } else if (slash) {
+      const year = slash[3]!.length === 2 ? 2000 + +slash[3]! : +slash[3]!;
+      base = new Date(Date.UTC(year, +slash[1]! - 1, +slash[2]!, 12));
+    } else {
+      const parsed = new Date(trimmed);
+      if (!Number.isNaN(parsed.getTime())) {
+        base = new Date(
+          Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate(), 12),
+        );
+      }
+    }
+  }
+  if (!base || Number.isNaN(base.getTime())) base = new Date();
+  return new Date(base.getTime() + index * 1000).toISOString();
+}
+
+/**
+ * Bring offline feedback onto the map as ordinary comments: same cards, same
+ * colors, same votes — only the source label says where it came from.
+ */
+export const importComments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data) => importInput.parse(data))
+  .handler(async ({ data, context }) => {
+    const supabase = context.supabase;
+
+    const { data: project, error: projectError } = await supabase
+      .from("projects")
+      .select("id, owner_id")
+      .eq("id", data.projectId)
+      .maybeSingle();
+    if (projectError) throw new Error(projectError.message);
+    if (!project || project.owner_id !== context.userId) {
+      throw new Error("You can only import comments into your own map.");
+    }
+
+    const rows: TablesInsert<"comments">[] = [];
+    let skipped = 0;
+    data.features.forEach((feature, index) => {
+      const anchor = anchorFor({
+        type: feature.geometry.type,
+        coordinates: feature.geometry.coordinates,
+      });
+      if (!anchor) {
+        skipped += 1;
+        return;
+      }
+      rows.push({
+        project_id: data.projectId,
+        lng: anchor[0],
+        lat: anchor[1],
+        geometry: feature.geometry as never,
+        geometry_type: feature.geometry.type,
+        body: feature.body.slice(0, 2000),
+        category: feature.category || null,
+        author_name: feature.authorName || null,
+        source: data.source,
+        status: "approved" as const,
+        created_at: timestampFor(feature.date, index),
+      });
+    });
+    if (!rows.length) throw new Error("None of those features had usable coordinates.");
+
+    // Chunked so a large workshop batch doesn't hit statement limits.
+    for (let start = 0; start < rows.length; start += 200) {
+      const { error } = await supabase.from("comments").insert(rows.slice(start, start + 200));
+      if (error) throw new Error(error.message);
+    }
+
+    let layerDeleted = false;
+    if (data.deleteLayerId) {
+      const { data: layer } = await supabase
+        .from("layers")
+        .select("id, storage_path, project_id")
+        .eq("id", data.deleteLayerId)
+        .eq("project_id", data.projectId)
+        .maybeSingle();
+      if (layer) {
+        await supabase.from("layers").delete().eq("id", layer.id);
+        layerDeleted = true;
+      }
+    }
+
+    return { imported: rows.length, skipped, layerDeleted };
   });

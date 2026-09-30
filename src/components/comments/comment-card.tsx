@@ -22,16 +22,20 @@ export function CommentCard({
   colors,
   onVote,
   onClose,
+  showSource = false,
   className,
 }: {
   comment: PublicComment;
   colors: CategoryColors;
   onVote?: ((vote: -1 | 0 | 1) => void) | undefined;
   onClose?: () => void;
+  /** Show where this feedback came from (webmap, workshop, …). */
+  showSource?: boolean;
   className?: string;
 }) {
   const color = colorFor(colors, comment.category);
   const shape = geometryLabel(comment.geometry_type);
+  const source = showSource ? (comment.source ?? "").trim() : "";
 
   // Votes render from local state first so the thumbs respond on the same frame
   // as the click; the server result simply confirms what is already on screen.
@@ -90,6 +94,11 @@ export function CommentCard({
               <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
                 <ShapeIcon type={comment.geometry_type} />
                 {shape}
+              </span>
+            )}
+            {source && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-map-overlay-border px-1.5 py-0.5 font-secondary text-[10px] opacity-70">
+                {source}
               </span>
             )}
           </div>

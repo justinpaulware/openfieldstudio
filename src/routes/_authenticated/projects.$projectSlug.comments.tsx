@@ -13,9 +13,11 @@ import {
   Plus,
   Spline,
   Trash2,
+  Upload,
 } from "lucide-react";
 
 import { ShapeIcon } from "@/components/comments/comment-card";
+import { ImportCommentsDialog } from "@/components/comments/import-comments-dialog";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -33,7 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
-import { categoryLabel, geometryTag } from "@/lib/comment-style";
+import { categoryLabel, geometryTag, showCommentSource } from "@/lib/comment-style";
 import { ColorField } from "@/components/map/color-field";
 import {
   ALL_GEOMETRY_TYPES,
@@ -90,6 +92,7 @@ type CommentRow = {
   lat: number;
   status: "pending" | "approved" | "hidden" | "rejected";
   geometry_type: string | null;
+  source: string | null;
 };
 
 function ProjectComments() {
@@ -116,7 +119,9 @@ function ProjectComments() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
-        .select("id, body, category, author_name, created_at, lng, lat, status, geometry_type")
+        .select(
+          "id, body, category, author_name, created_at, lng, lat, status, geometry_type, source",
+        )
         .eq("project_id", projectId)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -132,6 +137,9 @@ function ProjectComments() {
   const [newCategory, setNewCategory] = useState("");
   /** Author overrides keyed by category name; unset names fall back to the palette. */
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
+  /** Whether visitors see where each comment came from. */
+  const [sourceVisible, setSourceVisible] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     if (!project) return;
@@ -141,6 +149,7 @@ function ProjectComments() {
     );
     setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
+    setSourceVisible(showCommentSource(project.embed_config));
   }, [project]);
 
 
@@ -188,6 +197,7 @@ function ProjectComments() {
           categoryList.map((name) => [name, activeColors[name] ?? UNCATEGORIZED_COLOR]),
         ),
         comment_geometry_types: geometryTypeList(geometryTypes),
+        show_comment_source: sourceVisible,
       };
       const { error } = await supabase
         .from("projects")
@@ -308,6 +318,11 @@ function ProjectComments() {
               Feedback visitors have left on this map.
             </p>
           </div>
+          <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" />
+            Import
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" disabled={exporting}>
@@ -326,6 +341,7 @@ function ProjectComments() {
               <DropdownMenuItem onSelect={() => void download("geojson")}>GeoJSON</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -428,6 +444,11 @@ function ProjectComments() {
                       <ShapeIcon type={comment.geometry_type} />
                       {geometryTag(comment.geometry_type)}
                     </span>
+                    {comment.source && (
+                      <span className="rounded-full bg-muted px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                        {comment.source}
+                      </span>
+                    )}
                     {isCommentHidden(comment.status) && (
                       <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
                         Hidden
@@ -493,6 +514,16 @@ function ProjectComments() {
             id="comments-enabled"
             checked={commentsEnabled}
             onCheckedChange={setCommentsEnabled}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="show-comment-source" className="font-secondary text-xs">
+            Show where each comment came from
+          </Label>
+          <Switch
+            id="show-comment-source"
+            checked={sourceVisible}
+            onCheckedChange={setSourceVisible}
           />
         </div>
         <div className="space-y-2 rounded-lg border border-border px-3 py-2.5">
@@ -600,6 +631,16 @@ function ProjectComments() {
           Save settings
         </Button>
       </aside>
+      <ImportCommentsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        projectId={projectId}
+        categories={categoryList}
+        onImported={() => {
+          queryClient.invalidateQueries({ queryKey: ["project-comments", projectId] });
+          queryClient.invalidateQueries({ queryKey: ["project-layers", projectId] });
+        }}
+      />
     </div>
   );
 }
