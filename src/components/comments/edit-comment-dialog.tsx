@@ -63,12 +63,14 @@ export function EditCommentDialog({
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<string>(NONE);
   const [source, setSource] = useState("");
+  const [when, setWhen] = useState("");
 
   useEffect(() => {
     if (!comment) return;
     setBody(comment.body);
     setCategory(comment.category?.trim() ? comment.category : NONE);
     setSource(comment.source ?? "");
+    setWhen(toLocalInput(comment.created_at));
   }, [comment]);
 
   const save = useMutation({
@@ -76,12 +78,15 @@ export function EditCommentDialog({
       if (!comment) return;
       const text = body.trim();
       if (!text) throw new Error("A comment can't be empty.");
+      const stamp = when ? new Date(when) : null;
+      if (when && Number.isNaN(stamp!.getTime())) throw new Error("That date isn't valid.");
       const { error } = await supabase
         .from("comments")
         .update({
           body: text,
           category: category === NONE ? null : category,
           source: source.trim() || "Webmap",
+          ...(stamp ? { created_at: stamp.toISOString() } : {}),
         })
         .eq("id", comment.id);
       if (error) throw error;
