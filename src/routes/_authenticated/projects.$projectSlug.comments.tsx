@@ -142,6 +142,8 @@ function ProjectComments() {
   /** Whether visitors see where each comment came from. */
   const [sourceVisible, setSourceVisible] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  /** Comment currently open in the edit dialog. */
+  const [editing, setEditing] = useState<CommentRow | null>(null);
 
   useEffect(() => {
     if (!project) return;
