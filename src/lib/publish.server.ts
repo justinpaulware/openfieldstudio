@@ -350,11 +350,72 @@ export async function loadApprovedComments(
     tally.set(row.comment_id, entry);
   }
 
+  const { data: replyRows } = await supabase
+    .from("comment_replies")
+    .select("id, comment_id, body, author_name, is_team_reply, created_at")
+    .in("comment_id", ids)
+    .eq("status", "approved")
+    .order("created_at", { ascending: true })
+    .limit(2000);
+  const repliesByComment = new Map<string, typeof replyRows>();
+  for (const reply of replyRows ?? []) {
+    const list = repliesByComment.get(reply.comment_id) ?? [];
+    list.push(reply);
+    repliesByComment.set(reply.comment_id, list);
+  }
+
   return comments.map((comment) => {
     const entry = tally.get(comment.id) ?? { up: 0, down: 0, mine: 0 };
-    return { ...comment, upvotes: entry.up, downvotes: entry.down, myVote: entry.mine };
+    return {
+      ...comment,
+      upvotes: entry.up,
+      downvotes: entry.down,
+      myVote: entry.mine,
+      replies: repliesByComment.get(comment.id) ?? [],
+    };
   });
 }
+
+/**
+ * Post a visitor reply under an approved comment. Only works when the map is
+ * published, comments are on, and the owner has allowed replies.
+ */
+export async function submitPublicReply(input: {
+  commentId: string;
+  body: string;
+  authorName?: string | null;
+}) {
+  const supabase = publicClient();
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("id, project_id, projects!inner(status, comments_enabled, embed_config)")
+    .eq("id", input.commentId)
+    .eq("status", "approved")
+    .maybeSingle();
+  if (!comment) return { ok: false as const, error: "That comment is not available." };
+  const project = comment.projects as unknown as {
+    status: string;
+    comments_enabled: boolean;
+    embed_config: unknown;
+  };
+  if (project.status !== "published" || !project.comments_enabled) {
+    return { ok: false as const, error: "Comments are turned off for this map." };
+  }
+  if (!allowCommentReplies(project.embed_config)) {
+    return { ok: false as const, error: "Replies are turned off for this map." };
+  }
+
+  const { error } = await supabase.from("comment_replies").insert({
+    comment_id: comment.id,
+    project_id: comment.project_id,
+    body: input.body.trim().slice(0, 1000),
+    author_name: input.authorName?.trim() || null,
+    is_team_reply: false,
+  });
+  if (error) return { ok: false as const, error: "Your reply could not be saved." };
+  return { ok: true as const };
+}
+
 
 /**
  * Cast, switch or clear a visitor's reaction on a public comment. Runs with
