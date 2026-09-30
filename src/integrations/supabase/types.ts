@@ -63,6 +63,7 @@ export type Database = {
           lat: number
           lng: number
           project_id: string
+          source: string
           status: Database["public"]["Enums"]["comment_status"]
           updated_at: string
         }
@@ -79,6 +80,7 @@ export type Database = {
           lat: number
           lng: number
           project_id: string
+          source?: string
           status?: Database["public"]["Enums"]["comment_status"]
           updated_at?: string
         }
@@ -95,6 +97,7 @@ export type Database = {
           lat?: number
           lng?: number
           project_id?: string
+          source?: string
           status?: Database["public"]["Enums"]["comment_status"]
           updated_at?: string
         }
