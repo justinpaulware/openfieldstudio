@@ -444,6 +444,11 @@ function ProjectComments() {
                       <ShapeIcon type={comment.geometry_type} />
                       {geometryTag(comment.geometry_type)}
                     </span>
+                    {comment.source && (
+                      <span className="rounded-full bg-muted px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                        {comment.source}
+                      </span>
+                    )}
                     {isCommentHidden(comment.status) && (
                       <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
                         Hidden
