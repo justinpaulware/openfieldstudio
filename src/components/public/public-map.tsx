@@ -240,6 +240,9 @@ export function PublicMapViewer({
   const commentCategories = project.comment_categories ?? [];
   // Authors decide whether visitors see where each comment came from.
   const sourceVisible = showCommentSource(project.embed_config);
+  // Authors decide whether visitors may reply to each other's comments.
+  const repliesEnabled = allowCommentReplies(project.embed_config);
+
   // Which shapes visitors may draw, chosen per project in the Engagement tab.
   const geometryTypes = useMemo(
     () =>
