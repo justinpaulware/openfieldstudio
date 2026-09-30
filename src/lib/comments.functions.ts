@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 /** Hidden covers the legacy rejected state; everything else counts as visible. */
 const HIDDEN_STATUSES = ["hidden", "rejected"] as const;
