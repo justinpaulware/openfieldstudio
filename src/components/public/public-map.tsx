@@ -18,10 +18,14 @@ import {
   getPublishedLayerData,
   listApprovedComments,
   reactToComment,
+  replyToComment,
+
 } from "@/lib/publish.functions";
 import { CommentCard } from "@/components/comments/comment-card";
 import {
+  allowCommentReplies,
   categoryColors as buildCategoryColors,
+
   colorFor,
   commentGeometryTypes,
   initialsFor,
@@ -236,6 +240,9 @@ export function PublicMapViewer({
   const commentCategories = project.comment_categories ?? [];
   // Authors decide whether visitors see where each comment came from.
   const sourceVisible = showCommentSource(project.embed_config);
+  // Authors decide whether visitors may reply to each other's comments.
+  const repliesEnabled = allowCommentReplies(project.embed_config);
+
   // Which shapes visitors may draw, chosen per project in the Engagement tab.
   const geometryTypes = useMemo(
     () =>
@@ -302,6 +309,21 @@ export function PublicMapViewer({
     if (!visitor) return;
     voteMutation.mutate({ commentId, vote });
   };
+
+  const replyMutation = useMutation({
+    mutationFn: (input: { commentId: string; body: string; authorName: string | null }) =>
+      replyToComment({ data: input }),
+    onSuccess: (result) => {
+      if (!result?.ok) return;
+      void queryClient.invalidateQueries({
+        queryKey: ["approved-comments", username, slug, visitor],
+      });
+    },
+  });
+
+  const handleReply = (commentId: string, body: string, authorName: string | null) =>
+    replyMutation.mutateAsync({ commentId, body, authorName });
+
 
   // Approved lines and areas render as a GeoJSON overlay; every comment also
   // gets an initialled marker at its anchor point. Both lists are memoized so
@@ -613,7 +635,12 @@ export function PublicMapViewer({
                           comment={selected}
                           colors={categoryColors}
                           showSource={sourceVisible}
+                          allowReplies={repliesEnabled}
+                          onReply={(body, authorName) =>
+                            handleReply(selected.id, body, authorName)
+                          }
                           onVote={(vote) => handleVote(selected.id, vote)}
+
                           onClose={() => setSelectedComment(null)}
                           className="w-[248px]"
                         />
@@ -654,7 +681,10 @@ export function PublicMapViewer({
                     onUndo={() => setVertices((current) => current.slice(0, -1))}
                     colors={categoryColors}
                     showSource={sourceVisible}
+                    allowReplies={repliesEnabled}
+                    onReply={handleReply}
                     onVote={handleVote}
+
                     selectedId={selectedComment}
                     onSelect={(id) => {
                       setSelectedComment(id);

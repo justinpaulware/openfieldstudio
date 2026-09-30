@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { MapPin, Pentagon, Spline, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  MessageSquare,
+  Pentagon,
+  Spline,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -7,10 +17,12 @@ import {
   colorFor,
   initialsFor,
   relativeTime,
+  TEAM_REPLY_LABEL,
   type CategoryColors,
 } from "@/lib/comment-style";
 import { geometryLabel } from "@/components/comments/comment-panel";
 import type { PublicComment } from "@/components/comments/comment-panel";
+
 
 /**
  * One comment rendered as an Atlas-style card: avatar, author, time, a
@@ -23,6 +35,8 @@ export function CommentCard({
   onVote,
   onClose,
   showSource = false,
+  allowReplies = false,
+  onReply,
   className,
 }: {
   comment: PublicComment;
@@ -31,11 +45,27 @@ export function CommentCard({
   onClose?: () => void;
   /** Show where this feedback came from (webmap, workshop, …). */
   showSource?: boolean;
+  /** Let visitors post a response under this comment. */
+  allowReplies?: boolean;
+  onReply?: ((body: string, authorName: string | null) => void | Promise<unknown>) | undefined;
   className?: string;
 }) {
   const color = colorFor(colors, comment.category);
   const shape = geometryLabel(comment.geometry_type);
   const source = showSource ? (comment.source ?? "").trim() : "";
+  const replies = comment.replies ?? [];
+
+  const [repliesOpen, setRepliesOpen] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyBody, setReplyBody] = useState("");
+  const [replyName, setReplyName] = useState("");
+  const [sending, setSending] = useState(false);
+  useEffect(() => {
+    setRepliesOpen(false);
+    setReplyOpen(false);
+    setReplyBody("");
+  }, [comment.id]);
+
 
   // Votes render from local state first so the thumbs respond on the same frame
   // as the click; the server result simply confirms what is already on screen.
@@ -121,7 +151,121 @@ export function CommentCard({
       )}
 
 
+      {(replies.length > 0 || allowReplies) && (
+        <div className="space-y-2 border-t border-map-overlay-border/60 pt-2">
+          {replies.length > 0 && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setRepliesOpen((open) => !open);
+              }}
+              className="flex items-center gap-1 font-secondary text-[11px] opacity-70 hover:opacity-100"
+            >
+              <MessageSquare className="h-3 w-3" aria-hidden />
+              {replies.length} {replies.length === 1 ? "reply" : "replies"}
+              {repliesOpen ? (
+                <ChevronUp className="h-3 w-3" aria-hidden />
+              ) : (
+                <ChevronDown className="h-3 w-3" aria-hidden />
+              )}
+            </button>
+          )}
 
+          {repliesOpen && replies.length > 0 && (
+            <ul className="space-y-2">
+              {replies.map((reply) => (
+                <li key={reply.id} className="rounded-md bg-black/[0.04] px-2 py-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate font-secondary text-[11px] font-semibold">
+                      {reply.author_name || "Anonymous"}
+                    </span>
+                    {reply.is_team_reply && (
+                      <span
+                        className="inline-flex h-4 items-center rounded-full px-1.5 font-secondary text-[9px] font-medium leading-none"
+                        style={{ background: `${color}22`, color }}
+                      >
+                        {TEAM_REPLY_LABEL}
+                      </span>
+                    )}
+                    <span className="ml-auto shrink-0 font-secondary text-[10px] opacity-60">
+                      {relativeTime(reply.created_at)}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 font-secondary text-[11px] leading-snug opacity-90">
+                    {reply.body}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {allowReplies && !replyOpen && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setReplyOpen(true);
+                setRepliesOpen(true);
+              }}
+              className="font-secondary text-[11px] font-medium opacity-70 hover:opacity-100"
+            >
+              Reply
+            </button>
+          )}
+
+          {allowReplies && replyOpen && (
+            <form
+              onClick={(event) => event.stopPropagation()}
+              onSubmit={(event) => {
+                event.preventDefault();
+                const text = replyBody.trim();
+                if (text.length < 2 || sending) return;
+                setSending(true);
+                Promise.resolve(onReply?.(text, replyName.trim() || null))
+                  .then(() => {
+                    setReplyBody("");
+                    setReplyOpen(false);
+                  })
+                  .finally(() => setSending(false));
+              }}
+              className="space-y-1.5"
+            >
+              <input
+                value={replyName}
+                onChange={(event) => setReplyName(event.target.value)}
+                placeholder="Your name (optional)"
+                maxLength={120}
+                className="w-full rounded-md border border-map-overlay-border bg-transparent px-2 py-1 font-secondary text-[11px] outline-none placeholder:opacity-50"
+              />
+              <textarea
+                value={replyBody}
+                onChange={(event) => setReplyBody(event.target.value)}
+                placeholder="Write a reply…"
+                rows={2}
+                maxLength={1000}
+                className="w-full resize-none rounded-md border border-map-overlay-border bg-transparent px-2 py-1 font-secondary text-[11px] outline-none placeholder:opacity-50"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={replyBody.trim().length < 2 || sending}
+                  className="rounded-full bg-map-overlay-foreground px-2.5 py-1 font-secondary text-[11px] font-medium text-map-overlay disabled:opacity-40"
+                >
+                  {sending ? "Posting…" : "Post reply"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReplyOpen(false)}
+                  className="font-secondary text-[11px] opacity-60 hover:opacity-100"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      )}
 
       {onVote && (
         <div className="flex items-center gap-1">
@@ -144,6 +288,7 @@ export function CommentCard({
     </div>
   );
 }
+
 
 function VoteButton({
   icon: Icon,

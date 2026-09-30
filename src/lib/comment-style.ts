@@ -113,6 +113,16 @@ export function visitorId() {
   return id;
 }
 
+/** A single response posted under a comment. */
+export type CommentReply = {
+  id: string;
+  comment_id: string;
+  body: string;
+  author_name: string | null;
+  is_team_reply: boolean;
+  created_at: string;
+};
+
 /** A comment as shown on a published map, with its reaction tallies. */
 export type PublicComment = {
   id: string;
@@ -129,7 +139,10 @@ export type PublicComment = {
   downvotes?: number;
   /** This visitor's vote: 1, -1 or 0. */
   myVote?: number;
+  /** Visible responses under this comment, oldest first. */
+  replies?: CommentReply[];
 };
+
 
 /** "Line" / "Area" chip; pins get no chip because they are the default. */
 export function geometryLabel(type?: string | null) {
@@ -185,3 +198,12 @@ export function showCommentSource(embedConfig: unknown) {
   if (!embedConfig || typeof embedConfig !== "object") return false;
   return (embedConfig as Record<string, unknown>)["show_comment_source"] === true;
 }
+
+/** Whether visitors may reply to comments on the published map. Off by default. */
+export function allowCommentReplies(embedConfig: unknown) {
+  if (!embedConfig || typeof embedConfig !== "object") return false;
+  return (embedConfig as Record<string, unknown>)["allow_comment_replies"] === true;
+}
+
+/** Badge text shown on replies written by the project team. */
+export const TEAM_REPLY_LABEL = "Project team";

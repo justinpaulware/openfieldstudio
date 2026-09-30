@@ -48,7 +48,10 @@ export function CommentPanel({
   onSubmitted,
   colors,
   onVote,
+  onReply,
+  allowReplies = false,
   showSource = false,
+
 }: {
   username: string;
   slug: string;
@@ -70,8 +73,13 @@ export function CommentPanel({
   onSubmitted: () => void;
   colors: CategoryColors;
   onVote?: (commentId: string, vote: -1 | 0 | 1) => void;
+  /** Post a reply under a comment; only used when replies are allowed. */
+  onReply?: (commentId: string, body: string, authorName: string | null) => void | Promise<unknown>;
+  /** Whether visitors may reply to comments. */
+  allowReplies?: boolean;
   /** Show each comment's source chip (webmap, workshop, …). */
   showSource?: boolean;
+
 }) {
   const modeKey = (id: CommentDrawMode) => (id === "area" ? "area" : id);
   const enabledModes = MODES.filter((option) => geometryTypes[modeKey(option.id)]);
@@ -211,7 +219,12 @@ export function CommentPanel({
                   comment={comment}
                   colors={colors}
                   showSource={showSource}
+                  allowReplies={allowReplies}
+                  onReply={
+                    onReply ? (body, name) => onReply(comment.id, body, name) : undefined
+                  }
                   onVote={onVote ? (vote) => onVote(comment.id, vote) : undefined}
+
                 />
               </div>
             </li>

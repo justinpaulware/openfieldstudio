@@ -32,12 +32,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+
 import { useProjectId } from "@/components/projects/project-context";
 import { supabase } from "@/integrations/supabase/client";
 import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
-import { categoryLabel, geometryTag, showCommentSource } from "@/lib/comment-style";
+import {
+  allowCommentReplies,
+  categoryLabel,
+  geometryTag,
+  showCommentSource,
+  TEAM_REPLY_LABEL,
+} from "@/lib/comment-style";
+
+
 import { ColorField } from "@/components/map/color-field";
 import {
   ALL_GEOMETRY_TYPES,
@@ -97,6 +107,113 @@ type CommentRow = {
   source: string | null;
 };
 
+type ReplyRow = {
+  id: string;
+  comment_id: string;
+  body: string;
+  author_name: string | null;
+  is_team_reply: boolean;
+  created_at: string;
+};
+
+/** Replies under one comment, with an inline box for the project team to answer. */
+function CommentReplies({
+  replies,
+  onDelete,
+  onPost,
+}: {
+  commentId: string;
+  replies: ReplyRow[];
+  onDelete: (id: string) => void;
+  onPost: (body: string) => Promise<unknown>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [body, setBody] = useState("");
+  const [sending, setSending] = useState(false);
+
+  return (
+    <div className="mt-2 space-y-2">
+      {replies.length > 0 && (
+        <ul className="space-y-1.5 border-l-2 border-border pl-3">
+          {replies.map((reply) => (
+            <li key={reply.id} className="flex items-start gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-secondary text-xs font-semibold">
+                    {reply.is_team_reply
+                      ? TEAM_REPLY_LABEL
+                      : reply.author_name || "Anonymous"}
+                  </span>
+                  <span className="font-secondary text-[10px] text-muted-foreground">
+                    {new Date(reply.created_at).toLocaleString()}
+                  </span>
+                </div>
+                <p className="font-secondary text-xs leading-snug text-muted-foreground">
+                  {reply.body}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 text-destructive hover:text-destructive"
+                title="Delete reply"
+                aria-label="Delete reply"
+                onClick={() => {
+                  if (confirm("Delete this reply?")) onDelete(reply.id);
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {open ? (
+        <div className="space-y-1.5">
+          <Textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            rows={2}
+            maxLength={1000}
+            placeholder="Reply as the project team…"
+            className="font-secondary text-xs"
+          />
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              disabled={body.trim().length < 2 || sending}
+              onClick={() => {
+                setSending(true);
+                onPost(body.trim())
+                  .then(() => {
+                    setBody("");
+                    setOpen(false);
+                  })
+                  .finally(() => setSending(false));
+              }}
+            >
+              {sending ? "Posting…" : "Post reply"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="font-secondary text-xs text-muted-foreground hover:text-foreground"
+        >
+          Reply as project team
+        </button>
+      )}
+    </div>
+  );
+}
+
+
 function ProjectComments() {
   const projectId = useProjectId();
   const queryClient = useQueryClient();
@@ -131,6 +248,62 @@ function ProjectComments() {
     },
   });
 
+  // Replies are loaded for the whole project and grouped by comment.
+  const repliesQuery = useQuery({
+    queryKey: ["project-comment-replies", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comment_replies")
+        .select("id, comment_id, body, author_name, is_team_reply, created_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as ReplyRow[];
+    },
+  });
+
+  const repliesByComment = useMemo(() => {
+    const grouped: Record<string, ReplyRow[]> = {};
+    for (const reply of repliesQuery.data ?? []) {
+      (grouped[reply.comment_id] ??= []).push(reply);
+    }
+    return grouped;
+  }, [repliesQuery.data]);
+
+  const invalidateReplies = () =>
+    queryClient.invalidateQueries({ queryKey: ["project-comment-replies", projectId] });
+
+  const addReply = useMutation({
+    mutationFn: async (input: { commentId: string; body: string }) => {
+      const { error } = await supabase.from("comment_replies").insert({
+        comment_id: input.commentId,
+        project_id: projectId,
+        body: input.body,
+        author_name: null,
+        is_team_reply: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void invalidateReplies();
+      toast.success("Reply posted");
+    },
+    onError: () => toast.error("The reply could not be posted."),
+  });
+
+  const removeReply = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("comment_replies").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void invalidateReplies();
+      toast.success("Reply deleted");
+    },
+    onError: () => toast.error("The reply could not be deleted."),
+  });
+
+
   const [commentsEnabled, setCommentsEnabled] = useState(false);
   /** Which shapes visitors may leave: points, lines, areas. */
   const [geometryTypes, setGeometryTypes] = useState<CommentGeometryTypes>(ALL_GEOMETRY_TYPES);
@@ -141,6 +314,9 @@ function ProjectComments() {
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
   /** Whether visitors see where each comment came from. */
   const [sourceVisible, setSourceVisible] = useState(false);
+  /** Whether visitors may reply to each other's comments. */
+  const [repliesAllowed, setRepliesAllowed] = useState(false);
+
   const [importOpen, setImportOpen] = useState(false);
   /** Comment currently open in the edit dialog. */
   const [editing, setEditing] = useState<CommentRow | null>(null);
@@ -154,6 +330,8 @@ function ProjectComments() {
     setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
     setSourceVisible(showCommentSource(project.embed_config));
+    setRepliesAllowed(allowCommentReplies(project.embed_config));
+
   }, [project]);
 
 
@@ -202,6 +380,8 @@ function ProjectComments() {
         ),
         comment_geometry_types: geometryTypeList(geometryTypes),
         show_comment_source: sourceVisible,
+        allow_comment_replies: repliesAllowed,
+
       };
       const { error } = await supabase
         .from("projects")
@@ -426,11 +606,13 @@ function ProjectComments() {
                   isCommentHidden(comment.status) && "opacity-60",
                 )}
               >
+                <div className="min-w-0 flex-1">
                 <button
                   type="button"
                   onClick={() => select(comment.id)}
-                  className="min-w-0 flex-1 text-left"
+                  className="w-full min-w-0 text-left"
                 >
+
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold leading-5">
                       {comment.author_name || "Anonymous"}
@@ -467,7 +649,16 @@ function ProjectComments() {
                   )}
 
                 </button>
+                <CommentReplies
+                  commentId={comment.id}
+                  replies={repliesByComment[comment.id] ?? []}
+                  onDelete={(id) => removeReply.mutate(id)}
+                  onPost={(body) => addReply.mutateAsync({ commentId: comment.id, body })}
+                />
+                </div>
                 <div className="flex shrink-0 items-start gap-1">
+
+
                   <Button
                     variant="ghost"
                     size="icon"
@@ -533,6 +724,16 @@ function ProjectComments() {
           />
         </div>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="allow-comment-replies" className="font-secondary text-xs">
+            Allow replies to comments
+          </Label>
+          <Switch
+            id="allow-comment-replies"
+            checked={repliesAllowed}
+            onCheckedChange={setRepliesAllowed}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
           <Label htmlFor="show-comment-source" className="font-secondary text-xs">
             Show where each comment came from
           </Label>
@@ -542,6 +743,7 @@ function ProjectComments() {
             onCheckedChange={setSourceVisible}
           />
         </div>
+
         <div className="space-y-2 rounded-lg border border-border px-3 py-2.5">
           <Label className="font-secondary text-xs">Comment types</Label>
           {(
