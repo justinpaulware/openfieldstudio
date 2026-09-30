@@ -197,6 +197,7 @@ function ProjectComments() {
           categoryList.map((name) => [name, activeColors[name] ?? UNCATEGORIZED_COLOR]),
         ),
         comment_geometry_types: geometryTypeList(geometryTypes),
+        show_comment_source: sourceVisible,
       };
       const { error } = await supabase
         .from("projects")
