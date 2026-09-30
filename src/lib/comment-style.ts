@@ -122,6 +122,8 @@ export type PublicComment = {
   category: string | null;
   author_name: string | null;
   created_at: string;
+  /** Where the feedback came from: "Webmap", "Public Workshops", … */
+  source?: string | null;
   geometry_type?: string | null;
   upvotes?: number;
   downvotes?: number;
