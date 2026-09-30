@@ -612,6 +612,7 @@ export function PublicMapViewer({
                         <CommentCard
                           comment={selected}
                           colors={categoryColors}
+                          showSource={sourceVisible}
                           onVote={(vote) => handleVote(selected.id, vote)}
                           onClose={() => setSelectedComment(null)}
                           className="w-[248px]"
