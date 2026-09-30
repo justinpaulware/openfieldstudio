@@ -92,6 +92,7 @@ type CommentRow = {
   lat: number;
   status: "pending" | "approved" | "hidden" | "rejected";
   geometry_type: string | null;
+  source: string | null;
 };
 
 function ProjectComments() {
@@ -118,7 +119,9 @@ function ProjectComments() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("comments")
-        .select("id, body, category, author_name, created_at, lng, lat, status, geometry_type")
+        .select(
+          "id, body, category, author_name, created_at, lng, lat, status, geometry_type, source",
+        )
         .eq("project_id", projectId)
         .order("created_at", { ascending: false });
       if (error) throw error;
