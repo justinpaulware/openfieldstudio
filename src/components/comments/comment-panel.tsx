@@ -70,6 +70,8 @@ export function CommentPanel({
   onSubmitted: () => void;
   colors: CategoryColors;
   onVote?: (commentId: string, vote: -1 | 0 | 1) => void;
+  /** Show each comment's source chip (webmap, workshop, …). */
+  showSource?: boolean;
 }) {
   const modeKey = (id: CommentDrawMode) => (id === "area" ? "area" : id);
   const enabledModes = MODES.filter((option) => geometryTypes[modeKey(option.id)]);
@@ -208,6 +210,7 @@ export function CommentPanel({
                 <CommentCard
                   comment={comment}
                   colors={colors}
+                  showSource={showSource}
                   onVote={onVote ? (vote) => onVote(comment.id, vote) : undefined}
                 />
               </div>
