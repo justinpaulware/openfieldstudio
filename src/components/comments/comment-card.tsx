@@ -1,5 +1,15 @@
 import { useEffect, useState } from "react";
-import { MapPin, Pentagon, Spline, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  MessageSquare,
+  Pentagon,
+  Spline,
+  ThumbsDown,
+  ThumbsUp,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import {
@@ -7,10 +17,12 @@ import {
   colorFor,
   initialsFor,
   relativeTime,
+  TEAM_REPLY_LABEL,
   type CategoryColors,
 } from "@/lib/comment-style";
 import { geometryLabel } from "@/components/comments/comment-panel";
 import type { PublicComment } from "@/components/comments/comment-panel";
+
 
 /**
  * One comment rendered as an Atlas-style card: avatar, author, time, a
