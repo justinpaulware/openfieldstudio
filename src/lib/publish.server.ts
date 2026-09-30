@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { parseLayerFields, toFeatureCollection } from "@/lib/geo";
 import type { StyleRelation } from "@/lib/layer-style";
-import { commentGeometryTypes } from "@/lib/comment-style";
+import { allowCommentReplies, commentGeometryTypes } from "@/lib/comment-style";
 
 
 /** Publishable-key client: RLS applies as `anon`, so only published projects resolve. */
