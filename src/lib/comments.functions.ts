@@ -18,6 +18,7 @@ type Row = {
   body: string;
   category: string | null;
   status: string;
+  source: string | null;
   author_name: string | null;
   author_email: string | null;
   created_at: string;
