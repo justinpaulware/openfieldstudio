@@ -81,7 +81,7 @@ export const exportComments = createServerFn({ method: "POST" })
     let query = supabase
       .from("comments")
       .select(
-        "id, project_id, body, category, status, author_name, author_email, created_at, updated_at, lng, lat, geometry, geometry_type",
+        "id, project_id, body, category, status, source, author_name, author_email, created_at, updated_at, lng, lat, geometry, geometry_type",
       )
       .eq("project_id", data.projectId)
       .order("created_at", { ascending: false });
