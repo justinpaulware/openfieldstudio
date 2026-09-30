@@ -269,10 +269,13 @@ export const importComments = createServerFn({ method: "POST" })
       throw new Error("You can only import comments into your own map.");
     }
 
-    const rows = [];
+    const rows: Record<string, unknown>[] = [];
     let skipped = 0;
     data.features.forEach((feature, index) => {
-      const anchor = anchorFor(feature.geometry);
+      const anchor = anchorFor({
+        type: feature.geometry.type,
+        coordinates: feature.geometry.coordinates,
+      });
       if (!anchor) {
         skipped += 1;
         return;
