@@ -48,7 +48,10 @@ export function CommentPanel({
   onSubmitted,
   colors,
   onVote,
+  onReply,
+  allowReplies = false,
   showSource = false,
+
 }: {
   username: string;
   slug: string;
