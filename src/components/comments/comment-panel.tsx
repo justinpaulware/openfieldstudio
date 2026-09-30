@@ -219,7 +219,12 @@ export function CommentPanel({
                   comment={comment}
                   colors={colors}
                   showSource={showSource}
+                  allowReplies={allowReplies}
+                  onReply={
+                    onReply ? (body, name) => onReply(comment.id, body, name) : undefined
+                  }
                   onVote={onVote ? (vote) => onVote(comment.id, vote) : undefined}
+
                 />
               </div>
             </li>
