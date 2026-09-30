@@ -213,6 +213,8 @@ function ProjectComments() {
         ),
         comment_geometry_types: geometryTypeList(geometryTypes),
         show_comment_source: sourceVisible,
+        allow_comment_replies: repliesAllowed,
+
       };
       const { error } = await supabase
         .from("projects")
