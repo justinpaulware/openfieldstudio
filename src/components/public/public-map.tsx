@@ -23,7 +23,9 @@ import {
 } from "@/lib/publish.functions";
 import { CommentCard } from "@/components/comments/comment-card";
 import {
+  allowCommentReplies,
   categoryColors as buildCategoryColors,
+
   colorFor,
   commentGeometryTypes,
   initialsFor,
