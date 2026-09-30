@@ -18,6 +18,8 @@ import {
   getPublishedLayerData,
   listApprovedComments,
   reactToComment,
+  replyToComment,
+
 } from "@/lib/publish.functions";
 import { CommentCard } from "@/components/comments/comment-card";
 import {
