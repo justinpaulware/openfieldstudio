@@ -681,7 +681,10 @@ export function PublicMapViewer({
                     onUndo={() => setVertices((current) => current.slice(0, -1))}
                     colors={categoryColors}
                     showSource={sourceVisible}
+                    allowReplies={repliesEnabled}
+                    onReply={handleReply}
                     onVote={handleVote}
+
                     selectedId={selectedComment}
                     onSelect={(id) => {
                       setSelectedComment(id);
