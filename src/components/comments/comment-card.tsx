@@ -22,16 +22,20 @@ export function CommentCard({
   colors,
   onVote,
   onClose,
+  showSource = false,
   className,
 }: {
   comment: PublicComment;
   colors: CategoryColors;
   onVote?: ((vote: -1 | 0 | 1) => void) | undefined;
   onClose?: () => void;
+  /** Show where this feedback came from (webmap, workshop, …). */
+  showSource?: boolean;
   className?: string;
 }) {
   const color = colorFor(colors, comment.category);
   const shape = geometryLabel(comment.geometry_type);
+  const source = showSource ? (comment.source ?? "").trim() : "";
 
   // Votes render from local state first so the thumbs respond on the same frame
   // as the click; the server result simply confirms what is already on screen.
