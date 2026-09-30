@@ -234,6 +234,8 @@ export function PublicMapViewer({
   const mapRef = useRef<MapHandle | null>(null);
   const commentsEnabled = project.comments_enabled;
   const commentCategories = project.comment_categories ?? [];
+  // Authors decide whether visitors see where each comment came from.
+  const sourceVisible = showCommentSource(project.embed_config);
   // Which shapes visitors may draw, chosen per project in the Engagement tab.
   const geometryTypes = useMemo(
     () =>
