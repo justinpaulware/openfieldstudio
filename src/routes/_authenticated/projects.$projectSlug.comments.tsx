@@ -427,12 +427,12 @@ function ProjectComments() {
                   onClick={() => select(comment.id)}
                   className="min-w-0 flex-1 text-left"
                 >
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="text-sm font-semibold">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold leading-5">
                       {comment.author_name || "Anonymous"}
                     </span>
                     <span
-                      className="rounded-full px-1.5 py-0.5 font-secondary text-[10px] font-medium"
+                      className="inline-flex h-5 items-center rounded-full px-2 font-secondary text-[10px] font-medium leading-none"
                       style={{
                         background: `${colorFor(activeColors, comment.category)}26`,
                         color: colorFor(activeColors, comment.category),
@@ -440,25 +440,28 @@ function ProjectComments() {
                     >
                       {categoryLabel(comment.category)}
                     </span>
-                    <span className="inline-flex items-center gap-1 rounded-full border border-border px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
+                    <span className="inline-flex h-5 items-center gap-1 rounded-full border border-border px-2 font-secondary text-[10px] leading-none text-muted-foreground">
                       <ShapeIcon type={comment.geometry_type} />
                       {geometryTag(comment.geometry_type)}
                     </span>
-                    {comment.source && (
-                      <span className="rounded-full bg-muted px-1.5 py-0.5 font-secondary text-[10px] text-muted-foreground">
-                        {comment.source}
-                      </span>
-                    )}
                     {isCommentHidden(comment.status) && (
-                      <span className="font-secondary text-[10px] uppercase tracking-wide text-muted-foreground">
+                      <span className="inline-flex h-5 items-center font-secondary text-[10px] uppercase leading-none tracking-wide text-muted-foreground">
                         Hidden
                       </span>
                     )}
-                    <span className="ml-auto font-secondary text-xs text-muted-foreground">
+                    <span className="ml-auto font-secondary text-xs leading-5 text-muted-foreground">
                       {new Date(comment.created_at).toLocaleString()}
                     </span>
                   </div>
                   <p className="mt-1 font-secondary text-sm leading-snug">{comment.body}</p>
+                  {comment.source && (
+                    <div className="mt-1.5">
+                      <span className="inline-flex h-5 items-center rounded-full bg-muted px-2 font-secondary text-[10px] leading-none text-muted-foreground">
+                        Source: {comment.source}
+                      </span>
+                    </div>
+                  )}
+
                 </button>
                 <div className="flex shrink-0 items-start gap-1">
                   <Button
