@@ -482,7 +482,14 @@ function ProjectComments() {
                   )}
 
                 </button>
-                <div className="flex shrink-0 items-start gap-1">
+                <CommentReplies
+                  commentId={comment.id}
+                  replies={repliesByComment[comment.id] ?? []}
+                  onDelete={(id) => removeReply.mutate(id)}
+                  onPost={(body) => addReply.mutateAsync({ commentId: comment.id, body })}
+                />
+                </div>
+
                   <Button
                     variant="ghost"
                     size="icon"
