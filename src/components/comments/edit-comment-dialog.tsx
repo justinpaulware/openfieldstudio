@@ -32,7 +32,18 @@ export type EditableComment = {
   body: string;
   category: string | null;
   source: string | null;
+  created_at: string;
 };
+
+/** ISO timestamp -> value a datetime-local input understands, in local time. */
+function toLocalInput(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}`;
+}
 
 /**
  * Lets the map owner correct a comment: assign or change its topic, tidy the
