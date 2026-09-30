@@ -269,12 +269,7 @@ export const importComments = createServerFn({ method: "POST" })
       throw new Error("You can only import comments into your own map.");
     }
 
-    type CommentInsert = Parameters<
-      ReturnType<typeof supabase.from<"comments">>["insert"]
-    >[0] extends (infer R)[]
-      ? R
-      : never;
-    const rows: CommentInsert[] = [];
+    const rows: TablesInsert<"comments">[] = [];
     let skipped = 0;
     data.features.forEach((feature, index) => {
       const anchor = anchorFor({
