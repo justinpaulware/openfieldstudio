@@ -13,9 +13,11 @@ import {
   Plus,
   Spline,
   Trash2,
+  Upload,
 } from "lucide-react";
 
 import { ShapeIcon } from "@/components/comments/comment-card";
+import { ImportCommentsDialog } from "@/components/comments/import-comments-dialog";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
