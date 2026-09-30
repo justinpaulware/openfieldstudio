@@ -137,6 +137,62 @@ function ProjectComments() {
     },
   });
 
+  // Replies are loaded for the whole project and grouped by comment.
+  const repliesQuery = useQuery({
+    queryKey: ["project-comment-replies", projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("comment_replies")
+        .select("id, comment_id, body, author_name, is_team_reply, created_at")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data as ReplyRow[];
+    },
+  });
+
+  const repliesByComment = useMemo(() => {
+    const grouped: Record<string, ReplyRow[]> = {};
+    for (const reply of repliesQuery.data ?? []) {
+      (grouped[reply.comment_id] ??= []).push(reply);
+    }
+    return grouped;
+  }, [repliesQuery.data]);
+
+  const invalidateReplies = () =>
+    queryClient.invalidateQueries({ queryKey: ["project-comment-replies", projectId] });
+
+  const addReply = useMutation({
+    mutationFn: async (input: { commentId: string; body: string }) => {
+      const { error } = await supabase.from("comment_replies").insert({
+        comment_id: input.commentId,
+        project_id: projectId,
+        body: input.body,
+        author_name: null,
+        is_team_reply: true,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void invalidateReplies();
+      toast.success("Reply posted");
+    },
+    onError: () => toast.error("The reply could not be posted."),
+  });
+
+  const removeReply = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("comment_replies").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      void invalidateReplies();
+      toast.success("Reply deleted");
+    },
+    onError: () => toast.error("The reply could not be deleted."),
+  });
+
+
   const [commentsEnabled, setCommentsEnabled] = useState(false);
   /** Which shapes visitors may leave: points, lines, areas. */
   const [geometryTypes, setGeometryTypes] = useState<CommentGeometryTypes>(ALL_GEOMETRY_TYPES);
