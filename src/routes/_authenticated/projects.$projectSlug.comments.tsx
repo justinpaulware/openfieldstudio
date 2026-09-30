@@ -489,6 +489,8 @@ function ProjectComments() {
                   onPost={(body) => addReply.mutateAsync({ commentId: comment.id, body })}
                 />
                 </div>
+                <div className="flex shrink-0 items-start gap-1">
+
 
                   <Button
                     variant="ghost"
