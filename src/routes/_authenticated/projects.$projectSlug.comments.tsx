@@ -137,6 +137,9 @@ function ProjectComments() {
   const [newCategory, setNewCategory] = useState("");
   /** Author overrides keyed by category name; unset names fall back to the palette. */
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
+  /** Whether visitors see where each comment came from. */
+  const [sourceVisible, setSourceVisible] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     if (!project) return;
@@ -146,6 +149,7 @@ function ProjectComments() {
     );
     setCategories(project.comment_categories ?? []);
     setCategoryColorMap(savedCategoryColors(project.embed_config));
+    setSourceVisible(showCommentSource(project.embed_config));
   }, [project]);
 
 
