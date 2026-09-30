@@ -533,6 +533,16 @@ function ProjectComments() {
           />
         </div>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="allow-comment-replies" className="font-secondary text-xs">
+            Allow replies to comments
+          </Label>
+          <Switch
+            id="allow-comment-replies"
+            checked={repliesAllowed}
+            onCheckedChange={setRepliesAllowed}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
           <Label htmlFor="show-comment-source" className="font-secondary text-xs">
             Show where each comment came from
           </Label>
@@ -542,6 +552,7 @@ function ProjectComments() {
             onCheckedChange={setSourceVisible}
           />
         </div>
+
         <div className="space-y-2 rounded-lg border border-border px-3 py-2.5">
           <Label className="font-secondary text-xs">Comment types</Label>
           {(
