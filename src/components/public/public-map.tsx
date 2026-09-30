@@ -635,7 +635,12 @@ export function PublicMapViewer({
                           comment={selected}
                           colors={categoryColors}
                           showSource={sourceVisible}
+                          allowReplies={repliesEnabled}
+                          onReply={(body, authorName) =>
+                            handleReply(selected.id, body, authorName)
+                          }
                           onVote={(vote) => handleVote(selected.id, vote)}
+
                           onClose={() => setSelectedComment(null)}
                           className="w-[248px]"
                         />
