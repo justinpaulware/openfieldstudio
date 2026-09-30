@@ -653,6 +653,7 @@ export function PublicMapViewer({
                     vertexCount={vertices.length}
                     onUndo={() => setVertices((current) => current.slice(0, -1))}
                     colors={categoryColors}
+                    showSource={sourceVisible}
                     onVote={handleVote}
                     selectedId={selectedComment}
                     onSelect={(id) => {
