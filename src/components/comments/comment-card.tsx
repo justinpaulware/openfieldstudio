@@ -47,7 +47,7 @@ export function CommentCard({
   showSource?: boolean;
   /** Let visitors post a response under this comment. */
   allowReplies?: boolean;
-  onReply?: (body: string, authorName: string | null) => void | Promise<unknown>;
+  onReply?: ((body: string, authorName: string | null) => void | Promise<unknown>) | undefined;
   className?: string;
 }) {
   const color = colorFor(colors, comment.category);
