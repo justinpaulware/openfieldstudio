@@ -467,6 +467,15 @@ function ProjectComments() {
                   <Button
                     variant="ghost"
                     size="icon"
+                    title="Edit comment"
+                    aria-label="Edit comment"
+                    onClick={() => setEditing(comment)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     title={isCommentHidden(comment.status) ? "Restore comment" : "Hide comment"}
                     aria-label={isCommentHidden(comment.status) ? "Restore comment" : "Hide comment"}
                     onClick={() =>
