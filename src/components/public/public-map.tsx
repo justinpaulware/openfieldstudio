@@ -303,6 +303,21 @@ export function PublicMapViewer({
     voteMutation.mutate({ commentId, vote });
   };
 
+  const replyMutation = useMutation({
+    mutationFn: (input: { commentId: string; body: string; authorName: string | null }) =>
+      replyToComment({ data: input }),
+    onSuccess: (result) => {
+      if (!result?.ok) return;
+      void queryClient.invalidateQueries({
+        queryKey: ["approved-comments", username, slug, visitor],
+      });
+    },
+  });
+
+  const handleReply = (commentId: string, body: string, authorName: string | null) =>
+    replyMutation.mutateAsync({ commentId, body, authorName });
+
+
   // Approved lines and areas render as a GeoJSON overlay; every comment also
   // gets an initialled marker at its anchor point. Both lists are memoized so
   // the map does not rebuild its markers on unrelated re-renders.
