@@ -44,7 +44,9 @@ import {
   categoryLabel,
   geometryTag,
   showCommentSource,
+  TEAM_REPLY_LABEL,
 } from "@/lib/comment-style";
+
 
 import { ColorField } from "@/components/map/color-field";
 import {
