@@ -103,3 +103,23 @@ export const reactToComment = createServerFn({ method: "POST" })
     const { reactToPublicComment } = await import("./publish.server");
     return reactToPublicComment(data);
   });
+
+/** Post a public reply under an approved comment. */
+export const replyToComment = createServerFn({ method: "POST" })
+  .inputValidator((data) =>
+    z
+      .object({
+        commentId: z.string().uuid(),
+        body: z.string().trim().min(2).max(1000),
+        authorName: z.string().trim().max(120).nullish(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    const { submitPublicReply } = await import("./publish.server");
+    return submitPublicReply({
+      commentId: data.commentId,
+      body: data.body,
+      authorName: data.authorName ?? null,
+    });
+  });
