@@ -9,6 +9,7 @@ import {
   Loader2,
   MapPin,
   MessageSquare,
+  Pencil,
   Pentagon,
   Plus,
   Spline,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { ShapeIcon } from "@/components/comments/comment-card";
+import { EditCommentDialog } from "@/components/comments/edit-comment-dialog";
 import { ImportCommentsDialog } from "@/components/comments/import-comments-dialog";
 import { toast } from "sonner";
 
