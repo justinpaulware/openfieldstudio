@@ -113,6 +113,7 @@ export const exportComments = createServerFn({ method: "POST" })
             body: row.body,
             category: row.category,
             status: row.status,
+            source: row.source,
             author_name: row.author_name,
             author_email: row.author_email,
             created_at: row.created_at,
