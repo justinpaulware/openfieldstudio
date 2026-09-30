@@ -631,6 +631,16 @@ function ProjectComments() {
           Save settings
         </Button>
       </aside>
+      <ImportCommentsDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        projectId={projectId}
+        categories={categoryList}
+        onImported={() => {
+          queryClient.invalidateQueries({ queryKey: ["project-comments", projectId] });
+          queryClient.invalidateQueries({ queryKey: ["project-layers", projectId] });
+        }}
+      />
     </div>
   );
 }
