@@ -331,6 +331,7 @@ function ProjectComments() {
               <DropdownMenuItem onSelect={() => void download("geojson")}>GeoJSON</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
