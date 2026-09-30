@@ -141,6 +141,9 @@ function ProjectComments() {
   const [categoryColorMap, setCategoryColorMap] = useState<Record<string, string>>({});
   /** Whether visitors see where each comment came from. */
   const [sourceVisible, setSourceVisible] = useState(false);
+  /** Whether visitors may reply to each other's comments. */
+  const [repliesAllowed, setRepliesAllowed] = useState(false);
+
   const [importOpen, setImportOpen] = useState(false);
   /** Comment currently open in the edit dialog. */
   const [editing, setEditing] = useState<CommentRow | null>(null);
