@@ -176,3 +176,12 @@ export function geometryTypeList(types: CommentGeometryTypes) {
   return (["point", "line", "area"] as const).filter((key) => types[key]);
 }
 
+
+/** Default source label for feedback left directly on the published map. */
+export const WEBMAP_SOURCE = "Webmap";
+
+/** Whether visitors see where each comment came from. Off unless turned on. */
+export function showCommentSource(embedConfig: unknown) {
+  if (!embedConfig || typeof embedConfig !== "object") return false;
+  return (embedConfig as Record<string, unknown>)["show_comment_source"] === true;
+}
