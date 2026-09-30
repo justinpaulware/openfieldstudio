@@ -113,10 +113,13 @@ export function CommentCard({
       <p className="font-secondary text-xs leading-snug opacity-90">{comment.body}</p>
 
       {source && (
-        <p className="font-secondary text-[10px] uppercase tracking-wide opacity-60">
-          Source: {source}
-        </p>
+        <div>
+          <span className="inline-flex h-5 items-center rounded-full bg-map-overlay-foreground/10 px-2 font-secondary text-[10px] leading-none opacity-80">
+            Source: {source}
+          </span>
+        </div>
       )}
+
 
 
 
