@@ -204,7 +204,7 @@ function Landing() {
             <Explore />
           </div>
           <div className="mt-14">
-            <Mock kind="editor" />
+            <Mock kind="viewer" />
           </div>
         </section>
 
@@ -265,8 +265,12 @@ function Landing() {
               <a
                 key={e.title}
                 href={e.href}
-                className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary"
+                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary"
               >
+                <div className="overflow-hidden border-b border-border">
+                  <img src={e.img} alt={`${e.title} map preview`} loading="lazy" className="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                </div>
+                <div className="flex flex-1 flex-col p-6">
                 <span className="flex items-center gap-1.5 font-secondary text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3" /> {e.tag}
                 </span>
@@ -275,6 +279,7 @@ function Landing() {
                 <span className="mt-5 inline-flex items-center gap-1 text-sm font-medium">
                   Open map <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
+                </div>
               </a>
             ))}
           </div>
