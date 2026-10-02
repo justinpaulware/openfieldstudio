@@ -8,11 +8,14 @@ import {
   Download,
   Code2,
   ArrowRight,
-  ThumbsUp,
   MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/use-session";
+import brooklynShot from "@/assets/home/brooklyn.jpg.asset.json";
+import peekskillShot from "@/assets/home/peekskill.jpg.asset.json";
+import stlShot from "@/assets/home/stl.jpg.asset.json";
+import midhudsonShot from "@/assets/home/midhudson.jpg.asset.json";
 
 const TITLE = "Open Field — Create maps, share information, engage communities";
 const DESC =
@@ -87,118 +90,43 @@ const examples = [
     tag: "Civic transparency",
     title: "Brooklyn County Committee",
     body: "Search an address to find your Election District and its County Committee members — and see where seats sit vacant.",
-    href: "/justinpaulware/new-york-city-elections",
+    href: "/justinpaulware/bkcc",
+    img: brooklynShot.url,
   },
   {
     tag: "Community engagement",
     title: "The Peekskill Plan",
     body: "Residents and workshop participants share categorized, geolocated feedback on streets, places and mobility.",
     href: "/justinpaulware/the-peekskill-plan",
+    img: peekskillShot.url,
   },
   {
     tag: "Planning & scenarios",
     title: "St. Louis Schools",
     body: "Multiple Views compare existing school facilities with future planning models.",
-    href: "/justinpaulware/stlchools",
+    href: "/justinpaulware/stlschools",
+    img: stlShot.url,
   },
   {
     tag: "Research & thematic mapping",
     title: "Mid-Hudson Innovation Ring",
     body: "A regional look at community colleges, institutions and economic corridors across the Mid-Hudson Valley.",
-    href: "/justinpaulware/community-college-innovation-ring",
+    href: "/justinpaulware/midhudson-innovation-ring",
+    img: midhudsonShot.url,
   },
 ];
 
-function MapBackdrop() {
-  return (
-    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice" aria-hidden>
-      <rect width="400" height="260" className="fill-muted" />
-      <g className="stroke-border" strokeWidth="1" fill="none">
-        <path d="M0 60 Q120 40 200 90 T400 70" />
-        <path d="M0 160 Q140 130 230 180 T400 150" />
-        <path d="M90 0 L130 260" />
-        <path d="M280 0 L250 260" />
-      </g>
-      <g className="fill-primary/25 stroke-primary" strokeWidth="1.2">
-        <path d="M140 70 L210 60 L235 120 L170 140 Z" />
-        <path d="M235 120 L300 110 L310 175 L250 185 Z" className="fill-primary/45" />
-        <path d="M80 140 L170 140 L180 205 L95 215 Z" className="fill-primary/10" />
-      </g>
-    </svg>
-  );
-}
+const shots = {
+  editor: { src: stlShot.url, alt: "St. Louis Schools map with a categorized legend and multiple Views" },
+  viewer: { src: brooklynShot.url, alt: "Brooklyn County Committee public map with address search and legend" },
+  comments: { src: peekskillShot.url, alt: "The Peekskill Plan map with geolocated community comments" },
+};
 
-function Mock({ kind }: { kind: "editor" | "viewer" | "comments" }) {
+function Mock({ kind }: { kind: keyof typeof shots }) {
+  const s = shots[kind];
   return (
-    <div className="relative aspect-[16/10] overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)]">
-      <MapBackdrop />
-      {kind === "editor" && (
-        <div className="absolute inset-y-3 left-3 w-[38%] space-y-1.5 rounded-lg border border-border bg-card/95 p-3 text-[11px]">
-          <p className="font-semibold">Layers</p>
-          {["Election Districts", "Assembly Districts", "Polling Sites", "Parks"].map((l, i) => (
-            <div key={l} className="flex items-center gap-2 rounded px-1.5 py-1 data-[a=true]:bg-primary/15" data-a={i === 0}>
-              <span className="h-2.5 w-2.5 rounded-sm bg-primary" style={{ opacity: 1 - i * 0.2 }} />
-              <span className="truncate">{l}</span>
-            </div>
-          ))}
-          <p className="pt-2 font-semibold">Symbology</p>
-          <div className="flex h-2 overflow-hidden rounded">
-            {[0.15, 0.35, 0.55, 0.75, 0.95].map((o) => (
-              <span key={o} className="flex-1 bg-primary" style={{ opacity: o }} />
-            ))}
-          </div>
-          <p className="text-muted-foreground">Graduated · 5 classes</p>
-        </div>
-      )}
-      {kind === "viewer" && (
-        <>
-          <div className="absolute left-3 top-3 w-[42%] space-y-2">
-            <div className="rounded-lg border border-border bg-card/95 p-2.5 text-[11px]">
-              <p className="font-semibold">County Committee</p>
-              <p className="text-muted-foreground">Find who represents your district.</p>
-            </div>
-            <div className="flex items-center gap-1.5 rounded-lg border border-border bg-card/95 p-2 text-[11px] text-muted-foreground">
-              <Search className="h-3 w-3" /> 383 Macon Street
-            </div>
-            <div className="rounded-lg border border-border bg-card/95 p-2 text-[11px]">
-              <p className="font-semibold">Views</p>
-              <p className="text-muted-foreground">Main · Vacancies</p>
-            </div>
-          </div>
-          <div className="absolute right-3 top-10 w-[36%] rounded-lg border border-border bg-card/95 p-2.5 text-[11px]">
-            <p className="font-semibold">ED 56 / AD 56</p>
-            <p className="mt-1 text-muted-foreground">Committee members</p>
-            <p>2 of 4 seats filled</p>
-          </div>
-        </>
-      )}
-      {kind === "comments" && (
-        <>
-          {[
-            [30, 40],
-            [55, 62],
-            [70, 30],
-          ].map(([x, y], i) => (
-            <span
-              key={i}
-              className="absolute flex h-6 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-card bg-primary text-[9px] font-bold text-primary-foreground"
-              style={{ left: `${x}%`, top: `${y}%` }}
-            >
-              {["AN", "JR", "MK"][i]}
-            </span>
-          ))}
-          <div className="absolute bottom-3 right-3 w-[48%] rounded-lg border border-border bg-card/95 p-2.5 text-[11px]">
-            <div className="flex gap-1.5">
-              <span className="rounded-full bg-primary/20 px-1.5">Mobility</span>
-              <span className="rounded-full bg-muted px-1.5 text-muted-foreground">Line</span>
-            </div>
-            <p className="mt-1.5">This crossing needs a safer signal for kids walking to school.</p>
-            <div className="mt-1.5 flex items-center gap-1 text-muted-foreground">
-              <ThumbsUp className="h-3 w-3" /> 12 · Public Workshops
-            </div>
-          </div>
-        </>
-      )}
+    <div className="overflow-hidden rounded-xl border border-border bg-card shadow-[var(--shadow-soft)]">
+      <img src={s.src} alt={s.alt} loading="lazy" className="aspect-[16/10] w-full object-cover" />
     </div>
   );
 }
@@ -275,7 +203,7 @@ function Landing() {
             <Explore />
           </div>
           <div className="mt-14">
-            <Mock kind="editor" />
+            <Mock kind="viewer" />
           </div>
         </section>
 
@@ -336,8 +264,12 @@ function Landing() {
               <a
                 key={e.title}
                 href={e.href}
-                className="group flex flex-col rounded-xl border border-border bg-card p-6 transition-colors hover:border-primary"
+                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-colors hover:border-primary"
               >
+                <div className="overflow-hidden border-b border-border">
+                  <img src={e.img} alt={`${e.title} map preview`} loading="lazy" className="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]" />
+                </div>
+                <div className="flex flex-1 flex-col p-6">
                 <span className="flex items-center gap-1.5 font-secondary text-xs text-muted-foreground">
                   <MapPin className="h-3 w-3" /> {e.tag}
                 </span>
@@ -346,6 +278,7 @@ function Landing() {
                 <span className="mt-5 inline-flex items-center gap-1 text-sm font-medium">
                   Open map <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                 </span>
+                </div>
               </a>
             ))}
           </div>
