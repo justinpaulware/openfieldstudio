@@ -630,35 +630,7 @@ export function PublicMapViewer({
               selectedCommentId={selectedComment}
               onCommentClick={(id) => setSelectedComment(id)}
               commentPopup={
-                commentMode && draftAnchor
-                  ? {
-                      id: "draft",
-                      lng: draftAnchor.lng,
-                      lat: draftAnchor.lat,
-                      content: (
-                        <div className="w-[272px] rounded-lg border border-map-overlay-border bg-map-overlay p-3 shadow-[var(--shadow-lift)]">
-                          <CommentComposer
-                            inline
-                            username={username}
-                            slug={slug}
-                            pin={draftAnchor}
-                            geometry={drawMode === "point" ? null : readyGeometry}
-                            categories={commentCategories}
-                            onCategoryChange={setDraftCategory}
-                            onClose={() => {
-                              resetDraft();
-                              setCommentMode(false);
-                            }}
-                            onSubmitted={() => {
-                              void commentsQuery.refetch();
-                              resetDraft();
-                              setCommentMode(false);
-                            }}
-                          />
-                        </div>
-                      ),
-                    }
-                  : selected && commentsVisible
+                !commentMode && selected && commentsVisible
                   ? {
                       id: selected.id,
                       lng: selected.lng,
@@ -713,6 +685,28 @@ export function PublicMapViewer({
                     vertexCount={vertices.length}
                     onUndo={() => setVertices((current) => current.slice(0, -1))}
                     colors={categoryColors}
+                    composer={
+                      draftAnchor ? (
+                        <CommentComposer
+                          inline
+                          username={username}
+                          slug={slug}
+                          pin={draftAnchor}
+                          geometry={drawMode === "point" ? null : readyGeometry}
+                          categories={commentCategories}
+                          onCategoryChange={setDraftCategory}
+                          onClose={() => {
+                            resetDraft();
+                            setCommentMode(false);
+                          }}
+                          onSubmitted={() => {
+                            void commentsQuery.refetch();
+                            resetDraft();
+                            setCommentMode(false);
+                          }}
+                        />
+                      ) : null
+                    }
                     showSource={sourceVisible}
                     allowReplies={repliesEnabled}
                     onReply={handleReply}
