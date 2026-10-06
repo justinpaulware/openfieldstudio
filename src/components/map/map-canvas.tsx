@@ -136,6 +136,8 @@ type Props = {
   featurePopup?: { layerId: string; properties: Record<string, unknown>; key: number } | null;
   /** Called on every ordinary (non-placement) map click. */
   onMapClick?: () => void;
+  /** Color of the comment being drafted (its chosen category). */
+  draftColor?: string;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -165,6 +167,7 @@ export default function MapCanvas({
   highlight = null,
   featurePopup = null,
   onMapClick,
+  draftColor = UNCATEGORIZED_COLOR,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
