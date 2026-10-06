@@ -210,7 +210,8 @@ export default function MapCanvas({
   onMapClickRef.current = onMapClick;
   const pinRef = useRef<maplibregl.Marker | null>(null);
 
-  // Temporary pin for the comment being written.
+  // Temporary pin for the comment being written, tinted by its chosen category.
+  const pinColorRef = useRef<string | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -219,12 +220,26 @@ export default function MapCanvas({
       pinRef.current = null;
       return;
     }
+    if (pinRef.current && pinColorRef.current !== draftColor) {
+      pinRef.current.remove();
+      pinRef.current = null;
+    }
     if (!pinRef.current) {
-      pinRef.current = new maplibregl.Marker({ color: "#8b5cf6" }).setLngLat(pin).addTo(map);
+      pinColorRef.current = draftColor;
+      pinRef.current = new maplibregl.Marker({ color: draftColor }).setLngLat(pin).addTo(map);
     } else {
       pinRef.current.setLngLat(pin);
     }
-  }, [pin]);
+  }, [pin, draftColor]);
+
+  // Draft line/area follows the same category color.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    if (map.getLayer("of-comment-draft-fill")) map.setPaintProperty("of-comment-draft-fill", "fill-color", draftColor);
+    if (map.getLayer("of-comment-draft-line")) map.setPaintProperty("of-comment-draft-line", "line-color", draftColor);
+    if (map.getLayer("of-comment-draft-point")) map.setPaintProperty("of-comment-draft-point", "circle-stroke-color", draftColor);
+  }, [draftColor, mapLoaded]);
 
   // Temporary marker for the selected address-search result.
   const searchPinRef = useRef<maplibregl.Marker | null>(null);
@@ -336,9 +351,17 @@ export default function MapCanvas({
   const commentPopupLng = commentPopup?.lng ?? null;
   const commentPopupLat = commentPopup?.lat ?? null;
 
+  const commentPopupRef = useRef<maplibregl.Popup | null>(null);
+  const commentPopupPosRef = useRef<[number, number] | null>(null);
+  commentPopupPosRef.current =
+    commentPopupLng !== null && commentPopupLat !== null ? [commentPopupLng, commentPopupLat] : null;
+
+  // The popup is created once per id, then moved; recreating it would remount
+  // its content and wipe anything typed into a draft comment.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded || !commentPopupId || commentPopupLng === null || commentPopupLat === null) {
+    const position = commentPopupPosRef.current;
+    if (!map || !mapLoaded || !commentPopupId || !position) {
       setCommentPopupEl(null);
       return;
     }
@@ -350,15 +373,23 @@ export default function MapCanvas({
       maxWidth: "300px",
       className: "of-comment-popup",
     })
-      .setLngLat([commentPopupLng, commentPopupLat])
+      .setLngLat(position)
       .setDOMContent(element)
       .addTo(map);
+    commentPopupRef.current = popup;
     setCommentPopupEl(element);
     return () => {
       popup.remove();
+      commentPopupRef.current = null;
       setCommentPopupEl(null);
     };
-  }, [commentPopupId, commentPopupLng, commentPopupLat, mapLoaded]);
+  }, [commentPopupId, commentPopupLng !== null, mapLoaded]);
+
+  useEffect(() => {
+    if (commentPopupLng !== null && commentPopupLat !== null) {
+      commentPopupRef.current?.setLngLat([commentPopupLng, commentPopupLat]);
+    }
+  }, [commentPopupLng, commentPopupLat]);
 
 
 
