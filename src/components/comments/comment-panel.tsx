@@ -51,6 +51,7 @@ export function CommentPanel({
   onReply,
   allowReplies = false,
   showSource = false,
+  composer,
 
 }: {
   username: string;
@@ -79,6 +80,9 @@ export function CommentPanel({
   allowReplies?: boolean;
   /** Show each comment's source chip (webmap, workshop, …). */
   showSource?: boolean;
+  /** Comment form shown in the docked card once a pin/shape is ready. */
+  composer?: React.ReactNode;
+
 
 }) {
   const modeKey = (id: CommentDrawMode) => (id === "area" ? "area" : id);
@@ -229,9 +233,10 @@ export function CommentPanel({
 
       {bodyOpen && comments.length === 0 && !adding && (
         <p className="border-t border-map-overlay-border p-3 font-secondary text-xs opacity-70">
-          No comments yet. Use + to add the first one.
+          No comments yet. Use New to add the first one.
         </p>
       )}
+    </div>
     </div>
   );
 }
