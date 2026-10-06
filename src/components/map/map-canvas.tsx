@@ -374,7 +374,7 @@ export default function MapCanvas({
     const popup = new maplibregl.Popup({
       closeButton: false,
       closeOnClick: false,
-      offset: 20,
+      offset: 40,
       maxWidth: "300px",
       className: "of-comment-popup",
     })

@@ -51,6 +51,7 @@ export function CommentPanel({
   onReply,
   allowReplies = false,
   showSource = false,
+  composer,
 
 }: {
   username: string;
@@ -79,6 +80,9 @@ export function CommentPanel({
   allowReplies?: boolean;
   /** Show each comment's source chip (webmap, workshop, …). */
   showSource?: boolean;
+  /** Comment form shown in the docked card once a pin/shape is ready. */
+  composer?: React.ReactNode;
+
 
 }) {
   const modeKey = (id: CommentDrawMode) => (id === "area" ? "area" : id);
@@ -97,6 +101,67 @@ export function CommentPanel({
   const bodyOpen = open || adding;
 
   return (
+    <div className="relative w-full">
+    {adding && (
+      <div className="pointer-events-auto absolute right-[calc(100%+10px)] top-0 max-h-[calc(100vh-20px)] w-[272px] overflow-y-auto rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
+        <div className="flex items-center justify-between border-b border-map-overlay-border px-3 py-2">
+          <span className="font-secondary text-xs font-semibold uppercase tracking-wide">New comment</span>
+          <button
+            type="button"
+            onClick={onToggleAdding}
+            aria-label="Cancel new comment"
+            className="rounded p-0.5 opacity-70 hover:bg-black/5 hover:opacity-100"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="space-y-3 p-3">
+          {enabledModes.length > 1 && (
+            <div className="flex items-center gap-1 rounded-md border border-map-overlay-border p-0.5">
+              {enabledModes.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => onModeChange?.(option.id)}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 font-secondary text-xs",
+                    mode === option.id ? "bg-black/10 font-semibold" : "opacity-70 hover:bg-black/5",
+                  )}
+                >
+                  <option.icon className="h-3.5 w-3.5" aria-hidden />
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+          <p className="font-secondary text-xs opacity-70">
+            {ready
+              ? mode === "point"
+                ? "Click elsewhere on the map to move the pin."
+                : "Keep clicking to add points, or finish your comment below."
+              : hint}
+          </p>
+          {mode !== "point" && vertexCount > 0 && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-secondary text-xs opacity-60">
+                {vertexCount} point{vertexCount === 1 ? "" : "s"}
+              </span>
+              <button
+                type="button"
+                onClick={onUndo}
+                className="inline-flex items-center gap-1.5 rounded-md border border-map-overlay-border bg-map-overlay-input px-2.5 py-1 font-secondary text-xs font-medium hover:bg-black/5"
+              >
+                <Undo2 className="h-3.5 w-3.5" aria-hidden />
+                Undo last point
+              </button>
+            </div>
+          )}
+          {ready && composer && (
+            <div className="border-t border-map-overlay-border pt-3">{composer}</div>
+          )}
+        </div>
+      </div>
+    )}
     <div className="pointer-events-auto w-full overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-soft)]">
       <MapCardHeader
         icon={MessageSquare}
@@ -120,63 +185,15 @@ export function CommentPanel({
               onClick={onToggleAdding}
               aria-label={adding ? "Cancel new comment" : "Add a comment"}
               title={adding ? "Cancel new comment" : "Add a comment"}
-              className={cn(
-                "rounded p-0.5 opacity-70 hover:bg-black/5 hover:opacity-100",
-                adding && "opacity-100",
-              )}
+              className="inline-flex items-center gap-1 rounded-full bg-map-overlay-foreground px-2.5 py-1 font-secondary text-[11px] font-semibold text-map-overlay hover:opacity-85"
             >
-              {adding ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+              {adding ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+              {adding ? "Cancel" : "New"}
             </button>
           </>
         }
       />
 
-      {bodyOpen && adding && (
-        <div className="space-y-3 border-t border-map-overlay-border p-3">
-          {enabledModes.length > 1 && (
-            <div className="flex items-center gap-1 rounded-md border border-map-overlay-border p-0.5">
-              {enabledModes.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => onModeChange?.(option.id)}
-                  className={cn(
-                    "flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 font-secondary text-xs",
-                    mode === option.id ? "bg-black/10 font-semibold" : "opacity-70 hover:bg-black/5",
-                  )}
-                >
-                  <option.icon className="h-3.5 w-3.5" aria-hidden />
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          )}
-
-
-          <p className="font-secondary text-xs opacity-70">
-            {ready
-              ? mode === "point"
-                ? "Finish your comment in the box on the map. Click elsewhere to move the pin."
-                : "Finish your comment in the box on the map, or keep clicking to add points."
-              : hint}
-          </p>
-          {mode !== "point" && vertexCount > 0 && (
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-secondary text-xs opacity-60">
-                {vertexCount} point{vertexCount === 1 ? "" : "s"}
-              </span>
-              <button
-                type="button"
-                onClick={onUndo}
-                className="inline-flex items-center gap-1.5 rounded-md border border-map-overlay-border bg-map-overlay-input px-2.5 py-1 font-secondary text-xs font-medium hover:bg-black/5"
-              >
-                <Undo2 className="h-3.5 w-3.5" aria-hidden />
-                Undo last point
-              </button>
-            </div>
-          )}
-        </div>
-      )}
 
       {bodyOpen && comments.length > 0 && (
         <ul className="max-h-[40vh] overflow-y-auto border-t border-map-overlay-border">
@@ -216,9 +233,10 @@ export function CommentPanel({
 
       {bodyOpen && comments.length === 0 && !adding && (
         <p className="border-t border-map-overlay-border p-3 font-secondary text-xs opacity-70">
-          No comments yet. Use + to add the first one.
+          No comments yet. Use New to add the first one.
         </p>
       )}
+    </div>
     </div>
   );
 }
