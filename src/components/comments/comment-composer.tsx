@@ -26,6 +26,7 @@ export function CommentComposer({
   inline = false,
   onClose,
   onSubmitted,
+  onCategoryChange,
 }: {
   username: string;
   slug: string;
@@ -38,11 +39,17 @@ export function CommentComposer({
   inline?: boolean;
   onClose: () => void;
   onSubmitted: () => void;
+  /** Lets the map tint the draft pin to the chosen category. */
+  onCategoryChange?: (category: string) => void;
 }) {
   const [body, setBody] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [category, setCategory] = useState<string>("");
+  const [category, setCategoryState] = useState<string>("");
+  const setCategory = (value: string) => {
+    setCategoryState(value);
+    onCategoryChange?.(value);
+  };
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
