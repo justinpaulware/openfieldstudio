@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, MapPin, MessageSquare, Pentagon, Plus, Spline, Undo2, X } from "lucide-react";
+import { Eye, EyeOff, MapPin, MessageSquare, MessageSquarePlus, Pentagon, Plus, Spline, Undo2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { PendingPin } from "@/components/comments/comment-composer";
@@ -104,8 +104,11 @@ export function CommentPanel({
     <div className="relative w-full">
     {adding && (
       <div className="pointer-events-auto absolute right-[calc(100%+10px)] top-0 max-h-[calc(100vh-20px)] w-[272px] overflow-y-auto rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
-        <div className="flex items-center justify-between border-b border-map-overlay-border px-3 py-2">
-          <span className="font-secondary text-xs font-semibold uppercase tracking-wide">New comment</span>
+        <div className="flex items-center gap-1 border-b border-map-overlay-border px-3 py-2">
+          <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold">
+            <MessageSquarePlus className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">New comment</span>
+          </span>
           <button
             type="button"
             onClick={onToggleAdding}
@@ -173,15 +176,6 @@ export function CommentPanel({
           <>
             <button
               type="button"
-              onClick={onToggleVisible}
-              aria-label={visible ? "Hide comments on map" : "Show comments on map"}
-              title={visible ? "Hide comments on map" : "Show comments on map"}
-              className="rounded p-0.5 opacity-70 hover:bg-black/5 hover:opacity-100"
-            >
-              {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
-            </button>
-            <button
-              type="button"
               onClick={onToggleAdding}
               aria-label={adding ? "Cancel new comment" : "Add a comment"}
               title={adding ? "Cancel new comment" : "Add a comment"}
@@ -189,6 +183,15 @@ export function CommentPanel({
             >
               {adding ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
               {adding ? "Cancel" : "New"}
+            </button>
+            <button
+              type="button"
+              onClick={onToggleVisible}
+              aria-label={visible ? "Hide comments on map" : "Show comments on map"}
+              title={visible ? "Hide comments on map" : "Show comments on map"}
+              className="rounded p-0.5 opacity-70 hover:bg-black/5 hover:opacity-100"
+            >
+              {visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
             </button>
           </>
         }
