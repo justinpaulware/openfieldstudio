@@ -136,6 +136,8 @@ type Props = {
   featurePopup?: { layerId: string; properties: Record<string, unknown>; key: number } | null;
   /** Called on every ordinary (non-placement) map click. */
   onMapClick?: () => void;
+  /** Color of the comment being drafted (its chosen category). */
+  draftColor?: string;
 };
 
 const SRC = (id: string) => `of-src-${id}`;
@@ -165,6 +167,7 @@ export default function MapCanvas({
   highlight = null,
   featurePopup = null,
   onMapClick,
+  draftColor = UNCATEGORIZED_COLOR,
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -209,8 +212,11 @@ export default function MapCanvas({
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
   const pinRef = useRef<maplibregl.Marker | null>(null);
+  const draftColorRef = useRef(draftColor);
+  draftColorRef.current = draftColor;
 
-  // Temporary pin for the comment being written.
+  // Temporary pin for the comment being written, tinted by its chosen category.
+  const pinColorRef = useRef<string | null>(null);
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -219,12 +225,26 @@ export default function MapCanvas({
       pinRef.current = null;
       return;
     }
+    if (pinRef.current && pinColorRef.current !== draftColor) {
+      pinRef.current.remove();
+      pinRef.current = null;
+    }
     if (!pinRef.current) {
-      pinRef.current = new maplibregl.Marker({ color: "#8b5cf6" }).setLngLat(pin).addTo(map);
+      pinColorRef.current = draftColor;
+      pinRef.current = new maplibregl.Marker({ color: draftColor }).setLngLat(pin).addTo(map);
     } else {
       pinRef.current.setLngLat(pin);
     }
-  }, [pin]);
+  }, [pin, draftColor]);
+
+  // Draft line/area follows the same category color.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    if (map.getLayer("of-comment-draft-fill")) map.setPaintProperty("of-comment-draft-fill", "fill-color", draftColor);
+    if (map.getLayer("of-comment-draft-line")) map.setPaintProperty("of-comment-draft-line", "line-color", draftColor);
+    if (map.getLayer("of-comment-draft-point")) map.setPaintProperty("of-comment-draft-point", "circle-stroke-color", draftColor);
+  }, [draftColor, mapLoaded]);
 
   // Temporary marker for the selected address-search result.
   const searchPinRef = useRef<maplibregl.Marker | null>(null);
@@ -336,9 +356,17 @@ export default function MapCanvas({
   const commentPopupLng = commentPopup?.lng ?? null;
   const commentPopupLat = commentPopup?.lat ?? null;
 
+  const commentPopupRef = useRef<maplibregl.Popup | null>(null);
+  const commentPopupPosRef = useRef<[number, number] | null>(null);
+  commentPopupPosRef.current =
+    commentPopupLng !== null && commentPopupLat !== null ? [commentPopupLng, commentPopupLat] : null;
+
+  // The popup is created once per id, then moved; recreating it would remount
+  // its content and wipe anything typed into a draft comment.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !mapLoaded || !commentPopupId || commentPopupLng === null || commentPopupLat === null) {
+    const position = commentPopupPosRef.current;
+    if (!map || !mapLoaded || !commentPopupId || !position) {
       setCommentPopupEl(null);
       return;
     }
@@ -350,15 +378,23 @@ export default function MapCanvas({
       maxWidth: "300px",
       className: "of-comment-popup",
     })
-      .setLngLat([commentPopupLng, commentPopupLat])
+      .setLngLat(position)
       .setDOMContent(element)
       .addTo(map);
+    commentPopupRef.current = popup;
     setCommentPopupEl(element);
     return () => {
       popup.remove();
+      commentPopupRef.current = null;
       setCommentPopupEl(null);
     };
-  }, [commentPopupId, commentPopupLng, commentPopupLat, mapLoaded]);
+  }, [commentPopupId, commentPopupLng !== null, mapLoaded]);
+
+  useEffect(() => {
+    if (commentPopupLng !== null && commentPopupLat !== null) {
+      commentPopupRef.current?.setLngLat([commentPopupLng, commentPopupLat]);
+    }
+  }, [commentPopupLng, commentPopupLat]);
 
 
 
@@ -446,7 +482,7 @@ export default function MapCanvas({
           type: "fill",
           source: "of-comment-draft",
           filter: ["==", ["geometry-type"], "Polygon"],
-          paint: { "fill-color": "#8b5cf6", "fill-opacity": 0.15 },
+          paint: { "fill-color": draftColorRef.current, "fill-opacity": 0.15 },
         });
       }
       if (!map.getLayer("of-comment-draft-line")) {
@@ -454,7 +490,7 @@ export default function MapCanvas({
           id: "of-comment-draft-line",
           type: "line",
           source: "of-comment-draft",
-          paint: { "line-color": "#6d28d9", "line-width": 2.5, "line-dasharray": [2, 1] },
+          paint: { "line-color": draftColorRef.current, "line-width": 2.5, "line-dasharray": [2, 1] },
           layout: { "line-cap": "round", "line-join": "round" },
         });
       }
@@ -467,7 +503,7 @@ export default function MapCanvas({
           paint: {
             "circle-radius": 4,
             "circle-color": "#ffffff",
-            "circle-stroke-color": "#6d28d9",
+            "circle-stroke-color": draftColorRef.current,
             "circle-stroke-width": 2,
           },
         });

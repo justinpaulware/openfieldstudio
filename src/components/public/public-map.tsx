@@ -1,3 +1,4 @@
+import { CommentComposer } from "@/components/comments/comment-composer";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { ClientOnly, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -380,10 +381,13 @@ export function PublicMapViewer({
       } as PendingPin)
     : null;
 
+  const [draftCategory, setDraftCategory] = useState("");
   const resetDraft = () => {
     setPin(null);
     setVertices([]);
+    setDraftCategory("");
   };
+  const draftAnchor = drawMode === "point" ? pin : readyGeometry ? centroid : null;
 
   useEffect(() => {
     if (!commentMode) return;
@@ -611,7 +615,8 @@ export function PublicMapViewer({
               layers={renderLayers}
               initialView={initialView}
               scaleUnits={(project.scale_units as ScaleUnits) ?? "imperial"}
-              pickMode={commentMode && (drawMode !== "point" || !pin)}
+              pickMode={commentMode}
+              draftColor={colorFor(categoryColors, draftCategory || null)}
               onPick={(lng, lat) => {
                 if (drawMode === "point") setPin({ lng, lat });
                 else setVertices((current) => [...current, [lng, lat]]);
@@ -625,7 +630,35 @@ export function PublicMapViewer({
               selectedCommentId={selectedComment}
               onCommentClick={(id) => setSelectedComment(id)}
               commentPopup={
-                selected && commentsVisible
+                commentMode && draftAnchor
+                  ? {
+                      id: "draft",
+                      lng: draftAnchor.lng,
+                      lat: draftAnchor.lat,
+                      content: (
+                        <div className="w-[272px] rounded-lg border border-map-overlay-border bg-map-overlay p-3 shadow-[var(--shadow-lift)]">
+                          <CommentComposer
+                            inline
+                            username={username}
+                            slug={slug}
+                            pin={draftAnchor}
+                            geometry={drawMode === "point" ? null : readyGeometry}
+                            categories={commentCategories}
+                            onCategoryChange={setDraftCategory}
+                            onClose={() => {
+                              resetDraft();
+                              setCommentMode(false);
+                            }}
+                            onSubmitted={() => {
+                              void commentsQuery.refetch();
+                              resetDraft();
+                              setCommentMode(false);
+                            }}
+                          />
+                        </div>
+                      ),
+                    }
+                  : selected && commentsVisible
                   ? {
                       id: selected.id,
                       lng: selected.lng,

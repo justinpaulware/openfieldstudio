@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Eye, EyeOff, MapPin, MessageSquare, Pentagon, Plus, Spline, X } from "lucide-react";
+import { Eye, EyeOff, MapPin, MessageSquare, Pentagon, Plus, Spline, Undo2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { CommentComposer, type PendingPin } from "@/components/comments/comment-composer";
+import type { PendingPin } from "@/components/comments/comment-composer";
 import { CommentCard } from "@/components/comments/comment-card";
 import { MapCardHeader } from "@/components/map/map-card-header";
 import type { CommentGeometry } from "@/components/map/map-canvas";
@@ -153,45 +153,27 @@ export function CommentPanel({
           )}
 
 
-          {ready ? (
-            <CommentComposer
-              inline
-              username={username}
-              slug={slug}
-              pin={pin!}
-              geometry={geometry ?? null}
-              categories={categories}
-              onClose={onToggleAdding}
-              onSubmitted={onSubmitted}
-            />
-          ) : (
-            <div className="space-y-2">
-              <p className="font-secondary text-xs opacity-70">{hint}</p>
-              {mode !== "point" && vertexCount > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="font-secondary text-xs opacity-60">
-                    {vertexCount} point{vertexCount === 1 ? "" : "s"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={onUndo}
-                    className="rounded px-1.5 py-0.5 font-secondary text-xs opacity-70 hover:bg-black/5 hover:opacity-100"
-                  >
-                    Undo last point
-                  </button>
-                </div>
-              )}
+          <p className="font-secondary text-xs opacity-70">
+            {ready
+              ? mode === "point"
+                ? "Finish your comment in the box on the map. Click elsewhere to move the pin."
+                : "Finish your comment in the box on the map, or keep clicking to add points."
+              : hint}
+          </p>
+          {mode !== "point" && vertexCount > 0 && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-secondary text-xs opacity-60">
+                {vertexCount} point{vertexCount === 1 ? "" : "s"}
+              </span>
+              <button
+                type="button"
+                onClick={onUndo}
+                className="inline-flex items-center gap-1.5 rounded-md border border-map-overlay-border bg-map-overlay-input px-2.5 py-1 font-secondary text-xs font-medium hover:bg-black/5"
+              >
+                <Undo2 className="h-3.5 w-3.5" aria-hidden />
+                Undo last point
+              </button>
             </div>
-          )}
-
-          {ready && mode !== "point" && (
-            <button
-              type="button"
-              onClick={onUndo}
-              className="font-secondary text-xs opacity-70 hover:opacity-100"
-            >
-              Undo last point
-            </button>
           )}
         </div>
       )}
