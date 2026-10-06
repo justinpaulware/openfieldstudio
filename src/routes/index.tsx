@@ -88,7 +88,7 @@ const spotlight = [
 const examples = [
   {
     tag: "Civic transparency",
-    title: "Brooklyn County Committee",
+    title: "Brooklyn (Kings) County Democratic County Committee",
     body: "Search an address to find your Election District and its County Committee members — and see where seats sit vacant.",
     href: "/justinpaulware/bkcc",
     img: brooklynShot.url,
