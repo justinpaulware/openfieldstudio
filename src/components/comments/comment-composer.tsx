@@ -101,6 +101,7 @@ export function CommentComposer({
           : "w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]"
       }
     >
+      {!(inline && !done) && (
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-sm font-semibold">{done ? "Thank you" : "Leave feedback"}</h3>
         <button
@@ -112,6 +113,7 @@ export function CommentComposer({
           <X className="h-4 w-4" />
         </button>
       </div>
+      )}
 
       {done ? (
         <div className="mt-3 flex items-start gap-2 font-secondary text-xs">
@@ -119,7 +121,7 @@ export function CommentComposer({
           <p>Thanks — your comment is on the map.</p>
         </div>
       ) : (
-        <div className="mt-3 space-y-3">
+        <div className={inline ? "space-y-3" : "mt-3 space-y-3"}>
           <div className="space-y-1.5">
             <Label htmlFor="comment-body" className="text-xs">
               Comment
