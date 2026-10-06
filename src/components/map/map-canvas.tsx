@@ -212,6 +212,8 @@ export default function MapCanvas({
   const onMapClickRef = useRef(onMapClick);
   onMapClickRef.current = onMapClick;
   const pinRef = useRef<maplibregl.Marker | null>(null);
+  const draftColorRef = useRef(draftColor);
+  draftColorRef.current = draftColor;
 
   // Temporary pin for the comment being written, tinted by its chosen category.
   const pinColorRef = useRef<string | null>(null);
@@ -480,7 +482,7 @@ export default function MapCanvas({
           type: "fill",
           source: "of-comment-draft",
           filter: ["==", ["geometry-type"], "Polygon"],
-          paint: { "fill-color": "#8b5cf6", "fill-opacity": 0.15 },
+          paint: { "fill-color": draftColorRef.current, "fill-opacity": 0.15 },
         });
       }
       if (!map.getLayer("of-comment-draft-line")) {
@@ -488,7 +490,7 @@ export default function MapCanvas({
           id: "of-comment-draft-line",
           type: "line",
           source: "of-comment-draft",
-          paint: { "line-color": "#6d28d9", "line-width": 2.5, "line-dasharray": [2, 1] },
+          paint: { "line-color": draftColorRef.current, "line-width": 2.5, "line-dasharray": [2, 1] },
           layout: { "line-cap": "round", "line-join": "round" },
         });
       }
@@ -501,7 +503,7 @@ export default function MapCanvas({
           paint: {
             "circle-radius": 4,
             "circle-color": "#ffffff",
-            "circle-stroke-color": "#6d28d9",
+            "circle-stroke-color": draftColorRef.current,
             "circle-stroke-width": 2,
           },
         });
