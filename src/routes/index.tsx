@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useSession } from "@/hooks/use-session";
 import brooklynShot from "@/assets/home/brooklyn.jpg.asset.json";
 import peekskillShot from "@/assets/home/peekskill.jpg.asset.json";
+import peekskillCommentShot from "@/assets/home/peekskill-comment.jpg.asset.json";
 import stlShot from "@/assets/home/stl.jpg.asset.json";
 import midhudsonShot from "@/assets/home/midhudson.jpg.asset.json";
 
@@ -88,7 +89,7 @@ const spotlight = [
 const examples = [
   {
     tag: "Civic transparency",
-    title: "Brooklyn County Committee",
+    title: "Brooklyn (Kings) County Democratic County Committee",
     body: "Search an address to find your Election District and its County Committee members — and see where seats sit vacant.",
     href: "/justinpaulware/bkcc",
     img: brooklynShot.url,
@@ -118,8 +119,8 @@ const examples = [
 
 const shots = {
   editor: { src: stlShot.url, alt: "St. Louis Schools map with a categorized legend and multiple Views" },
-  viewer: { src: brooklynShot.url, alt: "Brooklyn County Committee public map with address search and legend" },
-  comments: { src: peekskillShot.url, alt: "The Peekskill Plan map with geolocated community comments" },
+  viewer: { src: brooklynShot.url, alt: "Brooklyn (Kings) County Democratic County Committee public map with address search and legend" },
+  comments: { src: peekskillCommentShot.url, alt: "The Peekskill Plan map with an open community comment" },
 };
 
 function Mock({ kind }: { kind: keyof typeof shots }) {

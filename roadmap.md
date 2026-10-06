@@ -10,3 +10,4 @@
 ## Homepage refresh (Tab 23)
 - [x] Phase 1: new structure, copy, examples, mission, creator credit
 - [ ] Phase 2: real screenshots of editor/published maps, lazy-loaded (waiting on user's go-ahead / credits)
+- [x] Rename Brooklyn example title; retake Peekskill shot with open comment
