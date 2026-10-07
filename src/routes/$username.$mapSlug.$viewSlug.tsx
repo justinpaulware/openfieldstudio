@@ -27,6 +27,12 @@ export const Route = createFileRoute("/$username/$mapSlug/$viewSlug")({
       loaderData?.project.description?.slice(0, 155) ??
       "An interactive webmap view published with Open Field.";
     const url = `${SITE}/${params.username}/${params.mapSlug}/${params.viewSlug}`;
+    const thumb = loaderData?.project.thumbnail_url;
+    const version = thumb?.split("?v=")[1] ?? "";
+    const image =
+      thumb && loaderData?.project.id
+        ? `${SITE}/api/public/og/${loaderData.project.id}.jpg${version ? `?v=${version}` : ""}`
+        : null;
     return {
       meta: [
         { title },
@@ -36,6 +42,12 @@ export const Route = createFileRoute("/$username/$mapSlug/$viewSlug")({
         { property: "og:type", content: "article" },
         { property: "og:url", content: url },
         { name: "twitter:card", content: "summary_large_image" },
+        ...(image
+          ? [
+              { property: "og:image", content: image },
+              { name: "twitter:image", content: image },
+            ]
+          : []),
       ],
       links: [{ rel: "canonical", href: url }],
     };
