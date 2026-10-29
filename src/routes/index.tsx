@@ -158,9 +158,7 @@ function Landing() {
       <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
           <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Layers className="h-4 w-4" />
-            </span>
+            <OpenFieldLogo className="h-8 w-8" />
             <span className="font-display text-lg font-semibold">Open Field</span>
 <BetaBadge />
           </Link>
