@@ -234,11 +234,15 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
   const { data: projects, isLoading } = useQuery({
     queryKey: ["projects"],
     queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return [] as GalleryProject[];
+      // Published projects are publicly readable, so always scope to the owner.
       const { data, error } = await supabase
         .from("projects")
         .select(
           "id, title, description, slug, published_slug, tags, status, updated_at, created_at, sort_order, folder_id, thumbnail_url",
         )
+        .eq("owner_id", auth.user.id)
         .order("updated_at", { ascending: false });
       if (error) throw error;
       return data as GalleryProject[];
