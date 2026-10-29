@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { BetaBadge } from "@/components/beta-badge";
+import { OpenFieldLogo } from "@/components/open-field-logo";
 import {
   Layers,
   Palette,
