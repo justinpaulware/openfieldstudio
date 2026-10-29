@@ -15,21 +15,21 @@ export function OpenFieldLogo({ className }: { className?: string }) {
       <rect width="64" height="64" rx="14" fill="#e2e8f0" />
       <text
         x="32"
-        y="33"
+        y="32"
         textAnchor="middle"
         fontFamily="ui-sans-serif, system-ui, sans-serif"
         fontWeight="700"
-        fontSize="25"
+        fontSize="22"
         letterSpacing="-0.5"
         fill="#0f172a"
       >
-        of
+        OF
       </text>
       <path
-        d="M10 41 L32 52 L54 41"
+        d="M17 35 L9 41 L32 53 L55 41 L47 35"
         fill="none"
-        stroke="#facc15"
-        strokeWidth="5"
+        stroke="#0f172a"
+        strokeWidth="4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
