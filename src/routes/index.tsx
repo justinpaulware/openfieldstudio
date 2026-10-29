@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { BetaBadge } from "@/components/beta-badge";
 import {
   Layers,
   Palette,
@@ -161,6 +162,7 @@ function Landing() {
               <Layers className="h-4 w-4" />
             </span>
             <span className="font-display text-lg font-semibold">Open Field</span>
+<BetaBadge />
           </Link>
           <nav className="hidden items-center gap-6 font-secondary text-sm text-muted-foreground md:flex">
             <a href="#workflow" className="hover:text-foreground">Workflow</a>

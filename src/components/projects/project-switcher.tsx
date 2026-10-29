@@ -18,9 +18,12 @@ export function useRecentProjects() {
   return useQuery({
     queryKey: ["recent-projects"],
     queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return [] as RecentProject[];
       const { data, error } = await supabase
         .from("projects")
         .select("id, title, slug")
+        .eq("owner_id", auth.user.id)
         .order("updated_at", { ascending: false })
         .limit(5);
       if (error) throw error;

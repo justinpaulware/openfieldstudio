@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { BetaBadge } from "@/components/beta-badge";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { FolderKanban, Settings, Layers, LogOut, ChevronDown } from "lucide-react";
 import { createContext, useContext, useState, type ReactNode } from "react";
@@ -62,6 +63,7 @@ function BrandMenu() {
           <Layers className="h-4 w-4" />
         </span>
         <span className="font-display text-sm font-semibold">Open Field</span>
+<BetaBadge />
         <ChevronDown className="h-4 w-4 text-muted-foreground" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={9} className="w-60">

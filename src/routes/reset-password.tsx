@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BetaBadge } from "@/components/beta-badge";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Layers, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -61,6 +62,7 @@ function ResetPassword() {
               <Layers className="h-4 w-4" />
             </span>
             <span className="font-display text-lg font-semibold">Open Field</span>
+<BetaBadge />
           </Link>
         </div>
       </header>
