@@ -10,6 +10,10 @@
 
 Recommendation: **Esri World Imagery**. It is the only free global source sharp enough for the civic maps Open Field is used for (precincts, streets, parcels). Open Field is free and non-commercial, which fits Esri's terms, and the credit line will show in the map corner automatically.
 
+## How soon would usage limits matter?
+
+Esri's free tier is about **2 million satellite tiles a month**. A typical visit loads roughly 50–200 tiles (opening the map, a few zooms and pans). That works out to about **10,000–40,000 satellite map visits a month** before we'd need to think about it, and only on maps that actually use satellite. At Open Field's current size (13 accounts, about 11 published maps), that is far away. If a map ever went viral, the fix is a free Esri developer key (still free up to that limit), or switching that map back to a regular basemap.
+
 ## What you'll get
 
 Two new choices in the basemap picker (editor and per-view settings), shown on published maps too:
