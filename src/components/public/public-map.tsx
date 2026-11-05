@@ -441,9 +441,9 @@ export function PublicMapViewer({
       queryFn: () =>
         isRasterLayer(layer)
           ? Promise.resolve(null)
-          : (getPublishedLayerData({ data: { username, slug, layerId: layer.id } }) as Promise<
-              FeatureCollection | null
-            >),
+          : getPublishedLayerData({ data: { username, slug, layerId: layer.id } }).then(
+              (json) => JSON.parse(json) as FeatureCollection | null,
+            ),
       staleTime: 5 * 60 * 1000,
       retry: 0,
     })),

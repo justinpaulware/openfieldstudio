@@ -28,7 +28,10 @@ export const getPublishedLayerData = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { loadPublishedLayerData } = await import("./publish.server");
-    return loadPublishedLayerData(data.username, data.slug, data.layerId);
+    // Large layers overflow the server-function serializer when returned as
+    // nested objects; one JSON string serializes cheaply at any size.
+    const result = await loadPublishedLayerData(data.username, data.slug, data.layerId);
+    return JSON.stringify(result ?? null);
   });
 
 const position = z.tuple([z.number().min(-180).max(180), z.number().min(-90).max(90)]);
