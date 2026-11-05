@@ -386,7 +386,15 @@ export default function MapCanvas({
       .addTo(map);
     commentPopupRef.current = popup;
     setCommentPopupEl(element);
+    // MapLibre picks above/below from the card's height, but the card's content
+    // renders after the popup opens; re-place it whenever its size changes so
+    // pins near the top edge flip the card below instead of off-screen.
+    const observer = new ResizeObserver(() => {
+      if (popup.isOpen()) popup.setLngLat(popup.getLngLat());
+    });
+    observer.observe(element);
     return () => {
+      observer.disconnect();
       popup.remove();
       commentPopupRef.current = null;
       setCommentPopupEl(null);
