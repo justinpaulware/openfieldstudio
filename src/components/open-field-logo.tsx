@@ -15,7 +15,7 @@ export function OpenFieldLogo({ className }: { className?: string }) {
     >
       <rect width="64" height="64" rx="14" fill="#FACC15" />
       <path
-        d="M21 27.5 L8 32 L32 41 L56 32 L43 27.5"
+        d="M21 27.1 L8 32 L32 41 L56 32 L43 27.1"
         fill="none"
         stroke="#171717"
         strokeWidth="4"
