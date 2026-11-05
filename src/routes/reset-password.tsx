@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { BetaBadge } from "@/components/beta-badge";
+import { OpenFieldLogo } from "@/components/open-field-logo";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Layers, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,9 +59,7 @@ function ResetPassword() {
       <header className="border-b border-border">
         <div className="mx-auto flex h-16 max-w-6xl items-center px-6">
           <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Layers className="h-4 w-4" />
-            </span>
+            <OpenFieldLogo />
             <span className="font-display text-lg font-semibold">Open Field</span>
 <BetaBadge />
           </Link>

@@ -1,7 +1,8 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { BetaBadge } from "@/components/beta-badge";
+import { OpenFieldLogo } from "@/components/open-field-logo";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { FolderKanban, Settings, Layers, LogOut, ChevronDown } from "lucide-react";
+import { FolderKanban, Settings, LogOut, ChevronDown } from "lucide-react";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -59,9 +60,7 @@ function BrandMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger className="-ml-1.5 flex items-center gap-2 rounded-md px-1.5 py-1 text-left outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Layers className="h-4 w-4" />
-        </span>
+        <OpenFieldLogo />
         <span className="font-display text-sm font-semibold">Open Field</span>
 <BetaBadge />
         <ChevronDown className="h-4 w-4 text-muted-foreground" />
