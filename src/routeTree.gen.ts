@@ -29,6 +29,8 @@ import { Route as AuthenticatedProjectsProjectSlugPublishingRouteImport } from '
 import { Route as AuthenticatedProjectsProjectSlugStylingRouteImport } from './routes/_authenticated/projects.$projectSlug.styling'
 import { Route as ApiPublicOgProjectIdRouteImport } from './routes/api/public/og/$projectId'
 import { Route as ApiPublicStylesPositronNolabelsRouteImport } from './routes/api/public/styles/positron-nolabels'
+import { Route as ApiPublicStylesSatelliteRouteImport } from './routes/api/public/styles/satellite'
+import { Route as ApiPublicStylesSatelliteLabelsRouteImport } from './routes/api/public/styles/satellite-labels'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -139,6 +141,18 @@ const ApiPublicStylesPositronNolabelsRoute =
     path: '/api/public/styles/positron-nolabels',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicStylesSatelliteRoute =
+  ApiPublicStylesSatelliteRouteImport.update({
+    id: '/api/public/styles/satellite',
+    path: '/api/public/styles/satellite',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicStylesSatelliteLabelsRoute =
+  ApiPublicStylesSatelliteLabelsRouteImport.update({
+    id: '/api/public/styles/satellite-labels',
+    path: '/api/public/styles/satellite-labels',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -159,6 +173,8 @@ export interface FileRoutesByFullPath {
   '/projects/$projectSlug/styling': typeof AuthenticatedProjectsProjectSlugStylingRoute
   '/api/public/og/$projectId': typeof ApiPublicOgProjectIdRoute
   '/api/public/styles/positron-nolabels': typeof ApiPublicStylesPositronNolabelsRoute
+  '/api/public/styles/satellite': typeof ApiPublicStylesSatelliteRoute
+  '/api/public/styles/satellite-labels': typeof ApiPublicStylesSatelliteLabelsRoute
   '/projects/$projectSlug/': typeof AuthenticatedProjectsProjectSlugIndexRoute
 }
 export interface FileRoutesByTo {
@@ -179,6 +195,8 @@ export interface FileRoutesByTo {
   '/projects/$projectSlug/styling': typeof AuthenticatedProjectsProjectSlugStylingRoute
   '/api/public/og/$projectId': typeof ApiPublicOgProjectIdRoute
   '/api/public/styles/positron-nolabels': typeof ApiPublicStylesPositronNolabelsRoute
+  '/api/public/styles/satellite': typeof ApiPublicStylesSatelliteRoute
+  '/api/public/styles/satellite-labels': typeof ApiPublicStylesSatelliteLabelsRoute
   '/projects/$projectSlug': typeof AuthenticatedProjectsProjectSlugIndexRoute
 }
 export interface FileRoutesById {
@@ -202,6 +220,8 @@ export interface FileRoutesById {
   '/_authenticated/projects/$projectSlug/styling': typeof AuthenticatedProjectsProjectSlugStylingRoute
   '/api/public/og/$projectId': typeof ApiPublicOgProjectIdRoute
   '/api/public/styles/positron-nolabels': typeof ApiPublicStylesPositronNolabelsRoute
+  '/api/public/styles/satellite': typeof ApiPublicStylesSatelliteRoute
+  '/api/public/styles/satellite-labels': typeof ApiPublicStylesSatelliteLabelsRoute
   '/_authenticated/projects/$projectSlug/': typeof AuthenticatedProjectsProjectSlugIndexRoute
 }
 export interface FileRouteTypes {
@@ -225,6 +245,8 @@ export interface FileRouteTypes {
     | '/projects/$projectSlug/styling'
     | '/api/public/og/$projectId'
     | '/api/public/styles/positron-nolabels'
+    | '/api/public/styles/satellite'
+    | '/api/public/styles/satellite-labels'
     | '/projects/$projectSlug/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -245,6 +267,8 @@ export interface FileRouteTypes {
     | '/projects/$projectSlug/styling'
     | '/api/public/og/$projectId'
     | '/api/public/styles/positron-nolabels'
+    | '/api/public/styles/satellite'
+    | '/api/public/styles/satellite-labels'
     | '/projects/$projectSlug'
   id:
     | '__root__'
@@ -267,6 +291,8 @@ export interface FileRouteTypes {
     | '/_authenticated/projects/$projectSlug/styling'
     | '/api/public/og/$projectId'
     | '/api/public/styles/positron-nolabels'
+    | '/api/public/styles/satellite'
+    | '/api/public/styles/satellite-labels'
     | '/_authenticated/projects/$projectSlug/'
   fileRoutesById: FileRoutesById
 }
@@ -278,6 +304,8 @@ export interface RootRouteChildren {
   UsernameMapSlugRoute: typeof UsernameMapSlugRouteWithChildren
   ApiPublicOgProjectIdRoute: typeof ApiPublicOgProjectIdRoute
   ApiPublicStylesPositronNolabelsRoute: typeof ApiPublicStylesPositronNolabelsRoute
+  ApiPublicStylesSatelliteRoute: typeof ApiPublicStylesSatelliteRoute
+  ApiPublicStylesSatelliteLabelsRoute: typeof ApiPublicStylesSatelliteLabelsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -422,6 +450,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicStylesPositronNolabelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/styles/satellite': {
+      id: '/api/public/styles/satellite'
+      path: '/api/public/styles/satellite'
+      fullPath: '/api/public/styles/satellite'
+      preLoaderRoute: typeof ApiPublicStylesSatelliteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/styles/satellite-labels': {
+      id: '/api/public/styles/satellite-labels'
+      path: '/api/public/styles/satellite-labels'
+      fullPath: '/api/public/styles/satellite-labels'
+      preLoaderRoute: typeof ApiPublicStylesSatelliteLabelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -498,6 +540,8 @@ const rootRouteChildren: RootRouteChildren = {
   UsernameMapSlugRoute: UsernameMapSlugRouteWithChildren,
   ApiPublicOgProjectIdRoute: ApiPublicOgProjectIdRoute,
   ApiPublicStylesPositronNolabelsRoute: ApiPublicStylesPositronNolabelsRoute,
+  ApiPublicStylesSatelliteRoute: ApiPublicStylesSatelliteRoute,
+  ApiPublicStylesSatelliteLabelsRoute: ApiPublicStylesSatelliteLabelsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

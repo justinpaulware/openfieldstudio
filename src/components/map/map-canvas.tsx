@@ -77,6 +77,8 @@ export const BASEMAPS = [
   { id: "bright", label: "Bright (light)" },
   { id: "dark", label: "Dark" },
   { id: "liberty", label: "Liberty (detailed)" },
+  { id: "satellite", label: "Satellite" },
+  { id: "satellite-labels", label: "Satellite + labels" },
 ] as const;
 
 export type BasemapId = (typeof BASEMAPS)[number]["id"];
@@ -87,6 +89,7 @@ export function basemapUrl(id: string) {
   // by a public server route (label symbol layers stripped). All other
   // basemaps load directly from OpenFreeMap.
   if (known === "positron-nolabels") return "/api/public/styles/positron-nolabels";
+  if (known === "satellite" || known === "satellite-labels") return `/api/public/styles/${known}`;
   return `https://tiles.openfreemap.org/styles/${known}`;
 }
 
