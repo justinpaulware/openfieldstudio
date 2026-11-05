@@ -73,13 +73,7 @@ export function MobileMapNav({
       )}
 
       {!adding && !sheet && (
-        <div className="pointer-events-none absolute inset-x-2.5 bottom-8 z-10 flex items-center gap-2 overflow-x-auto pb-1">
-          {chips.map((item) => (
-            <button key={item.id} type="button" onClick={() => onSheet(item.id)} className={chip}>
-              <item.icon className="h-3.5 w-3.5" />
-              {item.label}
-            </button>
-          ))}
+        <div className="pointer-events-none absolute bottom-8 left-2.5 right-14 z-10 flex items-center gap-2 overflow-x-auto pb-1">
           {onAddComment && (
             <button
               type="button"
@@ -87,12 +81,18 @@ export function MobileMapNav({
                 onAddComment();
                 onSheet("comments");
               }}
-              className={cn(chip, "ml-auto border-transparent bg-map-overlay-foreground text-map-overlay")}
+              className={cn(chip, "border-transparent bg-map-overlay-foreground text-map-overlay")}
             >
               <Plus className="h-3.5 w-3.5" />
               Comment
             </button>
           )}
+          {chips.map((item) => (
+            <button key={item.id} type="button" onClick={() => onSheet(item.id)} className={chip}>
+              <item.icon className="h-3.5 w-3.5" />
+              {item.label}
+            </button>
+          ))}
         </div>
       )}
 
