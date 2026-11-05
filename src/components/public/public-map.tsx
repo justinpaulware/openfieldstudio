@@ -36,6 +36,8 @@ import {
 } from "@/lib/comment-style";
 
 import { flattenLayerOrder } from "@/components/map/layer-panel";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileMapNav, type MobileSheet } from "@/components/public/mobile-map-nav";
 import { AddressSearchCard } from "@/components/public/address-search-card";
 import type { PlaceResult } from "@/lib/geocode.functions";
 import { DEFAULT_NO_MATCH, findContainingFeature, parseLookup } from "@/lib/address-lookup";
@@ -404,6 +406,8 @@ export function PublicMapViewer({
 
   // Credit sits right after the scale bar, so it shifts as the scale bar resizes.
   const [creditLeft, setCreditLeft] = useState(150);
+  const isMobile = useIsMobile();
+  const [mobileSheet, setMobileSheet] = useState<MobileSheet | null>(null);
 
   useEffect(() => {
     let frame = 0;
@@ -605,6 +609,173 @@ export function PublicMapViewer({
   const showLegend = search.legend !== false && project.show_legend;
   const showTitle = search.title !== false;
 
+  const titleCard = showTitle && <MapTitleCard title={project.title} description={project.description} /> ;
+  const searchCard = (showSearch && (
+            <AddressSearchCard
+              hasMarker={searchPin !== null}
+              getViewbox={() => mapRef.current?.getBounds() ?? null}
+              notice={searchNotice}
+              onClear={clearSearch}
+              onSelect={(result: PlaceResult) => {
+                setSearchPin([result.lng, result.lat]);
+                setHighlight(null);
+                setFeaturePopup(null);
+                setSearchNotice(null);
+                const goToResult = () => {
+                  if (result.bbox && result.kind !== "address") {
+                    mapRef.current?.fitBbox(result.bbox, 64);
+                  } else {
+                    mapRef.current?.flyTo(result.lng, result.lat, result.kind === "address" ? 16 : 13);
+                  }
+                };
+                const lookupLayers =
+                  lookup.mode === "feature"
+                    ? ordered.filter((l) => lookup.layerIds.includes(l.id) && isVisible(l))
+                    : [];
+                if (!lookupLayers.length) {
+                  goToResult();
+                  return;
+                }
+                let layer = lookupLayers[0]!;
+                let hit: ReturnType<typeof findContainingFeature> = null;
+                for (const candidate of lookupLayers) {
+                  const found = findContainingFeature(dataById[candidate.id] ?? null, result.lng, result.lat);
+                  if (found && (!hit || found.area < hit.area)) {
+                    hit = found;
+                    layer = candidate;
+                  }
+                }
+                if (!hit) {
+                  goToResult();
+                  setSearchNotice(lookup.noMatchMessage.trim() || DEFAULT_NO_MATCH);
+                  return;
+                }
+                if (lookup.zoomTo === "feature") mapRef.current?.fitBbox(hit.bbox, 64);
+                else goToResult();
+                if (lookup.highlight) setHighlight(hit.geometry);
+                if (lookup.openPopup) {
+                  setFeaturePopup({ layerId: layer.id, properties: hit.properties, key: Date.now() });
+                }
+              }}
+            />
+          ));
+  const viewsCard = (showViews && (
+            <ViewSwitcherCard
+              views={views}
+              activeSlug={activeViewSlug}
+              onSelect={(view) => {
+                // Apply the view right away, then let the URL follow.
+                clickedFromRef.current = loaderSlug;
+                setPendingSlug(view.slug);
+
+                if (view.is_main) {
+                  void navigate({
+                    to: "/$username/$mapSlug",
+                    params: { username, mapSlug: slug },
+                    search,
+                  });
+                } else {
+                  void navigate({
+                    to: "/$username/$mapSlug/$viewSlug",
+                    params: { username, mapSlug: slug, viewSlug: view.slug },
+                    search,
+                  });
+                }
+              }}
+
+            />
+          ));
+  const legendCard = (showLegend && (
+            <MapLegend
+              groups={legendGroups}
+              hidden={hidden}
+              onToggle={(id) => setHidden((prev) => ({ ...prev, [id]: !prev[id] }))}
+              categoryHidden={categoryHidden}
+              onToggleCategory={(layerId, key) =>
+                setCategoryHidden((prev) => {
+                  const forLayer = { ...(prev[layerId] ?? {}) };
+                  if (forLayer[key]) delete forLayer[key];
+                  else forLayer[key] = true;
+                  return { ...prev, [layerId]: forLayer };
+                })
+              }
+            />
+          ));
+  const commentPanel = commentsEnabled ? (
+                  <CommentPanel
+                    mobile={isMobile}
+                    username={username}
+                    slug={slug}
+                    comments={comments}
+                    categories={commentCategories}
+                    visible={commentsVisible}
+                    onToggleVisible={() => setCommentsVisible((value) => !value)}
+                    adding={commentMode}
+                    onToggleAdding={() => {
+                      resetDraft();
+                      setCommentMode((value) => !value);
+                    }}
+                    pin={drawMode === "point" ? pin : centroid}
+                    geometry={drawMode === "point" ? null : readyGeometry}
+                    geometryTypes={geometryTypes}
+                    mode={drawMode}
+                    onModeChange={(next) => {
+                      setDrawMode(next);
+                      resetDraft();
+                    }}
+                    vertexCount={vertices.length}
+                    onUndo={() => setVertices((current) => current.slice(0, -1))}
+                    colors={categoryColors}
+                    composer={
+                      draftAnchor ? (
+                        <CommentComposer
+                          inline
+                          username={username}
+                          slug={slug}
+                          pin={draftAnchor}
+                          geometry={drawMode === "point" ? null : readyGeometry}
+                          categories={commentCategories}
+                          onCategoryChange={setDraftCategory}
+                          onClose={() => {
+                            resetDraft();
+                            setCommentMode(false);
+                          }}
+                          onSubmitted={() => {
+                            void commentsQuery.refetch();
+                            resetDraft();
+                            setCommentMode(false);
+                          }}
+                        />
+                      ) : null
+                    }
+                    showSource={sourceVisible}
+                    allowReplies={repliesEnabled}
+                    onReply={handleReply}
+                    onVote={handleVote}
+
+                    selectedId={selectedComment}
+                    onSelect={(id) => {
+                      setSelectedComment(id);
+                      setMobileSheet(null);
+                      const found = comments.find((comment) => comment.id === id);
+                      // Zoom in close enough to read the surroundings, but never
+                      // pull the visitor back out if they are already closer.
+                      if (found) {
+                        const current = mapRef.current?.getView()?.zoom ?? 0;
+                        mapRef.current?.flyTo(found.lng, found.lat, Math.max(current, 16));
+
+                      }
+                    }}
+
+                    onSubmitted={() => {
+                      void commentsQuery.refetch();
+                      resetDraft();
+                      setCommentMode(false);
+                    }}
+                  />
+
+  ) : null;
+
   return (
     <div className="relative flex h-screen w-full overflow-hidden bg-background">
       <main className="relative min-w-0 flex-1">
@@ -661,177 +832,39 @@ export function PublicMapViewer({
                 setSelectedComment(null);
               }}
               rightSlot={
-                commentsEnabled ? (
-                  <CommentPanel
-                    username={username}
-                    slug={slug}
-                    comments={comments}
-                    categories={commentCategories}
-                    visible={commentsVisible}
-                    onToggleVisible={() => setCommentsVisible((value) => !value)}
-                    adding={commentMode}
-                    onToggleAdding={() => {
-                      resetDraft();
-                      setCommentMode((value) => !value);
-                    }}
-                    pin={drawMode === "point" ? pin : centroid}
-                    geometry={drawMode === "point" ? null : readyGeometry}
-                    geometryTypes={geometryTypes}
-                    mode={drawMode}
-                    onModeChange={(next) => {
-                      setDrawMode(next);
-                      resetDraft();
-                    }}
-                    vertexCount={vertices.length}
-                    onUndo={() => setVertices((current) => current.slice(0, -1))}
-                    colors={categoryColors}
-                    composer={
-                      draftAnchor ? (
-                        <CommentComposer
-                          inline
-                          username={username}
-                          slug={slug}
-                          pin={draftAnchor}
-                          geometry={drawMode === "point" ? null : readyGeometry}
-                          categories={commentCategories}
-                          onCategoryChange={setDraftCategory}
-                          onClose={() => {
-                            resetDraft();
-                            setCommentMode(false);
-                          }}
-                          onSubmitted={() => {
-                            void commentsQuery.refetch();
-                            resetDraft();
-                            setCommentMode(false);
-                          }}
-                        />
-                      ) : null
-                    }
-                    showSource={sourceVisible}
-                    allowReplies={repliesEnabled}
-                    onReply={handleReply}
-                    onVote={handleVote}
-
-                    selectedId={selectedComment}
-                    onSelect={(id) => {
-                      setSelectedComment(id);
-                      const found = comments.find((comment) => comment.id === id);
-                      // Zoom in close enough to read the surroundings, but never
-                      // pull the visitor back out if they are already closer.
-                      if (found) {
-                        const current = mapRef.current?.getView()?.zoom ?? 0;
-                        mapRef.current?.flyTo(found.lng, found.lat, Math.max(current, 16));
-
-                      }
-                    }}
-
-                    onSubmitted={() => {
-                      void commentsQuery.refetch();
-                      resetDraft();
-                      setCommentMode(false);
-                    }}
-                  />
-
-                ) : null
+                isMobile ? null : commentPanel
               }
             />
           </Suspense>
         </ClientOnly>
 
+        {!isMobile && (
         <div className="pointer-events-auto absolute left-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] flex-col items-start gap-2 overflow-y-auto">
-          {showTitle && <MapTitleCard title={project.title} description={project.description} />}
-          {showSearch && (
-            <AddressSearchCard
-              hasMarker={searchPin !== null}
-              getViewbox={() => mapRef.current?.getBounds() ?? null}
-              notice={searchNotice}
-              onClear={clearSearch}
-              onSelect={(result: PlaceResult) => {
-                setSearchPin([result.lng, result.lat]);
-                setHighlight(null);
-                setFeaturePopup(null);
-                setSearchNotice(null);
-                const goToResult = () => {
-                  if (result.bbox && result.kind !== "address") {
-                    mapRef.current?.fitBbox(result.bbox, 64);
-                  } else {
-                    mapRef.current?.flyTo(result.lng, result.lat, result.kind === "address" ? 16 : 13);
-                  }
-                };
-                const lookupLayers =
-                  lookup.mode === "feature"
-                    ? ordered.filter((l) => lookup.layerIds.includes(l.id) && isVisible(l))
-                    : [];
-                if (!lookupLayers.length) {
-                  goToResult();
-                  return;
-                }
-                let layer = lookupLayers[0]!;
-                let hit: ReturnType<typeof findContainingFeature> = null;
-                for (const candidate of lookupLayers) {
-                  const found = findContainingFeature(dataById[candidate.id] ?? null, result.lng, result.lat);
-                  if (found && (!hit || found.area < hit.area)) {
-                    hit = found;
-                    layer = candidate;
-                  }
-                }
-                if (!hit) {
-                  goToResult();
-                  setSearchNotice(lookup.noMatchMessage.trim() || DEFAULT_NO_MATCH);
-                  return;
-                }
-                if (lookup.zoomTo === "feature") mapRef.current?.fitBbox(hit.bbox, 64);
-                else goToResult();
-                if (lookup.highlight) setHighlight(hit.geometry);
-                if (lookup.openPopup) {
-                  setFeaturePopup({ layerId: layer.id, properties: hit.properties, key: Date.now() });
-                }
-              }}
-            />
-          )}
-          {showViews && (
-            <ViewSwitcherCard
-              views={views}
-              activeSlug={activeViewSlug}
-              onSelect={(view) => {
-                // Apply the view right away, then let the URL follow.
-                clickedFromRef.current = loaderSlug;
-                setPendingSlug(view.slug);
-
-                if (view.is_main) {
-                  void navigate({
-                    to: "/$username/$mapSlug",
-                    params: { username, mapSlug: slug },
-                    search,
-                  });
-                } else {
-                  void navigate({
-                    to: "/$username/$mapSlug/$viewSlug",
-                    params: { username, mapSlug: slug, viewSlug: view.slug },
-                    search,
-                  });
-                }
-              }}
-
-            />
-          )}
-          {showLegend && (
-            <MapLegend
-              groups={legendGroups}
-              hidden={hidden}
-              onToggle={(id) => setHidden((prev) => ({ ...prev, [id]: !prev[id] }))}
-              categoryHidden={categoryHidden}
-              onToggleCategory={(layerId, key) =>
-                setCategoryHidden((prev) => {
-                  const forLayer = { ...(prev[layerId] ?? {}) };
-                  if (forLayer[key]) delete forLayer[key];
-                  else forLayer[key] = true;
-                  return { ...prev, [layerId]: forLayer };
-                })
-              }
-            />
-          )}
+          {titleCard}
+          {searchCard}
+          {viewsCard}
+          {legendCard}
         </div>
+        )}
+        {isMobile && (
+          <MobileMapNav
+            title={project.title}
+            search={showSearch && !commentMode ? searchCard : null}
+            sheet={mobileSheet}
+            onSheet={setMobileSheet}
+            adding={commentMode}
+            onAddComment={commentsEnabled ? () => {
+              resetDraft();
+              setSelectedComment(null);
+              setCommentMode(true);
+            } : null}
+            commentCount={comments.length}
+            about={showTitle ? titleCard : null}
+            legend={showLegend ? legendCard : null}
+            views={showViews ? viewsCard : null}
+            comments={commentPanel}
+          />
+        )}
 
 
 

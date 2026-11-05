@@ -52,7 +52,7 @@ export function CommentPanel({
   allowReplies = false,
   showSource = false,
   composer,
-
+  mobile = false,
 }: {
   username: string;
   slug: string;
@@ -82,6 +82,8 @@ export function CommentPanel({
   showSource?: boolean;
   /** Comment form shown in the docked card once a pin/shape is ready. */
   composer?: React.ReactNode;
+  /** Phone layout: composer stacks in place instead of docking to the left. */
+  mobile?: boolean;
 
 
 }) {
@@ -103,7 +105,7 @@ export function CommentPanel({
   return (
     <div className="relative w-full">
     {adding && (
-      <div className="pointer-events-auto absolute right-[calc(100%+10px)] top-0 max-h-[calc(100vh-20px)] w-[272px] overflow-y-auto rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]">
+      <div className={cn("pointer-events-auto overflow-y-auto", mobile ? "w-full" : "absolute right-[calc(100%+10px)] top-0 max-h-[calc(100vh-20px)] w-[272px]", " rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-lift)]")}>
         <div className="flex items-center gap-1 border-b border-map-overlay-border px-3 py-2">
           <span className="flex min-w-0 flex-1 items-center gap-1.5 text-xs font-semibold">
             <MessageSquarePlus className="h-3.5 w-3.5 shrink-0" />
@@ -165,6 +167,7 @@ export function CommentPanel({
         </div>
       </div>
     )}
+    {!(mobile && adding) && (
     <div className="pointer-events-auto w-full overflow-hidden rounded-lg border border-map-overlay-border bg-map-overlay text-map-overlay-foreground shadow-[var(--shadow-soft)]">
       <MapCardHeader
         icon={MessageSquare}
@@ -240,6 +243,7 @@ export function CommentPanel({
         </p>
       )}
     </div>
+    )}
     </div>
   );
 }
