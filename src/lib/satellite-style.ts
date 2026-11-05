@@ -28,7 +28,15 @@ export async function buildSatelliteStyle(labels: boolean) {
   const labelLayers: StyleLayer[] =
     labels && liberty
       ? (liberty.layers ?? [])
-          .filter((l) => l.type === "symbol" && l.layout && "text-field" in l.layout)
+          .filter(
+            (l) =>
+              l.type === "symbol" &&
+              l.layout &&
+              "text-field" in l.layout &&
+              // Skip bus stops, shops and other points of interest; keep streets and places.
+              l["source-layer"] !== "poi" &&
+              l["source-layer"] !== "aerodrome_label",
+          )
           .map((l) => ({
             ...l,
             paint: {
