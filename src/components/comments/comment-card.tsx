@@ -162,7 +162,7 @@ export function CommentCard({
       )}
 
 
-      {(replies.length > 0 || allowReplies) && (
+      {(replies.length > 0 || (allowReplies && replyOpen)) && (
         <div className="space-y-2 border-t border-map-overlay-border/60 pt-2">
           {replies.length > 0 && (
             <button
@@ -209,20 +209,6 @@ export function CommentCard({
                 </li>
               ))}
             </ul>
-          )}
-
-          {allowReplies && !replyOpen && (
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                setReplyOpen(true);
-                setRepliesOpen(true);
-              }}
-              className="font-secondary text-[11px] font-medium opacity-70 hover:opacity-100"
-            >
-              Reply
-            </button>
           )}
 
           {allowReplies && replyOpen && (
@@ -278,7 +264,29 @@ export function CommentCard({
         </div>
       )}
 
-      {onVote && (
+      {((allowReplies && !replyOpen) || onVote) && (
+        <div
+          className={`flex items-center justify-between gap-2 ${
+            replies.length > 0 || replyOpen ? "" : "border-t border-map-overlay-border/60 pt-2"
+          }`}
+        >
+          {allowReplies && !replyOpen ? (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setReplyOpen(true);
+                setRepliesOpen(true);
+              }}
+              className="inline-flex h-7 items-center gap-1 rounded-full border border-map-overlay-border px-2.5 font-secondary text-[11px] font-medium hover:bg-map-overlay-foreground/10"
+            >
+              <MessageSquare className="h-3 w-3" aria-hidden />
+              Reply
+            </button>
+          ) : (
+            <span />
+          )}
+          {onVote && (
         <div className="flex items-center gap-1">
           <VoteButton
             icon={ThumbsUp}
@@ -294,6 +302,8 @@ export function CommentCard({
             active={mine === -1}
             onClick={() => cast(mine === -1 ? 0 : -1)}
           />
+        </div>
+          )}
         </div>
       )}
     </div>
