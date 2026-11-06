@@ -107,7 +107,9 @@ export function CommentPanel({
     event.preventDefault();
     const startY = event.clientY;
     const startH = listRef.current?.getBoundingClientRect().height ?? 300;
-    const maxH = Math.max(200, window.innerHeight - 160);
+    // Stop 16px above the basemap button (its top sits 179px above the bottom).
+    const listTop = listRef.current?.getBoundingClientRect().top ?? 160;
+    const maxH = Math.max(120, window.innerHeight - 209 - listTop);
     const move = (e: PointerEvent) =>
       setListHeight(Math.min(maxH, Math.max(120, startH + e.clientY - startY)));
     const up = () => {

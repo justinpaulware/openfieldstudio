@@ -813,14 +813,20 @@ export default function MapCanvas({
       // Resizes are handled below so tiny (sub-pixel / scrollbar-width) layout
       // jitter cannot drive a repeating resize loop.
       trackResize: false,
+      // Maps stay flat and north-up: no rotation or tilt gestures.
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
     });
+    map.touchZoomRotate.disableRotation();
+    map.keyboard.disableRotation();
     mapRef.current = map;
 
     map.addControl(
       new maplibregl.GeolocateControl({ trackUserLocation: true, showAccuracyCircle: true }),
       "bottom-right",
     );
-    map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "bottom-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     const scale = new maplibregl.ScaleControl({ maxWidth: 120, unit: activeScaleUnits });
     scaleRef.current = scale;
     map.addControl(scale, "bottom-left");
@@ -1035,7 +1041,7 @@ export default function MapCanvas({
       <div ref={containerRef} className="h-full w-full" />
       {commentPopup && commentPopupEl ? createPortal(commentPopup.content, commentPopupEl) : null}
 
-      <div className="absolute bottom-[196px] right-2.5 z-10 flex max-h-[calc(100%-220px)] flex-col-reverse items-end gap-1">
+      <div className="absolute bottom-[150px] right-[10px] z-10 flex max-h-[calc(100%-170px)] flex-col-reverse items-end gap-1">
         <button
           type="button"
           onClick={() => setPickerOpen((open) => !open)}
@@ -1043,10 +1049,8 @@ export default function MapCanvas({
           aria-label="Basemap"
           title="Basemap"
           className={cn(
-            "flex h-[29px] w-[29px] shrink-0 items-center justify-center rounded border border-border shadow-[var(--shadow-soft)] backdrop-blur transition-colors",
-            pickerOpen
-              ? "bg-card/95 text-foreground"
-              : "bg-foreground/85 text-background hover:bg-foreground",
+            "of-map-ctrl flex h-[29px] w-[29px] shrink-0 items-center justify-center text-map-overlay-foreground transition-colors hover:bg-black/5",
+            pickerOpen && "bg-black/5",
           )}
         >
           <Layers className="h-4 w-4" />
@@ -1080,7 +1084,7 @@ export default function MapCanvas({
         )}
       </div>
 
-      <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex max-h-[calc(100%-20px)] w-80 max-w-[calc(100vw-20px)] flex-col items-stretch gap-2">
+      <div className="pointer-events-none absolute right-2.5 top-2.5 z-10 flex max-h-[calc(100%-205px)] w-80 max-w-[calc(100vw-20px)] flex-col items-stretch gap-2">
         {popupHit && (
           <div className="pointer-events-auto max-h-[60%] min-h-0 w-full overflow-y-auto rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]">
             <div className="mb-1.5 flex items-start justify-between gap-2">
