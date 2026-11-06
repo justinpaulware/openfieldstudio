@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   categoryLabel,
   colorFor,
@@ -143,14 +144,26 @@ export function CommentCard({
       <p className="font-secondary text-xs leading-snug opacity-90">{comment.body}</p>
 
       {comment.photo_url && (
-        <a href={comment.photo_url} target="_blank" rel="noreferrer" className="block">
-          <img
-            src={comment.photo_url}
-            alt="Photo attached to this comment"
-            loading="lazy"
-            className="aspect-[4/3] w-full rounded-md object-cover"
-          />
-        </a>
+        <Dialog>
+          <DialogTrigger asChild>
+            <button type="button" className="block w-full cursor-zoom-in" aria-label="View photo larger">
+              <img
+                src={comment.photo_url}
+                alt="Photo attached to this comment"
+                loading="lazy"
+                className="aspect-[4/3] w-full rounded-md object-cover"
+              />
+            </button>
+          </DialogTrigger>
+          <DialogContent className="w-auto max-w-[92vw] border-none bg-transparent p-0 shadow-none sm:rounded-none [&>button]:right-2 [&>button]:top-2 [&>button]:rounded-full [&>button]:bg-background [&>button]:p-1.5 [&>button]:opacity-90">
+            <DialogTitle className="sr-only">Comment photo</DialogTitle>
+            <img
+              src={comment.photo_url}
+              alt="Photo attached to this comment"
+              className="max-h-[85vh] max-w-[92vw] rounded-lg object-contain"
+            />
+          </DialogContent>
+        </Dialog>
       )}
 
       {source && (
