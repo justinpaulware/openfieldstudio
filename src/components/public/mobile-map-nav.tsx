@@ -86,7 +86,7 @@ export function MobileMapNav({
               onClick={() => {
                 onAddComment();
               }}
-              className={cn(chip, "ml-auto", "border-transparent bg-map-overlay-foreground text-map-overlay")}
+              className={cn(chip, "border-transparent bg-map-overlay-foreground text-map-overlay")}
             >
               <Plus className="h-3.5 w-3.5" />
               Comment
