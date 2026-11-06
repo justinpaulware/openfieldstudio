@@ -343,7 +343,8 @@ export default function MapCanvas({
         "box-shadow:0 1px 5px rgba(0,0,0,.35)",
         `background:${item.color ?? UNCATEGORIZED_COLOR}`,
         selected ? "outline:2px solid rgba(17,24,39,.25)" : "",
-        "position:relative",
+        // No inline `position`: MapLibre's .maplibregl-marker class must keep
+        // `position:absolute`, or every pin stacks below the previous one.
       ].join(";");
       if (thumb && item.photoUrl) {
         el.textContent = "";
