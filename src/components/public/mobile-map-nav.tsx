@@ -61,18 +61,31 @@ export function MobileMapNav({
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
             <button
               type="button"
-              onClick={() => about && onSheet("about")}
+              onClick={() => about && onSheet(sheet === "about" ? null : "about")}
               className={cn(chip, "min-w-0 justify-start")}
             >
               <span className="truncate">{title}</span>
               {about && <Info className="h-3.5 w-3.5 shrink-0 opacity-60" />}
             </button>
           </div>
-          {search && <div className="pointer-events-auto [&>*]:!w-full [&_.w-\[17rem\]]:!w-full [&_.w-\[17rem\]]:!max-w-none [&_.min-w-\[17rem\]]:!w-full [&_.min-w-\[17rem\]]:!max-w-none">{search}</div>}
+          {sheet === "about" && about && (
+            <div className="pointer-events-auto relative [&>*]:!w-full [&>*]:!max-w-none [&_.min-w-\[17rem\]]:!min-w-0">
+              {about}
+              <button
+                type="button"
+                onClick={() => onSheet(null)}
+                aria-label="Close"
+                className="absolute right-2 top-2 rounded-full p-1.5 hover:bg-black/5"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          {search && sheet !== "about" && <div className="pointer-events-auto [&>*]:!w-full [&_.w-\[17rem\]]:!w-full [&_.w-\[17rem\]]:!max-w-none [&_.min-w-\[17rem\]]:!w-full [&_.min-w-\[17rem\]]:!max-w-none">{search}</div>}
         </div>
       )}
 
-      {!adding && !sheet && (
+      {!adding && (!sheet || sheet === "about") && (
         <div className="pointer-events-none absolute bottom-8 left-2.5 right-14 z-10 flex items-center gap-2 overflow-x-auto pb-1">
           {chips.map((item) => (
             <button key={item.id} type="button" onClick={() => onSheet(item.id)} className={chip}>
@@ -95,7 +108,7 @@ export function MobileMapNav({
         </div>
       )}
 
-      {(sheet || adding) && (
+      {((sheet && sheet !== "about") || adding) && (
         <>
           {!adding && (
             <button
