@@ -196,4 +196,5 @@
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact .maplibregl-ctrl-attrib-button {
   position: absolute; right: 0; top: 0; width: 22px; height: 22px; margin: 0; padding: 0;
   border-radius: 50%; background-color: transparent !important;
+  background-position: center; background-size: 20px 20px; background-repeat: no-repeat;
 }
