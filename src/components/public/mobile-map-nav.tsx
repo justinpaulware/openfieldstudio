@@ -86,11 +86,18 @@ export function MobileMapNav({
       )}
 
       {!adding && (!sheet || sheet === "about") && (
-        <div className="pointer-events-none absolute bottom-8 left-2.5 right-14 z-10 flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="pointer-events-none absolute bottom-[calc(2rem+env(safe-area-inset-bottom))] left-2.5 right-14 z-10 flex items-center gap-2 overflow-x-auto pb-1">
           {chips.map((item) => (
-            <button key={item.id} type="button" onClick={() => onSheet(item.id)} className={chip}>
+            <button
+              key={item.id}
+              type="button"
+              aria-label={item.id === "comments" ? `Comments (${item.label})` : item.label}
+              title={item.id === "comments" ? "Comments" : item.label}
+              onClick={() => onSheet(item.id)}
+              className={cn(chip, item.id !== "comments" && "w-9 justify-center px-0")}
+            >
               <item.icon className="h-3.5 w-3.5" />
-              {item.label}
+              {item.id === "comments" && item.label}
             </button>
           ))}
           {onAddComment && (

@@ -777,7 +777,7 @@ export function PublicMapViewer({
   ) : null;
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-background">
+    <div className="fixed inset-0 flex h-dvh w-full overflow-hidden bg-background">
       <main className="relative min-w-0 flex-1">
         <ClientOnly fallback={<MapFallback />}>
           <Suspense fallback={<MapFallback />}>
