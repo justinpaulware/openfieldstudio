@@ -58,6 +58,7 @@ export const submitComment = createServerFn({ method: "POST" })
         authorName: z.string().trim().max(120).nullish(),
         authorEmail: z.string().trim().email().max(255).nullish().or(z.literal("")),
         geometry: geometrySchema.nullish(),
+        photo: z.string().max(3_000_000).nullish(),
       })
       .parse(data),
   )
@@ -73,6 +74,7 @@ export const submitComment = createServerFn({ method: "POST" })
       authorName: data.authorName ?? null,
       authorEmail: data.authorEmail || null,
       geometry: data.geometry ?? null,
+      photo: data.photo ?? null,
     });
   });
 

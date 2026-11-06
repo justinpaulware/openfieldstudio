@@ -40,6 +40,7 @@ import { exportComments } from "@/lib/comments.functions";
 import { cn } from "@/lib/utils";
 import type { MapHandle } from "@/components/map/map-canvas";
 import {
+  allowCommentPhotos,
   allowCommentReplies,
   categoryLabel,
   geometryTag,
@@ -105,6 +106,7 @@ type CommentRow = {
   status: "pending" | "approved" | "hidden" | "rejected";
   geometry_type: string | null;
   source: string | null;
+  photo_path?: string | null;
 };
 
 type ReplyRow = {
@@ -239,7 +241,7 @@ function ProjectComments() {
       const { data, error } = await supabase
         .from("comments")
         .select(
-          "id, body, category, author_name, created_at, lng, lat, status, geometry_type, source",
+          "id, body, category, author_name, created_at, lng, lat, status, geometry_type, source, photo_path",
         )
         .eq("project_id", projectId)
         .order("created_at", { ascending: false });
@@ -316,6 +318,7 @@ function ProjectComments() {
   const [sourceVisible, setSourceVisible] = useState(false);
   /** Whether visitors may reply to each other's comments. */
   const [repliesAllowed, setRepliesAllowed] = useState(false);
+  const [photosAllowed, setPhotosAllowed] = useState(false);
 
   const [importOpen, setImportOpen] = useState(false);
   /** Comment currently open in the edit dialog. */
@@ -331,6 +334,7 @@ function ProjectComments() {
     setCategoryColorMap(savedCategoryColors(project.embed_config));
     setSourceVisible(showCommentSource(project.embed_config));
     setRepliesAllowed(allowCommentReplies(project.embed_config));
+    setPhotosAllowed(allowCommentPhotos(project.embed_config));
 
   }, [project]);
 
@@ -381,6 +385,7 @@ function ProjectComments() {
         comment_geometry_types: geometryTypeList(geometryTypes),
         show_comment_source: sourceVisible,
         allow_comment_replies: repliesAllowed,
+        allow_comment_photos: photosAllowed,
 
       };
       const { error } = await supabase
@@ -640,6 +645,7 @@ function ProjectComments() {
                     </span>
                   </div>
                   <p className="mt-1 font-secondary text-sm leading-snug">{comment.body}</p>
+                  {comment.photo_path && <OwnerPhoto path={comment.photo_path} />}
                   {comment.source && (
                     <div className="mt-1.5">
                       <span className="inline-flex h-5 items-center rounded-full bg-muted px-2 font-secondary text-[10px] leading-none text-muted-foreground">
@@ -739,6 +745,16 @@ function ProjectComments() {
             id="allow-comment-replies"
             checked={repliesAllowed}
             onCheckedChange={setRepliesAllowed}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
+          <Label htmlFor="allow-comment-photos" className="font-secondary text-xs">
+            Allow a photo with each comment
+          </Label>
+          <Switch
+            id="allow-comment-photos"
+            checked={photosAllowed}
+            onCheckedChange={setPhotosAllowed}
           />
         </div>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
@@ -879,5 +895,24 @@ function ProjectComments() {
       />
 
     </div>
+  );
+}
+
+
+/** Private photo preview for the map owner, via a short-lived signed link. */
+function OwnerPhoto({ path }: { path: string }) {
+  const { data: url } = useQuery({
+    queryKey: ["comment-photo", path],
+    staleTime: 30 * 60 * 1000,
+    queryFn: async () => {
+      const { data } = await supabase.storage.from("comment-photos").createSignedUrl(path, 3600);
+      return data?.signedUrl ?? null;
+    },
+  });
+  if (!url) return null;
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="mt-2 block w-40">
+      <img src={url} alt="Attached photo" className="aspect-[4/3] w-full rounded-md object-cover" />
+    </a>
   );
 }

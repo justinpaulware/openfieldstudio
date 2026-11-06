@@ -142,6 +142,17 @@ export function CommentCard({
 
       <p className="font-secondary text-xs leading-snug opacity-90">{comment.body}</p>
 
+      {comment.photo_url && (
+        <a href={comment.photo_url} target="_blank" rel="noreferrer" className="block">
+          <img
+            src={comment.photo_url}
+            alt="Photo attached to this comment"
+            loading="lazy"
+            className="aspect-[4/3] w-full rounded-md object-cover"
+          />
+        </a>
+      )}
+
       {source && (
         <div>
           <span className="inline-flex h-5 items-center rounded-full bg-map-overlay-foreground/10 px-2 font-secondary text-[10px] leading-none opacity-80">

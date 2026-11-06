@@ -113,6 +113,7 @@ export type Database = {
           id: string
           lat: number
           lng: number
+          photo_path: string | null
           project_id: string
           source: string
           status: Database["public"]["Enums"]["comment_status"]
@@ -130,6 +131,7 @@ export type Database = {
           id?: string
           lat: number
           lng: number
+          photo_path?: string | null
           project_id: string
           source?: string
           status?: Database["public"]["Enums"]["comment_status"]
@@ -147,6 +149,7 @@ export type Database = {
           id?: string
           lat?: number
           lng?: number
+          photo_path?: string | null
           project_id?: string
           source?: string
           status?: Database["public"]["Enums"]["comment_status"]

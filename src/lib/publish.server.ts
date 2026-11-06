@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import { parseLayerFields, toFeatureCollection } from "@/lib/geo";
 import type { StyleRelation } from "@/lib/layer-style";
-import { allowCommentReplies, commentGeometryTypes } from "@/lib/comment-style";
+import { allowCommentPhotos, allowCommentReplies, commentGeometryTypes } from "@/lib/comment-style";
 
 
 /** Publishable-key client: RLS applies as `anon`, so only published projects resolve. */
@@ -250,6 +250,7 @@ export async function submitPublicComment(input: {
   authorName?: string | null;
   authorEmail?: string | null;
   geometry?: { type: "Point" | "LineString" | "Polygon"; coordinates: unknown } | null;
+  photo?: string | null;
 }) {
   const supabase = publicClient();
   const ownerId = await resolveOwner(supabase, input.username);
@@ -285,8 +286,30 @@ export async function submitPublicComment(input: {
   const category =
     input.category && project.comment_categories.includes(input.category) ? input.category : null;
 
+  // Optional photo: a base64 JPEG/WebP data URL, already shrunk in the browser.
+  let photoPath: string | null = null;
+  if (input.photo) {
+    if (!allowCommentPhotos(project.embed_config)) {
+      return { ok: false as const, error: "This map does not accept photos." };
+    }
+    const match = /^data:image\/(jpeg|webp|png);base64,([A-Za-z0-9+/=]+)$/.exec(input.photo);
+    if (!match) return { ok: false as const, error: "That photo could not be read." };
+    const bytes = Uint8Array.from(atob(match[2]!), (c) => c.charCodeAt(0));
+    if (bytes.byteLength > 2 * 1024 * 1024) {
+      return { ok: false as const, error: "That photo is too large." };
+    }
+    const ext = match[1] === "jpeg" ? "jpg" : match[1];
+    photoPath = `${project.id}/${crypto.randomUUID()}.${ext}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("comment-photos")
+      .upload(photoPath, bytes, { contentType: `image/${match[1]}` });
+    if (uploadError) return { ok: false as const, error: "Your photo could not be uploaded." };
+  }
+
   const { error } = await supabase.from("comments").insert({
     project_id: project.id,
+    photo_path: photoPath,
     lng: input.lng,
     lat: input.lat,
     geometry:
@@ -326,7 +349,7 @@ export async function loadApprovedComments(
   const { data } = await supabase
     .from("comments")
     .select(
-      "id, lng, lat, body, category, author_name, created_at, source, geometry, geometry_type",
+      "id, lng, lat, body, category, author_name, created_at, source, geometry, geometry_type, photo_path",
     )
     .eq("project_id", project.id)
     .eq("status", "approved")
@@ -364,10 +387,24 @@ export async function loadApprovedComments(
     repliesByComment.set(reply.comment_id, list);
   }
 
-  return comments.map((comment) => {
+  // Photos live in a private bucket; hand out short-lived links for approved ones.
+  const photoUrls = new Map<string, string>();
+  const paths = comments.map((c) => c.photo_path).filter((p): p is string => !!p);
+  if (paths.length) {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed } = await supabaseAdmin.storage
+      .from("comment-photos")
+      .createSignedUrls(paths, 60 * 60 * 6);
+    for (const row of signed ?? []) {
+      if (row.path && row.signedUrl) photoUrls.set(row.path, row.signedUrl);
+    }
+  }
+
+  return comments.map(({ photo_path, ...comment }) => {
     const entry = tally.get(comment.id) ?? { up: 0, down: 0, mine: 0 };
     return {
       ...comment,
+      photo_url: photo_path ? (photoUrls.get(photo_path) ?? null) : null,
       upvotes: entry.up,
       downvotes: entry.down,
       myVote: entry.mine,

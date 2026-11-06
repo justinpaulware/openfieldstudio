@@ -141,6 +141,8 @@ export type PublicComment = {
   myVote?: number;
   /** Visible responses under this comment, oldest first. */
   replies?: CommentReply[];
+  /** Short-lived link to the attached photo, if any. */
+  photo_url?: string | null;
 };
 
 
@@ -204,6 +206,15 @@ export function allowCommentReplies(embedConfig: unknown) {
   if (!embedConfig || typeof embedConfig !== "object") return false;
   return (embedConfig as Record<string, unknown>)["allow_comment_replies"] === true;
 }
+
+/** Whether visitors may attach one photo to a comment. Off by default. */
+export function allowCommentPhotos(embedConfig: unknown) {
+  if (!embedConfig || typeof embedConfig !== "object") return false;
+  return (embedConfig as Record<string, unknown>)["allow_comment_photos"] === true;
+}
+
+/** Zoom level at which photo comments swap their dot for a thumbnail. */
+export const PHOTO_THUMBNAIL_ZOOM = 15;
 
 /** Badge text shown on replies written by the project team. */
 export const TEAM_REPLY_LABEL = "Project team";

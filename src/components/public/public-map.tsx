@@ -24,6 +24,7 @@ import {
 } from "@/lib/publish.functions";
 import { CommentCard } from "@/components/comments/comment-card";
 import {
+  allowCommentPhotos,
   allowCommentReplies,
   categoryColors as buildCategoryColors,
 
@@ -351,6 +352,7 @@ export function PublicMapViewer({
             lat: comment.lat,
             color: colorFor(categoryColors, comment.category),
             initials: initialsFor(comment.author_name),
+            photoUrl: comment.photo_url ?? null,
           }))
         : [],
     [comments, commentsEnabled, commentsVisible, categoryColors],
@@ -735,6 +737,7 @@ export function PublicMapViewer({
                           pin={draftAnchor}
                           geometry={drawMode === "point" ? null : readyGeometry}
                           categories={commentCategories}
+                          allowPhoto={allowCommentPhotos(project.embed_config)}
                           onCategoryChange={setDraftCategory}
                           onClose={() => {
                             resetDraft();

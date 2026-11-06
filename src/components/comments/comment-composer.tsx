@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, Loader2, X } from "lucide-react";
+import { Camera, CheckCircle2, Loader2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,18 @@ import type { CommentGeometry } from "@/components/map/map-canvas";
 
 export type PendingPin = { lng: number; lat: number };
 
+/** Shrink a picked photo to at most 1600px and re-encode it as JPEG. */
+async function compressPhoto(file: File): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(bitmap.width * scale);
+  canvas.height = Math.round(bitmap.height * scale);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", 0.82);
+}
+
 export function CommentComposer({
   username,
   slug,
@@ -24,6 +36,7 @@ export function CommentComposer({
   geometry,
   categories,
   inline = false,
+  allowPhoto = false,
   onClose,
   onSubmitted,
   onCategoryChange,
@@ -37,6 +50,8 @@ export function CommentComposer({
   categories: string[];
   /** Rendered inside another card: no chrome, no header. */
   inline?: boolean;
+  /** Offer a single optional photo attachment. */
+  allowPhoto?: boolean;
   onClose: () => void;
   onSubmitted: () => void;
   /** Lets the map tint the draft pin to the chosen category. */
@@ -49,6 +64,20 @@ export function CommentComposer({
   const setCategory = (value: string) => {
     setCategoryState(value);
     onCategoryChange?.(value);
+  };
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const pickPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    setPhotoBusy(true);
+    setError(null);
+    try {
+      setPhoto(await compressPhoto(file));
+    } catch {
+      setError("That photo could not be read.");
+    } finally {
+      setPhotoBusy(false);
+    }
   };
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +106,7 @@ export function CommentComposer({
           authorName: name.trim() || null,
           authorEmail: email.trim() || null,
           geometry: geometry ?? null,
+          photo: allowPhoto ? photo : null,
         },
       });
       if (!result.ok) {
@@ -137,6 +167,36 @@ export function CommentComposer({
             />
           </div>
 
+          {allowPhoto && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Photo</Label>
+              {photo ? (
+                <div className="relative">
+                  <img src={photo} alt="Your photo" className="max-h-40 w-full rounded-md object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setPhoto(null)}
+                    aria-label="Remove photo"
+                    className="absolute right-1 top-1 rounded-full bg-map-overlay p-1 shadow"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-map-overlay-border px-3 py-2.5 font-secondary text-xs opacity-80 hover:opacity-100">
+                  {photoBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                  Add a photo (optional)
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="sr-only"
+                    onChange={(e) => void pickPhoto(e.target.files?.[0])}
+                  />
+                </label>
+              )}
+            </div>
+          )}
+
           {categories.length > 0 && (
             <div className="space-y-1.5">
               <Label className="text-xs">Category</Label>
@@ -193,7 +253,7 @@ export function CommentComposer({
             <Button size="sm" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button size="sm" onClick={send} disabled={sending}>
+            <Button size="sm" onClick={send} disabled={sending || photoBusy}>
               {sending && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
               Submit
             </Button>

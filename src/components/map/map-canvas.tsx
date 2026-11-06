@@ -36,7 +36,7 @@ import {
 
 import { buildMaskGeometry } from "@/lib/mask-geometry";
 import { rasterPaint, type RasterStyle } from "@/lib/raster-style";
-import { UNCATEGORIZED_COLOR } from "@/lib/comment-style";
+import { PHOTO_THUMBNAIL_ZOOM, UNCATEGORIZED_COLOR } from "@/lib/comment-style";
 
 
 
@@ -121,7 +121,15 @@ type Props = {
   /** Temporary marker for the selected address-search result. */
   searchPin?: [number, number] | null;
   /** Approved comments drawn as their own markers, tinted by category. */
-  commentPins?: { id: string; lng: number; lat: number; color?: string; initials?: string }[];
+  commentPins?: {
+    id: string;
+    lng: number;
+    lat: number;
+    color?: string;
+    initials?: string;
+    /** Photo comments: dot with a camera badge far out, thumbnail up close. */
+    photoUrl?: string | null;
+  }[];
   /** Approved line/area comments drawn as a GeoJSON overlay. */
   commentShapes?: { id: string; geometry: CommentGeometry; color?: string }[];
   /** Shape currently being drawn (live preview) plus its vertices. */
@@ -287,6 +295,19 @@ export default function MapCanvas({
   const onCommentClickRef = useRef(onCommentClick);
   onCommentClickRef.current = onCommentClick;
 
+  // Photo pins switch to thumbnails once the map is zoomed in close.
+  const [photoZoomed, setPhotoZoomed] = useState(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    const update = () => setPhotoZoomed(map.getZoom() >= PHOTO_THUMBNAIL_ZOOM);
+    update();
+    map.on("zoomend", update);
+    return () => {
+      map.off("zoomend", update);
+    };
+  }, [mapLoaded]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded) return;
@@ -295,7 +316,8 @@ export default function MapCanvas({
 
     for (const item of commentPins ?? []) {
       const selected = item.id === selectedCommentId;
-      const key = [item.lng, item.lat, item.color, item.initials, selected].join("|");
+      const thumb = !!item.photoUrl && photoZoomed;
+      const key = [item.lng, item.lat, item.color, item.initials, selected, item.photoUrl ? 1 : 0, thumb].join("|");
       seen.add(item.id);
       const existing = store.get(item.id);
       if (existing && existing.key === key) continue;
@@ -321,7 +343,25 @@ export default function MapCanvas({
         "box-shadow:0 1px 5px rgba(0,0,0,.35)",
         `background:${item.color ?? UNCATEGORIZED_COLOR}`,
         selected ? "outline:2px solid rgba(17,24,39,.25)" : "",
+        "position:relative",
       ].join(";");
+      if (thumb && item.photoUrl) {
+        el.textContent = "";
+        el.style.width = "48px";
+        el.style.height = "48px";
+        el.style.borderRadius = "10px";
+        el.style.border = `3px solid ${selected ? "#111827" : (item.color ?? UNCATEGORIZED_COLOR)}`;
+        el.style.background = `center/cover no-repeat url("${item.photoUrl}") , ${item.color ?? UNCATEGORIZED_COLOR}`;
+      } else if (item.photoUrl) {
+        const badge = document.createElement("span");
+        badge.setAttribute("aria-hidden", "true");
+        badge.style.cssText =
+          "position:absolute;right:-5px;top:-5px;width:14px;height:14px;border-radius:9999px;background:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center";
+        badge.innerHTML =
+          '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.5"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>';
+        el.appendChild(badge);
+      }
+      el.setAttribute("aria-label", item.photoUrl ? "Comment with photo" : "Comment");
       el.addEventListener("click", (event) => {
         event.stopPropagation();
         onCommentClickRef.current?.(item.id);
@@ -340,7 +380,7 @@ export default function MapCanvas({
         store.delete(id);
       }
     }
-  }, [commentPins, selectedCommentId, mapLoaded]);
+  }, [commentPins, selectedCommentId, mapLoaded, photoZoomed]);
 
   // Drop every marker when the canvas unmounts.
   useEffect(
