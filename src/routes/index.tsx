@@ -112,9 +112,9 @@ const examples = [
   },
   {
     tag: "Research & thematic mapping",
-    title: "Mid-Hudson Innovation Ring",
+    title: "Mid-Hudson RING",
     body: "A regional look at community colleges, institutions and economic corridors across the Mid-Hudson Valley.",
-    href: "/justinpaulware/midhudson-innovation-ring",
+    href: "/justinpaulware/midhudson-ring",
     img: midhudsonShot.url,
   },
 ];
