@@ -1,4 +1,5 @@
-import { ArrowLeftRight, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeftRight, Eye, EyeOff, GripVertical, RefreshCw } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
@@ -338,6 +339,7 @@ function CategoryEditor({
   const counts = new Map(field ? valuesFor(field).map((v) => [v.value, v.count]) : []);
 
   const setSpec = (next: CategorySpec) => onChange({ categories: next, mode: "categorized" });
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   const chooseField = (nextField: string) => {
     if (!nextField) {
@@ -429,7 +431,24 @@ function CategoryEditor({
 
           <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
             {spec.entries.map((entry, index) => (
-              <li key={entry.value} className="flex items-center gap-2">
+              <li
+                key={entry.value}
+                draggable
+                onDragStart={() => setDragIndex(index)}
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex !== null && dragIndex !== index) {
+                    const entries = [...spec.entries];
+                    const [moved] = entries.splice(dragIndex, 1);
+                    entries.splice(index, 0, moved!);
+                    setSpec({ ...spec, entries });
+                  }
+                  setDragIndex(null);
+                }}
+                onDragEnd={() => setDragIndex(null)}
+                className={cn("flex items-center gap-2", dragIndex === index && "opacity-50")}
+              >
+                <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground" />
                 <CategoryColor
                   color={entry.color}
                   onChange={(color) => {
