@@ -172,8 +172,17 @@
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl { margin: 0 10px 8px 0; }
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button { width: 27px; height: 27px; }
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-group button + button { border-top: 1px solid var(--map-overlay-border); }
+/* Info control floats out of the stack so opening it never shifts the buttons above. */
+.maplibregl-ctrl-bottom-right { padding-bottom: 34px; }
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact {
+  position: absolute; right: 12.5px; bottom: 10px; margin: 0 !important;
+  border-radius: 9999px !important; min-height: 24px;
+}
+.maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact-show {
+  max-width: calc(100vw - 80px); width: max-content; padding: 3px 28px 3px 10px;
+}
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact:not(.maplibregl-compact-show) {
-  width: 29px; height: 29px; min-height: 0; padding: 0; margin: 0 10px 10px 0;
+  width: 24px; height: 24px; min-height: 0; padding: 0;
 }
 .maplibregl-ctrl-bottom-right .maplibregl-ctrl-attrib.maplibregl-compact::after {
   top: 50%; left: 50%; right: auto; bottom: auto; transform: translate(-50%, -50%);
