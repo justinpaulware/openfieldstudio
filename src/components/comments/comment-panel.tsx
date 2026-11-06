@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Eye, EyeOff, MapPin, MessageSquare, MessageSquarePlus, Pentagon, Plus, Spline, Undo2, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -101,6 +101,22 @@ export function CommentPanel({
   const [open, setOpen] = useState(true);
   // Keep the body visible while composing so the form never hides mid-flow.
   const bodyOpen = open || adding;
+  const listRef = useRef<HTMLUListElement | null>(null);
+  const [listHeight, setListHeight] = useState<number | null>(null);
+  const startResize = (event: React.PointerEvent) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startH = listRef.current?.getBoundingClientRect().height ?? 300;
+    const maxH = Math.max(200, window.innerHeight - 160);
+    const move = (e: PointerEvent) =>
+      setListHeight(Math.min(maxH, Math.max(120, startH + e.clientY - startY)));
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
 
   return (
     <div className="relative w-full">
