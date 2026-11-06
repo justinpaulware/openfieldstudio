@@ -1567,8 +1567,22 @@ function syncLayers(map: MapLibreMap, layers: RenderLayer[]) {
       overflowRegistry.get(map)?.delete(layer.id);
       continue;
     }
-    const sourceId = SRC(layer.id);
+    let sourceId = SRC(layer.id);
     const alongLine = layer.geometryType === "line" && spec.linePlacement === "line";
+    // Polygons get one label anchor each: MapLibre otherwise places a label in
+    // every tile a large shape crosses, repeating the name across the area.
+    if (layer.geometryType === "polygon" || layer.geometryType === "mixed") {
+      const anchorSourceId = `of-labelpt-src-${layer.id}`;
+      const anchors = polygonLabelAnchors(layer.data);
+      const anchorSource = map.getSource(anchorSourceId) as maplibregl.GeoJSONSource | undefined;
+      if (anchorSource) anchorSource.setData(anchors as never);
+      else map.addSource(anchorSourceId, { type: "geojson", data: anchors as never, generateId: true });
+      if (map.getLayer(labelId) && map.getLayer(labelId)?.source !== anchorSourceId) {
+        removeLayerIfPresent(map, labelId);
+        removeLayerIfPresent(map, overflowId);
+      }
+      sourceId = anchorSourceId;
+    }
     if (!map.getLayer(labelId)) {
       map.addLayer({ id: labelId, type: "symbol", source: sourceId });
     } else {
@@ -1641,6 +1655,85 @@ export function raiseCommentLayers(map: MapLibreMap) {
   ]) {
     if (map.getLayer(id)) map.moveLayer(id);
   }
+}
+
+type LabelRing = number[][];
+
+function ringCentroid(ring: LabelRing): { x: number; y: number; area: number } {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [x0, y0] = ring[j]!;
+    const [x1, y1] = ring[i]!;
+    const f = x0! * y1! - x1! * y0!;
+    a += f;
+    cx += (x0! + x1!) * f;
+    cy += (y0! + y1!) * f;
+  }
+  if (Math.abs(a) < 1e-12) {
+    const xs = ring.map((c) => c[0]!), ys = ring.map((c) => c[1]!);
+    return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: (Math.min(...ys) + Math.max(...ys)) / 2, area: 0 };
+  }
+  return { x: cx / (3 * a), y: cy / (3 * a), area: Math.abs(a / 2) };
+}
+
+function inRings(x: number, y: number, rings: LabelRing[]): boolean {
+  let inside = false;
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]!;
+      const [xj, yj] = ring[j]!;
+      if (yi! > y !== yj! > y && x < ((xj! - xi!) * (y - yi!)) / (yj! - yi!) + xi!) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+/** A point inside the polygon: its centroid, or a scanline midpoint when the centroid falls outside. */
+function interiorPoint(rings: LabelRing[]): [number, number] {
+  const c = ringCentroid(rings[0]!);
+  if (inRings(c.x, c.y, rings)) return [c.x, c.y];
+  const xs: number[] = [];
+  for (const ring of rings) {
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i]!;
+      const [xj, yj] = ring[j]!;
+      if (yi! > c.y !== yj! > c.y) xs.push(((xj! - xi!) * (c.y - yi!)) / (yj! - yi!) + xi!);
+    }
+  }
+  xs.sort((a, b) => a - b);
+  let best: [number, number] = [c.x, c.y];
+  let widest = -1;
+  for (let i = 0; i + 1 < xs.length; i += 2) {
+    const w = xs[i + 1]! - xs[i]!;
+    if (w > widest) { widest = w; best = [(xs[i]! + xs[i + 1]!) / 2, c.y]; }
+  }
+  return best;
+}
+
+/** One label point per polygon feature (largest part for multipolygons); other geometry passes through. */
+function polygonLabelAnchors(data: unknown) {
+  const fc = data as { features?: Array<{ type: string; properties?: unknown; geometry?: { type: string; coordinates: unknown } | null }> } | null;
+  const features = [];
+  for (const f of fc?.features ?? []) {
+    const g = f.geometry;
+    if (!g) continue;
+    const parts =
+      g.type === "Polygon" ? [g.coordinates as LabelRing[]] : g.type === "MultiPolygon" ? (g.coordinates as LabelRing[][]) : null;
+    if (!parts) {
+      features.push(f);
+      continue;
+    }
+    let main: LabelRing[] | null = null;
+    let area = -1;
+    for (const p of parts) {
+      if (!p[0]?.length) continue;
+      const a = ringCentroid(p[0]).area;
+      if (a > area) { area = a; main = p; }
+    }
+    if (!main) continue;
+    features.push({ type: "Feature", properties: f.properties ?? {}, geometry: { type: "Point", coordinates: interiorPoint(main) } });
+  }
+  return { type: "FeatureCollection", features };
 }
 
 /** Matches nothing — the overflow layer starts empty until collision is measured. */
