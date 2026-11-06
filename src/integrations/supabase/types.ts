@@ -668,7 +668,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_username_available: {
+        Args: { _self?: string; _username: string }
+        Returns: boolean
+      }
     }
     Enums: {
       comment_status: "pending" | "approved" | "hidden" | "rejected"

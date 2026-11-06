@@ -72,11 +72,10 @@ export function validateUsername(value: string): string | null {
 }
 
 export async function isUsernameAvailable(value: string, selfId?: string): Promise<boolean> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("username", value)
-    .maybeSingle();
-  if (!data) return true;
-  return Boolean(selfId && data.id === selfId);
+  const { data, error } = await supabase.rpc("is_username_available", {
+    _username: value,
+    ...(selfId ? { _self: selfId } : {}),
+  });
+  if (error) return false;
+  return Boolean(data);
 }
