@@ -163,7 +163,7 @@ export function CommentCard({
 
 
       {(replies.length > 0 || (allowReplies && replyOpen)) && (
-        <div className="space-y-2 border-t border-map-overlay-border/60 pt-2">
+        <div className="space-y-2">
           {replies.length > 0 && (
             <button
               type="button"
@@ -266,9 +266,7 @@ export function CommentCard({
 
       {((allowReplies && !replyOpen) || onVote) && (
         <div
-          className={`flex items-center justify-between gap-2 ${
-            replies.length > 0 || replyOpen ? "" : "border-t border-map-overlay-border/60 pt-2"
-          }`}
+          className="flex items-center justify-between gap-2 pt-1"
         >
           {allowReplies && !replyOpen ? (
             <button

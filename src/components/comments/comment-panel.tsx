@@ -202,7 +202,12 @@ export function CommentPanel({
 
 
       {bodyOpen && comments.length > 0 && (
-        <ul className="max-h-[40vh] overflow-y-auto border-t border-map-overlay-border">
+        <>
+        <ul
+          className="space-y-2 overflow-y-auto border-t border-map-overlay-border bg-black/[0.03] p-2"
+          style={{ maxHeight: listHeight ? `${listHeight}px` : "40vh", height: listHeight ?? undefined }}
+          ref={listRef}
+        >
           {comments.map((comment) => (
             <li key={comment.id}>
               <div
@@ -216,8 +221,8 @@ export function CommentPanel({
                   }
                 }}
                 className={cn(
-                  "w-full cursor-pointer border-b border-map-overlay-border px-3 py-2.5 text-left last:border-b-0 hover:bg-black/5",
-                  selectedId === comment.id && "bg-black/5",
+                  "w-full cursor-pointer rounded-md border border-map-overlay-border bg-map-overlay px-3 py-2.5 text-left shadow-sm transition-colors hover:border-map-overlay-foreground/30",
+                  selectedId === comment.id && "border-map-overlay-foreground/50 ring-1 ring-map-overlay-foreground/20",
                 )}
               >
                 <CommentCard
@@ -235,6 +240,20 @@ export function CommentPanel({
             </li>
           ))}
         </ul>
+        {!mobile && (
+          <div
+            role="separator"
+            aria-orientation="horizontal"
+            aria-label="Drag to resize comments"
+            title="Drag to resize · double-click to reset"
+            onPointerDown={startResize}
+            onDoubleClick={() => setListHeight(null)}
+            className="flex h-3 cursor-ns-resize touch-none items-center justify-center border-t border-map-overlay-border hover:bg-black/5"
+          >
+            <span className="h-1 w-8 rounded-full bg-map-overlay-foreground/25" />
+          </div>
+        )}
+        </>
       )}
 
       {bodyOpen && comments.length === 0 && !adding && (
