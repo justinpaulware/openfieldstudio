@@ -74,25 +74,24 @@ export function MobileMapNav({
 
       {!adding && !sheet && (
         <div className="pointer-events-none absolute bottom-8 left-2.5 right-14 z-10 flex items-center gap-2 overflow-x-auto pb-1">
-          {onAddComment && (
-            <button
-              type="button"
-              onClick={() => {
-                onAddComment();
-                onSheet("comments");
-              }}
-              className={cn(chip, "border-transparent bg-map-overlay-foreground text-map-overlay")}
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Comment
-            </button>
-          )}
           {chips.map((item) => (
             <button key={item.id} type="button" onClick={() => onSheet(item.id)} className={chip}>
               <item.icon className="h-3.5 w-3.5" />
               {item.label}
             </button>
           ))}
+          {onAddComment && (
+            <button
+              type="button"
+              onClick={() => {
+                onAddComment();
+              }}
+              className={cn(chip, "ml-auto", "border-transparent bg-map-overlay-foreground text-map-overlay")}
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Comment
+            </button>
+          )}
         </div>
       )}
 
