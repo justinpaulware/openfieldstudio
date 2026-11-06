@@ -322,10 +322,18 @@ function ViewCard({
             </Button>
           )}
 
+          {!view.is_main && (
+            <p className="font-secondary text-xs text-muted-foreground">
+              Navigation, search and embed settings follow the Main view.
+            </p>
+          )}
+
+          {view.is_main && (
+            <>
           {viewNavEnabled && (
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
               <Label htmlFor={`nav-${view.id}`} className="font-secondary text-xs">
-                Show view navigation on this view
+                Show view navigation
               </Label>
               <Switch
                 id={`nav-${view.id}`}
@@ -343,7 +351,7 @@ function ViewCard({
                 Address search
               </Label>
               <p className="font-secondary text-[11px] text-muted-foreground">
-                Lets visitors search for an address or place on this view.
+                Lets visitors search for an address or place on every view of this map.
               </p>
             </div>
             <Switch
@@ -517,6 +525,8 @@ function ViewCard({
             </div>
             <CopyField label="Embed code" value={embedCode} />
           </div>
+            </>
+          )}
         </div>
       )}
     </section>

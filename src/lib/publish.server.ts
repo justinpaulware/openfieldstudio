@@ -88,6 +88,13 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
     ? views.find((v) => v.slug === viewSlug)
     : (views.find((v) => v.id === project.default_view_id) ?? views.find((v) => v.is_main));
   if (!view) return null;
+  // Navigation and address search are map-wide: every view follows the Main view.
+  const shared = views.find((v) => v.is_main) ?? view;
+  const sharedNav = project.view_nav_enabled && shared.show_view_nav && views.length > 1;
+  const sharedSearch =
+    (shared.embed_config as { addressSearch?: boolean } | null)?.addressSearch === true;
+  const sharedLookup =
+    (shared.embed_config as { addressLookup?: unknown } | null)?.addressLookup ?? null;
 
   // Every published view's layer overrides, fetched once. The viewer keeps these
   // client-side so switching views is instant instead of a fresh server round-trip.
@@ -123,9 +130,9 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
     basemap: v.basemap,
     show_legend: v.show_legend,
     scale_units: v.scale_units,
-    viewNav: project.view_nav_enabled && v.show_view_nav && views.length > 1,
-    addressSearch: (v.embed_config as { addressSearch?: boolean } | null)?.addressSearch === true,
-    addressLookup: (v.embed_config as { addressLookup?: unknown } | null)?.addressLookup ?? null,
+    viewNav: sharedNav,
+    addressSearch: sharedSearch,
+    addressLookup: sharedLookup,
     overrides: Object.fromEntries(
       (byView.get(v.id) ?? []).map((row) => [
         row.layer_id,
@@ -177,11 +184,9 @@ export async function loadPublishedMap(username: string, slug: string, viewSlug?
     })),
     /** All published views' settings + layer overrides, for instant switching. */
     viewConfigs,
-    viewNav: project.view_nav_enabled && view.show_view_nav && views.length > 1,
-    // Per-view address search flag, stored alongside the embed settings.
-    addressSearch:
-      (view.embed_config as { addressSearch?: boolean } | null)?.addressSearch === true,
-    addressLookup: (view.embed_config as { addressLookup?: unknown } | null)?.addressLookup ?? null,
+    viewNav: sharedNav,
+    addressSearch: sharedSearch,
+    addressLookup: sharedLookup,
     /** Layers with the active view's overrides already applied. */
     layers,
     /** Layers exactly as stored on the project, before any view override. */
