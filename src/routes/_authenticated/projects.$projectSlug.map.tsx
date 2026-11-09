@@ -1036,7 +1036,36 @@ function MapEditor() {
 
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-72 shrink-0 flex-col border-r border-border bg-card/40 md:flex">
+        <aside
+          className="relative hidden shrink-0 flex-col border-r border-border bg-card/40 md:flex"
+          style={{ width: layersWidth }}
+        >
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize layers panel"
+            title="Drag to resize · double-click to reset"
+            className="absolute inset-y-0 -right-1 z-20 w-2 cursor-ew-resize transition-colors hover:bg-primary/30"
+            onDoubleClick={() => setLayersWidth(LAYERS_DEFAULT_W)}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              const startX = e.clientX;
+              const startW = layersWidth;
+              const move = (ev: PointerEvent) => {
+                setLayersWidth(
+                  Math.min(LAYERS_MAX_W, Math.max(LAYERS_DEFAULT_W, startW + ev.clientX - startX)),
+                );
+              };
+              const up = () => {
+                window.removeEventListener("pointermove", move);
+                window.removeEventListener("pointerup", up);
+                document.body.style.cursor = "";
+              };
+              document.body.style.cursor = "ew-resize";
+              window.addEventListener("pointermove", move);
+              window.addEventListener("pointerup", up);
+            }}
+          />
           <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
             <div className="flex items-baseline gap-2">
               <h2 className="text-sm font-semibold">Layers</h2>

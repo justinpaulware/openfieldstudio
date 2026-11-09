@@ -167,7 +167,7 @@ function NameEditor({
     return (
       <button
         type="button"
-        title="Click to rename"
+        title={`${value} — click to rename`}
         onClick={(event) => {
           event.stopPropagation();
           onStartEdit();
