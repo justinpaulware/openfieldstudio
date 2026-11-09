@@ -501,13 +501,14 @@ export function LayerPanel({
           </div>
 
           {filteredFor?.(layer) && (
-            <Badge
-              variant="secondary"
-              className="h-4 shrink-0 px-1.5 text-[10px] font-normal"
+            <span
+              className="inline-flex shrink-0 text-muted-foreground"
               title="This layer has an active filter"
+              aria-label="Filtered"
+              role="img"
             >
-              Filtered
-            </Badge>
+              <Filter className="h-3 w-3" />
+            </span>
           )}
 
           <span className="shrink-0 font-secondary text-[11px] text-muted-foreground">
