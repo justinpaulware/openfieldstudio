@@ -157,6 +157,9 @@ export const Route = createFileRoute("/_authenticated/projects/$projectSlug/map"
 type LayerWithStyle = LayerRow & { layer_styles: StyleRelation };
 
 
+const LAYERS_DEFAULT_W = 288;
+const LAYERS_MAX_W = 560;
+
 function MapEditor() {
   const projectId = useProjectId();
   const queryClient = useQueryClient();
@@ -164,6 +167,15 @@ function MapEditor() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [layersWidth, setLayersWidth] = useState(LAYERS_DEFAULT_W);
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem("of-layers-width"));
+    if (saved) setLayersWidth(Math.min(LAYERS_MAX_W, Math.max(LAYERS_DEFAULT_W, saved)));
+  }, []);
+  useEffect(() => {
+    window.localStorage.setItem("of-layers-width", String(layersWidth));
+    window.dispatchEvent(new Event("resize"));
+  }, [layersWidth]);
   const [tableLayerId, setTableLayerId] = useState<string | null>(null);
   const [viewDirty, setViewDirty] = useState(false);
   const viewRef = useRef<{
