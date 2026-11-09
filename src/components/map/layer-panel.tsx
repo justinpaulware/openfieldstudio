@@ -34,7 +34,6 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   geometryKind,
