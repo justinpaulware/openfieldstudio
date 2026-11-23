@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { duplicateProject } from "@/lib/duplicate-project";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -478,20 +479,7 @@ export function ProjectGallery({ mode }: { mode: "all" | "published" }) {
 
   const duplicate = useMutation({
     mutationFn: async (project: GalleryProject) => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) throw new Error("Not signed in");
-      const copyTitle = `${project.title} (copy)`;
-      const slug = await uniqueProjectSlug(auth.user.id, copyTitle);
-      const { error } = await supabase.from("projects").insert({
-        owner_id: auth.user.id,
-        title: copyTitle,
-        description: project.description,
-        slug,
-        published_slug: slug,
-        tags: project.tags,
-        folder_id: project.folder_id,
-      });
-      if (error) throw error;
+      await duplicateProject(project.id);
     },
     onSuccess: () => {
       toast.success("Project duplicated.");
