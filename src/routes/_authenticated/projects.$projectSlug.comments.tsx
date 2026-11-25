@@ -12,6 +12,7 @@ import {
   Pencil,
   Pentagon,
   Plus,
+  Check,
   Spline,
   Trash2,
   Upload,
@@ -71,6 +72,7 @@ const MapCanvas = lazy(() => import("@/components/map/map-canvas"));
  */
 const STATUS_FILTERS = [
   { id: "all", label: "All" },
+  { id: "pending", label: "Pending" },
   { id: "visible", label: "Visible" },
   { id: "hidden", label: "Hidden" },
 ] as const;
@@ -319,6 +321,8 @@ function ProjectComments() {
   /** Whether visitors may reply to each other's comments. */
   const [repliesAllowed, setRepliesAllowed] = useState(false);
   const [photosAllowed, setPhotosAllowed] = useState(false);
+  /** Visitor comments wait for review before showing on the public map. */
+  const [requireApproval, setRequireApproval] = useState(false);
 
   const [importOpen, setImportOpen] = useState(false);
   /** Comment currently open in the edit dialog. */
@@ -335,6 +339,7 @@ function ProjectComments() {
     setSourceVisible(showCommentSource(project.embed_config));
     setRepliesAllowed(allowCommentReplies(project.embed_config));
     setPhotosAllowed(allowCommentPhotos(project.embed_config));
+    setRequireApproval(project.comments_require_approval ?? false);
 
   }, [project]);
 
@@ -392,6 +397,7 @@ function ProjectComments() {
         .from("projects")
         .update({
           comments_enabled: commentsEnabled,
+          comments_require_approval: requireApproval,
           // Kept in sync for older readers that only know the single flag.
           comments_allow_shapes: geometryTypes.line || geometryTypes.area,
           comment_categories: categoryList,
@@ -436,11 +442,22 @@ function ProjectComments() {
     const term = search.trim().toLowerCase();
     return (comments ?? []).filter((c) => {
       const isHidden = isCommentHidden(c.status);
+      const isPending = c.status === "pending";
       const statusOk =
-        statusFilter === "all" || (statusFilter === "hidden" ? isHidden : !isHidden);
+        statusFilter === "all" ||
+        (statusFilter === "hidden"
+          ? isHidden
+          : statusFilter === "pending"
+            ? isPending
+            : !isHidden && !isPending);
       return statusOk && (!term || c.body.toLowerCase().includes(term));
     });
   }, [comments, statusFilter, search]);
+
+  const pendingCount = useMemo(
+    () => (comments ?? []).filter((c) => c.status === "pending").length,
+    [comments],
+  );
 
   const runExport = useServerFn(exportComments);
   const [exporting, setExporting] = useState(false);
@@ -545,6 +562,11 @@ function ProjectComments() {
                 onClick={() => setStatusFilter(option.id)}
               >
                 {option.label}
+                {option.id === "pending" && pendingCount > 0 && (
+                  <span className="ml-1.5 rounded-full bg-primary px-1.5 text-[10px] leading-4 text-primary-foreground">
+                    {pendingCount}
+                  </span>
+                )}
               </Button>
             ))}
           </div>
@@ -663,6 +685,22 @@ function ProjectComments() {
                 />
                 </div>
                 <div className="flex shrink-0 items-start gap-1">
+                  {comment.status === "pending" && (
+                    <>
+                      <span className="mr-1 mt-2 inline-flex h-5 items-center rounded-full border border-border bg-muted px-2 font-secondary text-[10px] leading-none text-muted-foreground">
+                        Pending review
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Approve comment"
+                        aria-label="Approve comment"
+                        onClick={() => setStatus.mutate({ id: comment.id, status: "approved" })}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
 
 
                   <Button
@@ -716,7 +754,9 @@ function ProjectComments() {
         <div>
           <h2 className="text-sm font-semibold">Comment settings</h2>
           <p className="mt-1 font-secondary text-xs text-muted-foreground">
-            Comments appear on the published map right away.
+            {requireApproval
+              ? "New visitor comments wait for your approval before they appear."
+              : "Comments appear on the published map right away."}
           </p>
         </div>
         <Button
@@ -736,6 +776,21 @@ function ProjectComments() {
             checked={commentsEnabled}
             onCheckedChange={setCommentsEnabled}
           />
+        </div>
+        <div className="space-y-1 rounded-lg border border-border px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="require-approval" className="font-secondary text-xs">
+              Require review before publishing
+            </Label>
+            <Switch
+              id="require-approval"
+              checked={requireApproval}
+              onCheckedChange={setRequireApproval}
+            />
+          </div>
+          <p className="font-secondary text-[11px] text-muted-foreground">
+            When on, new comments from visitors stay pending until you approve them.
+          </p>
         </div>
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
           <Label htmlFor="allow-comment-replies" className="font-secondary text-xs">

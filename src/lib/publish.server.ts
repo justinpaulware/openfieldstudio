@@ -263,7 +263,7 @@ export async function submitPublicComment(input: {
     ? await supabase
         .from("projects")
         .select(
-          "id, comments_enabled, comment_categories, comments_allow_shapes, embed_config",
+          "id, comments_enabled, comments_require_approval, comment_categories, comments_allow_shapes, embed_config",
         )
         .eq("owner_id", ownerId)
         .eq("published_slug", input.slug)
@@ -330,7 +330,7 @@ export async function submitPublicComment(input: {
     source: "Webmap",
   });
   if (error) return { ok: false as const, error: "Your comment could not be saved." };
-  return { ok: true as const };
+  return { ok: true as const, pending: Boolean(project.comments_require_approval) };
 }
 
 

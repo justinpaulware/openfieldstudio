@@ -82,6 +82,7 @@ export function CommentComposer({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [pendingReview, setPendingReview] = useState(false);
 
   const send = async () => {
     setError(null);
@@ -113,6 +114,7 @@ export function CommentComposer({
         setError(result.error);
         return;
       }
+      setPendingReview(Boolean(result.pending));
       setDone(true);
       onSubmitted();
     } catch {
@@ -148,7 +150,11 @@ export function CommentComposer({
       {done ? (
         <div className="mt-3 flex items-start gap-2 font-secondary text-xs">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-          <p>Thanks — your comment is on the map.</p>
+          <p>
+            {pendingReview
+              ? "Thanks — your comment was submitted and will appear on the map once reviewed."
+              : "Thanks — your comment is on the map."}
+          </p>
         </div>
       ) : (
         <div className={inline ? "space-y-3" : "mt-3 space-y-3"}>
