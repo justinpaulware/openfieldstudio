@@ -53,7 +53,7 @@ export function CommentComposer({
   /** Offer a single optional photo attachment. */
   allowPhoto?: boolean;
   onClose: () => void;
-  onSubmitted: () => void;
+  onSubmitted: (pending: boolean) => void;
   /** Lets the map tint the draft pin to the chosen category. */
   onCategoryChange?: (category: string) => void;
 }) {
@@ -116,7 +116,7 @@ export function CommentComposer({
       }
       setPendingReview(Boolean(result.pending));
       setDone(true);
-      onSubmitted();
+      onSubmitted(Boolean(result.pending));
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {

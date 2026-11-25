@@ -6,7 +6,7 @@ import {
   ViewSwitcherCard,
   type SwitcherView,
 } from "@/components/public/view-switcher-card";
-import { Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { PendingPin } from "@/components/comments/comment-composer";
@@ -218,6 +218,12 @@ export function PublicMapViewer({
   const [vertices, setVertices] = useState<[number, number][]>([]);
   const [commentsVisible, setCommentsVisible] = useState(true);
   const [selectedComment, setSelectedComment] = useState<string | null>(null);
+  const [submitNotice, setSubmitNotice] = useState<"pending" | "posted" | null>(null);
+  useEffect(() => {
+    if (!submitNotice) return;
+    const t = window.setTimeout(() => setSubmitNotice(null), 10000);
+    return () => window.clearTimeout(t);
+  }, [submitNotice]);
   const [searchPin, setSearchPin] = useState<[number, number] | null>(null);
   const showSearch =
     search.search !== false &&
@@ -743,7 +749,8 @@ export function PublicMapViewer({
                             resetDraft();
                             setCommentMode(false);
                           }}
-                          onSubmitted={() => {
+                          onSubmitted={(pending: boolean) => {
+                      setSubmitNotice(pending ? "pending" : "posted");
                             void commentsQuery.refetch();
                             resetDraft();
                             setCommentMode(false);
@@ -770,7 +777,8 @@ export function PublicMapViewer({
                       }
                     }}
 
-                    onSubmitted={() => {
+                    onSubmitted={(pending: boolean) => {
+                      setSubmitNotice(pending ? "pending" : "posted");
                       void commentsQuery.refetch();
                       resetDraft();
                       setCommentMode(false);
@@ -781,6 +789,33 @@ export function PublicMapViewer({
 
   return (
     <div className="fixed inset-0 flex h-dvh w-full overflow-hidden bg-background">
+      {submitNotice && (
+        <div
+          role="status"
+          className="fixed left-1/2 top-20 z-50 w-[22rem] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-lg border border-map-overlay-border bg-map-overlay p-3 text-map-overlay-foreground shadow-[var(--shadow-lift)]"
+        >
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold">
+                {submitNotice === "pending" ? "Comment received" : "Comment posted"}
+              </p>
+              <p className="mt-1 font-secondary text-xs">
+                {submitNotice === "pending"
+                  ? "Thanks! Your comment has been submitted and is being reviewed by the map creator. It will appear on the public map once approved."
+                  : "Thanks! Your comment is now on the map."}
+              </p>
+              <button type="button" onClick={() => setSubmitNotice(null)} className="mt-2 rounded-md border border-map-overlay-border px-2.5 py-1 text-xs font-medium hover:bg-black/5">
+                Done
+              </button>
+            </div>
+            <button type="button" onClick={() => setSubmitNotice(null)} aria-label="Close" className="rounded p-0.5 opacity-60 hover:bg-black/5 hover:opacity-100">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="relative min-w-0 flex-1">
         <ClientOnly fallback={<MapFallback />}>
           <Suspense fallback={<MapFallback />}>

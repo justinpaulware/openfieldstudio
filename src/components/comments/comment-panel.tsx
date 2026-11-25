@@ -71,7 +71,7 @@ export function CommentPanel({
   onUndo?: () => void;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onSubmitted: () => void;
+  onSubmitted: (pending: boolean) => void;
   colors: CategoryColors;
   onVote?: (commentId: string, vote: -1 | 0 | 1) => void;
   /** Post a reply under a comment; only used when replies are allowed. */
